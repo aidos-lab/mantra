@@ -6,3 +6,4 @@ bu/
 test_*
 **/__pycache__
 **/*.egg-info
+processed/**
