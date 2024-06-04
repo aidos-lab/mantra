@@ -14,21 +14,27 @@ as well as *processing* the data types.
 import json
 import re
 from typing import List, Literal, Optional, Dict
-
 import numpy as np
 import pandas as pd
 import pydantic
-
-
-from sklearn import manifold
-from torch_geometric.data import download_url, extract_gz, makedirs
-
+import os
+import os.path as osp
+import ssl
+import sys
+import urllib
 from typing import Optional
-
+import fsspec
+import gzip
+import sys
 
 # Constants
 
 URL = "https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/"
+
+
+################################################################################
+### Pydantic helper classes
+################################################################################
 
 
 class Triangulation(pydantic.BaseModel):
@@ -59,10 +65,87 @@ class Homology(pydantic.BaseModel):
     torsion_coefficients: List[str]
     betti_numbers: List[int]
 
-    # @pydantic.model_validator(mode="after")
-    # def check_model(self):
-    #     assert len(self.betti_numbers) == 4
-    #     assert len(self.torsion_coefficients) == 4
+
+################################################################################
+### Copied from torch geometric
+################################################################################
+
+
+def makedirs(path):
+    os.makedirs(path, exist_ok=True)
+
+
+def maybe_log(path: str, log: bool = True) -> None:
+    if log and "pytest" not in sys.modules:
+        print(f"Extracting {path}", file=sys.stderr)
+
+
+def download_url(
+    url: str,
+    folder: str,
+    log: bool = True,
+    filename: Optional[str] = None,
+):
+    r"""Downloads the content of an URL to a specific folder.
+
+    Args:
+        url (str): The URL.
+        folder (str): The folder.
+        log (bool, optional): If :obj:`False`, will not print anything to the
+            console. (default: :obj:`True`)
+        filename (str, optional): The filename of the downloaded file. If set
+            to :obj:`None`, will correspond to the filename given by the URL.
+            (default: :obj:`None`)
+    """
+    if filename is None:
+        filename = url.rpartition("/")[2]
+        filename = filename if filename[0] == "?" else filename.split("?")[0]
+
+    path = os.path.join(folder, filename)
+
+    if fsspec.core.url_to_fs(path)[0].exists(path):  # pragma: no cover
+        if log and "pytest" not in sys.modules:
+            print(f"Using existing file {filename}", file=sys.stderr)
+        return path
+
+    if log and "pytest" not in sys.modules:
+        print(f"Downloading {url}", file=sys.stderr)
+
+    os.makedirs(folder, exist_ok=True)
+
+    context = ssl._create_unverified_context()
+    data = urllib.request.urlopen(url, context=context)
+
+    with fsspec.open(path, "wb") as f:
+        # workaround for https://bugs.python.org/issue42853
+        while True:
+            chunk = data.read(10 * 1024 * 1024)
+            if not chunk:
+                break
+            f.write(chunk)
+
+    return path
+
+
+def extract_gz(path: str, folder: str, log: bool = True) -> None:
+    r"""Extracts a gz archive to a specific folder.
+
+    Args:
+        path (str): The path to the tar archive.
+        folder (str): The folder.
+        log (bool, optional): If :obj:`False`, will not print anything to the
+            console. (default: :obj:`True`)
+    """
+    maybe_log(path, log)
+    path = osp.abspath(path)
+    with gzip.open(path, "r") as r:
+        with open(osp.join(folder, ".".join(path.split(".")[:-1])), "wb") as w:
+            w.write(r.read())
+
+
+################################################################################
+### Processing scripts
+################################################################################
 
 
 def process_triangulation_line(line: str) -> Triangulation:
@@ -110,9 +193,6 @@ def process_triangulation(content: str) -> List[Triangulation]:
 
 
 def process_3_manifold_type_line(line: str) -> TopologicalType:
-    # 2 manifolds
-    # match = re.match(r"(manifold_.*):\s+\( ([+-])\s;\s(\d)\s\)(\s=\s)?(.*)?", line)
-    # 3 manifolds
     match = re.match(r"(manifold_.*):(.*)?", line)
     return TopologicalType(
         id=match.group(1),
@@ -179,8 +259,8 @@ def merge_triangulation(
 
 def process_manifolds(
     filename_triangulation: str,
-    filename_homology: str | None = None,
-    filename_type: str | None = None,
+    filename_homology: str,
+    filename_type: str,
     manifold_dim: Literal[2, 3] = 2,
 ) -> List[Dict]:
     homology_groups, types = {}, {}
@@ -191,23 +271,20 @@ def process_manifolds(
     triangulations = process_triangulation(lines)
 
     # Parse homology
-    if filename_homology:
-        with open(filename_homology) as f:
-            lines = f.read()
-        homology_groups = process_2_manifold_homology(lines)
+    with open(filename_homology) as f:
+        lines = f.read()
+    homology_groups = process_2_manifold_homology(lines)
 
     # Parse type for 2 manifolds
     if manifold_dim == 2:
-        if filename_type:
-            with open(filename_type) as f:
-                lines = f.read()
-            types = process_2_manifold_type(lines)
+        with open(filename_type) as f:
+            lines = f.read()
+        types = process_2_manifold_type(lines)
     # Parse type for 3 manifolds
     elif manifold_dim == 3:
-        if filename_type:
-            with open(filename_type) as f:
-                lines = f.read()
-            types = process_3_manifold_type(lines)
+        with open(filename_type) as f:
+            lines = f.read()
+        types = process_3_manifold_type(lines)
 
     if filename_homology or filename_type:
         triangulations = merge_triangulation(triangulations, homology_groups, types)
@@ -223,18 +300,35 @@ def download_files(file_names) -> None:
         download_url(URL + file_name, "./data")
 
 
-def main():
+def main(manifold_dim):
     """
-    Processes the 2 dimensional manifolds.
+    Processes the 2 and 3 dimensional manifolds.
     """
-    manifold_dim = 2
-    file_names = [
-        f"{manifold_dim}_manifolds_all.txt",
-        f"{manifold_dim}_manifolds_all_hom.txt",
-        f"{manifold_dim}_manifolds_all_type.txt",
-    ]
+    if manifold_dim == 2:
+        file_names = [
+            f"{manifold_dim}_manifolds_all.txt",
+            f"{manifold_dim}_manifolds_all_hom.txt",
+            f"{manifold_dim}_manifolds_all_type.txt",
+            f"{manifold_dim}_manifolds_10_all.txt",
+            f"{manifold_dim}_manifolds_10_all_hom.txt",
+            f"{manifold_dim}_manifolds_10_all_type.txt",
+        ]
+    elif manifold_dim == 3:
+        file_names = [
+            f"{manifold_dim}_manifolds_all.txt",
+            f"{manifold_dim}_manifolds_all_hom.txt",
+            f"{manifold_dim}_manifolds_all_type.txt",
+            f"{manifold_dim}_manifolds_10_all.txt.gz",
+            f"{manifold_dim}_manifolds_10_all_hom.txt",
+            f"{manifold_dim}_manifolds_10_all_type.txt",
+        ]
+
     makedirs("./data")
     download_files(file_names=file_names)
+    gz_files = [file for file in file_names if file.endswith("gz")]
+    if gz_files:
+        for gz_file in gz_files:
+            extract_gz("./data/" + gz_file, "./data")
 
     triangulations = process_manifolds(
         f"./data/{manifold_dim}_manifolds_all.txt",
@@ -242,14 +336,6 @@ def main():
         f"./data/{manifold_dim}_manifolds_all_type.txt",
         manifold_dim=manifold_dim,
     )
-
-    # 2 manifolds with 10 vertices
-    file_names = [
-        f"{manifold_dim}_manifolds_10_all.txt",
-        f"{manifold_dim}_manifolds_10_all_hom.txt",
-        f"{manifold_dim}_manifolds_10_all_type.txt",
-    ]
-    download_files(file_names=file_names)
 
     triangulations_10 = process_manifolds(
         f"./data/{manifold_dim}_manifolds_10_all.txt",
@@ -261,49 +347,12 @@ def main():
     # Merge the results
     triangulations += triangulations_10
 
-    with open(f"{manifold_dim}_manifolds.json", "w") as f:
-        json.dump(triangulations, f)
-
-    """
-    Processes the 3 dimensional manifolds.
-    """
-    manifold_dim = 3
-    file_names = [
-        f"{manifold_dim}_manifolds_all.txt",
-        f"{manifold_dim}_manifolds_all_hom.txt",
-        f"{manifold_dim}_manifolds_all_type.txt",
-    ]
-    download_files(file_names=file_names)
-
-    triangulations = process_manifolds(
-        f"./data/{manifold_dim}_manifolds_all.txt",
-        f"./data/{manifold_dim}_manifolds_all_hom.txt",
-        f"./data/{manifold_dim}_manifolds_all_type.txt",
-        manifold_dim=manifold_dim,
-    )
-
-    # 2 manifolds with 10 vertices
-    file_names = [
-        f"{manifold_dim}_manifolds_10_all.txt.gz",
-        f"{manifold_dim}_manifolds_10_all_hom.txt",
-        f"{manifold_dim}_manifolds_10_all_type.txt",
-    ]
-    download_files(file_names=file_names)
-    extract_gz(f"./data/{manifold_dim}_manifolds_10_all.txt.gz", "./data")
-
-    triangulations_10 = process_manifolds(
-        f"./data/{manifold_dim}_manifolds_10_all.txt",
-        f"./data/{manifold_dim}_manifolds_10_all_hom.txt",
-        f"./data/{manifold_dim}_manifolds_10_all_type.txt",
-        manifold_dim=manifold_dim,
-    )
-
-    # Merge the results
-    triangulations += triangulations_10
-
-    with open(f"{manifold_dim}_manifolds.json", "w") as f:
+    with open(f"./processed/{manifold_dim}_manifolds.json", "w") as f:
         json.dump(triangulations, f)
 
 
 if __name__ == "__main__":
-    main()
+    makedirs("./data")
+    makedirs("./processed")
+    main(manifold_dim=2)
+    main(manifold_dim=3)
