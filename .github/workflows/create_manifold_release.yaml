@@ -37,5 +37,5 @@ jobs:
           title: Dataset Release
           prerelease: false
           files: |
-            ./2_manifolds.json.gz
-            ./3_manifolds.json.gz
+            ./processed/2_manifolds.json.gz
+            ./processed/3_manifolds.json.gz
