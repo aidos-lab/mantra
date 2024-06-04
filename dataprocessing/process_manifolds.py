@@ -17,15 +17,8 @@ from typing import List, Literal, Optional, Dict
 import numpy as np
 import pandas as pd
 import pydantic
-import os
-import os.path as osp
-import ssl
-import sys
-import urllib
-from typing import Optional
-import fsspec
-import gzip
-import sys
+from torch_geometric.data import extract_gz, makedirs, download_url
+
 
 # Constants
 
@@ -64,83 +57,6 @@ class Homology(pydantic.BaseModel):
     id: str
     torsion_coefficients: List[str]
     betti_numbers: List[int]
-
-
-################################################################################
-### Copied from torch geometric
-################################################################################
-
-
-def makedirs(path):
-    os.makedirs(path, exist_ok=True)
-
-
-def maybe_log(path: str, log: bool = True) -> None:
-    if log and "pytest" not in sys.modules:
-        print(f"Extracting {path}", file=sys.stderr)
-
-
-def download_url(
-    url: str,
-    folder: str,
-    log: bool = True,
-    filename: Optional[str] = None,
-):
-    r"""Downloads the content of an URL to a specific folder.
-
-    Args:
-        url (str): The URL.
-        folder (str): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
-            console. (default: :obj:`True`)
-        filename (str, optional): The filename of the downloaded file. If set
-            to :obj:`None`, will correspond to the filename given by the URL.
-            (default: :obj:`None`)
-    """
-    if filename is None:
-        filename = url.rpartition("/")[2]
-        filename = filename if filename[0] == "?" else filename.split("?")[0]
-
-    path = os.path.join(folder, filename)
-
-    if fsspec.core.url_to_fs(path)[0].exists(path):  # pragma: no cover
-        if log and "pytest" not in sys.modules:
-            print(f"Using existing file {filename}", file=sys.stderr)
-        return path
-
-    if log and "pytest" not in sys.modules:
-        print(f"Downloading {url}", file=sys.stderr)
-
-    os.makedirs(folder, exist_ok=True)
-
-    context = ssl._create_unverified_context()
-    data = urllib.request.urlopen(url, context=context)
-
-    with fsspec.open(path, "wb") as f:
-        # workaround for https://bugs.python.org/issue42853
-        while True:
-            chunk = data.read(10 * 1024 * 1024)
-            if not chunk:
-                break
-            f.write(chunk)
-
-    return path
-
-
-def extract_gz(path: str, folder: str, log: bool = True) -> None:
-    r"""Extracts a gz archive to a specific folder.
-
-    Args:
-        path (str): The path to the tar archive.
-        folder (str): The folder.
-        log (bool, optional): If :obj:`False`, will not print anything to the
-            console. (default: :obj:`True`)
-    """
-    maybe_log(path, log)
-    path = osp.abspath(path)
-    with gzip.open(path, "r") as r:
-        with open(osp.join(folder, ".".join(path.split(".")[:-1])), "wb") as w:
-            w.write(r.read())
 
 
 ################################################################################
