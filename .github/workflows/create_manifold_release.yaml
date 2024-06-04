@@ -17,5 +17,5 @@ jobs:
 
       - name: Install requirements
         run: | 
-        python -m pip install -r requirements.txt
-        python ./dataprocessing/process_manifolds.py  
+          python -m pip install -r requirements.txt
+          python ./dataprocessing/process_manifolds.py  
