@@ -10,20 +10,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
     
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with: 
-          python-version: "3.10.11"
-
-      - uses: actions/cache@v3
-        id: cache
+      - uses: actions/setup-python@v5
         with:
-          path: ${{ env.pythonLocation }}
-          key: ${{ runner.os }}-python-${{ env.pythonLocation }}-${{ hashFiles('requirements.txt') }}-cache
-
-      - name: Install Dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: pip install -r requirements.txt
+          python-version: '3.10.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
 
       - name: Process Manifolds
         run: | 
