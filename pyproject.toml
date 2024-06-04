@@ -22,7 +22,7 @@ maintainers = [
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
 ]
 description = "A topological datasets for bechmarking higher order methods."
-readme = "README.rst"
+readme = "README.md"
 license = {file = "LICENSE.txt"}
 keywords = ["topology", "deep learning", "topology", "tda"]
 classifiers = [
