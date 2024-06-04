@@ -34,7 +34,8 @@ jobs:
       - uses: "marvinpinto/action-automatic-releases@latest"
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          title: Dataset Release
+          automatic_release_tag: "latest"
+          title: "Dataset Release"
           prerelease: false
           files: |
             ./processed/2_manifolds.json.gz
