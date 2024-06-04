@@ -2,3 +2,7 @@
 data/
 bu/
 *.json
+
+test_*
+**/__pycache__
+**/*.egg-info

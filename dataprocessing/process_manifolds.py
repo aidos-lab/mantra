@@ -21,7 +21,7 @@ import pydantic
 
 
 from sklearn import manifold
-from torch_geometric.data import download_url, extract_gz
+from torch_geometric.data import download_url, extract_gz, makedirs
 
 from typing import Optional
 
@@ -233,6 +233,7 @@ def main():
         f"{manifold_dim}_manifolds_all_hom.txt",
         f"{manifold_dim}_manifolds_all_type.txt",
     ]
+    makedirs("./data")
     download_files(file_names=file_names)
 
     triangulations = process_manifolds(
@@ -260,7 +261,7 @@ def main():
     # Merge the results
     triangulations += triangulations_10
 
-    with open(f"{manifold_dim}_triangulations.json", "w") as f:
+    with open(f"{manifold_dim}_manifolds.json", "w") as f:
         json.dump(triangulations, f)
 
     """
@@ -288,7 +289,7 @@ def main():
         f"{manifold_dim}_manifolds_10_all_type.txt",
     ]
     download_files(file_names=file_names)
-    # extract_gz(f"./data/{manifold_dim}_manifolds_10_all.txt.gz", "./data")
+    extract_gz(f"./data/{manifold_dim}_manifolds_10_all.txt.gz", "./data")
 
     triangulations_10 = process_manifolds(
         f"./data/{manifold_dim}_manifolds_10_all.txt",
@@ -300,7 +301,7 @@ def main():
     # Merge the results
     triangulations += triangulations_10
 
-    with open(f"{manifold_dim}_triangulations.json", "w") as f:
+    with open(f"{manifold_dim}_manifolds.json", "w") as f:
         json.dump(triangulations, f)
 
 
