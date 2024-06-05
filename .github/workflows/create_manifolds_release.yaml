@@ -1,4 +1,4 @@
-name: Create release of manifolds data set
+name: Create release of manifolds dataset
 
 on: 
   workflow_dispatch:
@@ -26,7 +26,7 @@ jobs:
         with:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
-          title: "Manifolds Data Set"
+          title: "Manifolds Dataset"
           prerelease: false
           files: |
             2_manifolds.json.gz
