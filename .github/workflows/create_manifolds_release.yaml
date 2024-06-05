@@ -1,0 +1,33 @@
+name: Create release of manifolds data set
+
+on: 
+  workflow_dispatch:
+
+jobs: 
+  run-python: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout code
+        uses: actions/checkout@v3
+  
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10.11'
+          cache: 'pip'
+      - run: pip install -r requirements.txt
+
+      - name: Run conversion script
+        run: | 
+          sh script/convert_manifold.sh
+
+      - name: Create release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          title: "Manifolds Data Set"
+          prerelease: false
+          files: |
+            2_manifolds.json.gz
+            3_manifolds.json.gz
