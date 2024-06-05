@@ -25,15 +25,15 @@ dataset = SimplicialDataset(root="./data", manifold="2")
 ## Data Format
 
 > [!NOTE]
-> This section is *information-oriented* and provides a brief overview
-> of the data format, followed by a brief example.
+> This section is mostly *information-oriented* and provides a brief
+> overview of the data format, followed by a short [example](#example).
 
 Each dataset consists of a list of triangulations, with each
 triangulation having the following attributes:
 
 * `id` (required, `str`): This attribute refers to the original ID of
   the triangulation as used by the creator of the dataset (see
-  [below](#Acknowledgments)). This facilitates comparisons to the
+  [below](#acknowledgments)). This facilitates comparisons to the
   original dataset if necessary.
 
 * `triangulation` (required, `list` of `list` of `int`): A doubly-nested
