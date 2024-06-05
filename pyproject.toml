@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 packages = ["mantra"]
 
 [project]
-name = "mantra"
+name = "mantra-dataset"
 version = "0.0.0"
 dependencies = [
     "numpy",
