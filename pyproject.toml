@@ -21,10 +21,17 @@ authors = [
 maintainers = [
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
 ]
-description = "A topological datasets for bechmarking higher order methods."
+description = "A package for working with higher-order datasets like manifold triangulations."
 readme = "README.md"
-license = {file = "LICENSE.txt"}
-keywords = ["topology", "deep learning", "topology", "tda"]
+license = {file = "LICENSE.md"}
+keywords = [
+  "topology",
+  "deep learning",
+  "tda",
+  "tdl",
+  "topological data analysis",
+  "topological deep learning"
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
