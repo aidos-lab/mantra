@@ -22,6 +22,47 @@ dataset = SimplicialDataset(root="./data", manifold="2")
 
 ## Folder Structure
 
+## Data Format
+
+Each dataset consists of a list of triangulations, with each
+triangulation having the following attributes:
+
+* `id` (required, `str`): This attribute refers to the original ID of
+  the triangulation as used by the creator of the dataset (see
+  [below](#Acknowledgments)). This facilitates comparisons to the
+  original dataset if necessary.
+
+* `triangulation` (required, `list` of `list` of `int`): A doubly-nested
+  list of the top-level simplices of the triangulation.
+
+* `n_vertices` (required, `int`): The number of vertices in the
+  triangulation. This is **not** the number of simplices.
+
+* `name` (required, `str`): A canonical name of the triangulation, such
+  as `S^2` for the two-dimensional [sphere](https://en.wikipedia.org/wiki/N-sphere).
+  If no canonical name exists, we store an empty string.
+
+* `betti_numbers` (required, `list` of `int`): A list of the [Betti
+  numbers](https://en.wikipedia.org/wiki/Betti_number) of the
+  triangulation, computed using $Z_2$ coefficients. This implies that
+  [torsion](https://en.wikipedia.org/wiki/Homology_(mathematics))
+  coefficients are stored in another attribute.
+
+* `torsion_coefficients` (required, `list` of `str`): A list of the
+  [torsion
+  coefficients](https://en.wikipedia.org/wiki/Homology_(mathematics)) of
+  the triangulation. An empty string `""` indicates that no torsion
+  coefficients are available in that dimension. Otherwise, the original
+  spelling of torsion coefficients is retained, so a valid entry might
+  be `"Z_2"`. 
+
+* `genus` (optional, `int`): For 2-manifolds, contains the
+  [genus](https://en.wikipedia.org/wiki/Genus_(mathematics)) of the
+  triangulation.
+
+* `orientable` (optional, `bool`): Specifies whether the triangulation
+  is [orientable](https://en.wikipedia.org/wiki/Orientability) or not.
+  
 ## Design Decisions
 
 > [!NOTE]
@@ -83,6 +124,13 @@ trees](https://en.wikipedia.org/wiki/Simplex_tree) can be used to
 further improve scalability if necessary.
 
 The decision to keep only top-level simplices is **final**.
+
+Finally, our data format includes, whenever possible and available,
+additional information about a triangulation, including the [Betti
+numbers](https://en.wikipedia.org/wiki/Betti_number) and a *name*,
+i.e., a canonical description, of the topological space described
+by the triangulation. We opted to minimize any inconvenience that
+would arise from having to perform additional parsing operations.
 
 ## Acknowledgments
 
