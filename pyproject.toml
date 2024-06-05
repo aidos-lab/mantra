@@ -4,13 +4,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools-git-versioning]
 enabled = true
+template = "2022.{tag}"
+
 
 [tool.setuptools]
 packages = ["mantra"]
 
 [project]
+dynamic = ["version"]
 name = "mantra-dataset"
-version = "0.0.1"
 dependencies = [
     "numpy",
     "torch",
