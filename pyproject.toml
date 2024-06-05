@@ -1,13 +1,16 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0","setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
 
 [tool.setuptools]
 packages = ["mantra"]
 
 [project]
 name = "mantra-dataset"
-version = "0.0.0"
+version = "0.0.1"
 dependencies = [
     "numpy",
     "torch",
