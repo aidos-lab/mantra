@@ -27,7 +27,7 @@ class SimplicialDataset(InMemoryDataset):
         pre_filter=None,
     ):
         """
-        The dataset class for the simplicial dataset.
+        The dataset class for the manifold triangulations.
 
         Parameters
         ----------
@@ -35,8 +35,8 @@ class SimplicialDataset(InMemoryDataset):
             Wether to use the 2 or 3 manifolds. Default is 2.
         version: string
             Version of the dataset to use. The version should correspond to
-            a released version of the dataset which can be found on
-            ![Github](https://github.com/aidos-lab/mantra/releases). Default is
+            a released version of the dataset which can be found
+            ![here](https://github.com/aidos-lab/mantra/releases). Default is
             the latest version.
         """
 
