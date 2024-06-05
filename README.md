@@ -24,6 +24,10 @@ dataset = SimplicialDataset(root="./data", manifold="2")
 
 ## Data Format
 
+> [!NOTE]
+> This section is *information-oriented* and provides a brief overview
+> of the data format, followed by a brief example.
+
 Each dataset consists of a list of triangulations, with each
 triangulation having the following attributes:
 
@@ -62,8 +66,65 @@ triangulation having the following attributes:
 
 * `orientable` (optional, `bool`): Specifies whether the triangulation
   is [orientable](https://en.wikipedia.org/wiki/Orientability) or not.
-  
-## Design Decisions
+
+### Example
+
+```json
+[
+  {
+    "id": "manifold_2_4_1",
+    "triangulation": [
+      [1,2,3],
+      [1,2,4],
+      [1,3,4],
+      [2,3,4]
+    ],
+    "dimension": 2,
+    "n_vertices": 4,
+    "betti_numbers": [
+      1,
+      0,
+      1
+    ],
+    "torsion_coefficients": [
+      "",
+      "",
+      ""
+    ],
+    "name": "S^2",
+    "genus": 0,
+    "orientable": true
+  },
+  {
+    "id": "manifold_2_5_1",
+    "triangulation": [
+      [1,2,3],
+      [1,2,4],
+      [1,3,5],
+      [1,4,5],
+      [2,3,4],
+      [3,4,5]
+    ],
+    "dimension": 2,
+    "n_vertices": 5,
+    "betti_numbers": [
+      1,
+      0,
+      1
+    ],
+    "torsion_coefficients": [
+      "",
+      "",
+      ""
+    ],
+    "name": "S^2",
+    "genus": 0,
+    "orientable": true
+  }
+]
+```
+
+### Design Decisions
 
 > [!NOTE]
 > This section is *understanding-oriented* and provides additional
