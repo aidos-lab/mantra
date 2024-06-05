@@ -1,11 +1,7 @@
 """
-Simplical dataset, downloads the processed data from Zenodo into torch geometric 
-dataset that can be used in conjunction to dataloaders. 
-
-NOTE: Code untested until we have the zenodo database running or another place
-retrieve the data from.
-
-NOTE: Dowloading does not yet work until we have a public repository.
+The dataset class for the Simplicial dataset. It consists of 2 and 3 manifolds 
+along with the topological information. We follow the pytorch geometric 
+conventions for the dataset. 
 """
 
 import os
@@ -15,7 +11,6 @@ from torch_geometric.data import (
     Data,
     InMemoryDataset,
     download_url,
-    extract_zip,
     extract_gz,
 )
 
@@ -26,10 +21,25 @@ class SimplicialDataset(InMemoryDataset):
         self,
         root,
         manifold="2",
+        version="latest",
         transform=None,
         pre_transform=None,
         pre_filter=None,
     ):
+        """
+        The dataset class for the simplicial dataset.
+
+        Parameters
+        ----------
+        manifold: string
+            Wether to use the 2 or 3 manifolds. Default is 2.
+        version: string
+            Version of the dataset to use. The version should correspond to
+            a released version of the dataset which can be found on
+            ![Github](https://github.com/aidos-lab/mantra/releases). Default is
+            the latest version.
+        """
+
         if manifold not in ["2", "3"]:
             raise ValueError(
                 f"Manifolds should either be 2 or 3, you provided {manifold}"
@@ -72,7 +82,3 @@ class SimplicialDataset(InMemoryDataset):
             data_list = [self.pre_transform(data) for data in data_list]
 
         self.save(data_list, self.processed_paths[0])
-
-
-if __name__ == "__main__":
-    dataset = SimplicialDataset(root="./data", manifold="3")
