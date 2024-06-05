@@ -23,3 +23,9 @@ dataset = SimplicialDataset(root="./data", manifold="2")
 ## Folder Structure
 
 ## Design Decisions
+
+## Acknowledgements
+
+This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
+who passed away unexpectedly on November 10, 2023. May his memory be
+a blessing.
