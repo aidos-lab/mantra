@@ -78,7 +78,10 @@ def parse_topological_type(s):
     parts = s.split("=")
     assert len(parts) == 1 or len(parts) == 2
 
-    result = {"name": "", "orientable": None}
+    # Every triangulation is supposed to have a name, even if it is an
+    # empty one. The "orientable" attribute is only added when we know
+    # the orientability, i.e. when it is either true or false.
+    result = {"name": ""}
 
     # Case: There are two parts, delimited by "=". The second part is
     # the name of the object.
