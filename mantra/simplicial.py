@@ -47,10 +47,8 @@ class SimplicialDataset(InMemoryDataset):
 
         self.manifold = manifold
         root += f"/simplicial"
-        # Note once we have an official release
-        # we can set it to latest as default.
-        self.release = "latest"
-        self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/download/{self.release}/{self.manifold}_manifolds.json.gz"
+        self.version = version
+        self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/download/{self.version}/{self.manifold}_manifolds.json.gz"
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
