@@ -13,7 +13,7 @@
 STELLAR_URL=https://zenodo.org/api/records/11474260/files-archive
 
 curl $STELLAR_URL --output data/manifolds.zip
-unzip data/manifolds.zip
+unzip -d data/ data/manifolds.zip
 
 cat data/2_manifolds_all.txt      data/2_manifolds_10_all.txt      > data/2_manifolds.txt
 cat data/2_manifolds_all_type.txt data/2_manifolds_10_all_type.txt > data/2_manifolds_type.txt
