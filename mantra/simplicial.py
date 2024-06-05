@@ -1,5 +1,5 @@
 """
-The dataset class for the Simplicial dataset. It consists of 2 and 3 manifolds 
+The dataset class for the manifolds. It consists of 2 and 3 manifolds 
 along with the topological information. We follow the pytorch geometric 
 conventions for the dataset. 
 """
