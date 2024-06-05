@@ -1,5 +1,7 @@
 # MANTRA: Manifold Triangulations Assembly
 
+[![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) ![GitHub](https://img.shields.io/github/license/aidos-lab/MANTRA)
+
 ## Getting the Dataset
 
 The raw datasets, consisting of the 2 and 3 manifolds with up to 10
