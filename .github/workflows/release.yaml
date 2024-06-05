@@ -1,7 +1,7 @@
 name: Publish Python 🐍 distribution 📦 to PyPI and TestPyPI
 
 on: 
-  workflow-dispatch:
+  workflow_dispatch:
 
 jobs:
   build:
