@@ -1,7 +1,7 @@
 """
-The dataset class for the manifolds. It consists of 2 and 3 manifolds 
-along with the topological information. We follow the pytorch geometric 
-conventions for the dataset. 
+The dataset class for the manifolds. It consists of 2 and 3 manifolds
+along with the topological information. We follow the pytorch geometric
+conventions for the dataset.
 """
 
 import os
@@ -46,9 +46,10 @@ class SimplicialDataset(InMemoryDataset):
             )
 
         self.manifold = manifold
-        root += f"/simplicial"
+        root += "/simplicial"
         self.version = version
-        self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"
+        self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/\
+            {self.version}/download/{self.manifold}_manifolds.json.gz"
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
 
