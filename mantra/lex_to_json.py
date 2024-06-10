@@ -37,10 +37,8 @@ def process_triangulation(triangulation):
         representing the top-level simplices of the triangulation.
     """
     simplices = np.asarray(
-        [
-            np.fromstring(line, sep=",", dtype=int)
-            for line in triangulation.split("\n")
-        ]
+        [np.fromstring(line, sep=",", dtype=int)
+         for line in triangulation.split("\n")]
     )
 
     dimensions = [len(simplex) - 1 for simplex in simplices]
@@ -267,7 +265,7 @@ if __name__ == "__main__":
     if args.type is not None:
         types = process_homology_groups_or_types(
             args.type, parse_topological_type
-        )
+            )
 
         for manifold in triangulations:
             triangulations[manifold].update(types[manifold])
@@ -281,15 +279,13 @@ if __name__ == "__main__":
     ]
 
     with (
-        open(args.output, "w")
-        if args.output is not None
-        else nullcontext(sys.stdout)
+        open(args.output, "w") if args.output is not
+        None else nullcontext(sys.stdout)
     ) as f:
         result = json.dumps(triangulations, indent=2)
 
-        regex = re.compile(
-            r"^(\s+)\[(.*?)\]([,]\s+?)", re.MULTILINE | re.DOTALL
-        )
+        regex = re.compile(r"^(\s+)\[(.*?)\]([,]\s+?)",
+                           re.MULTILINE | re.DOTALL)
 
         def prettify_triangulation(match):
             """Auxiliary function for pretty-printing a triangulation.
@@ -317,9 +313,8 @@ if __name__ == "__main__":
         # Fix indent of "triangulation" fields afterwards. This ensures
         # that the closing bracket of the triangulation key aligns with
         # the start.
-        regex = re.compile(
-            r"^(\s+)\"triangulation\":.*?\]\]", re.MULTILINE | re.DOTALL
-        )
+        regex = re.compile(r"^(\s+)\"triangulation\":.*?\]\]",
+                           re.MULTILINE | re.DOTALL)
 
         indents = [len(match.group(1)) for match in regex.finditer(result)]
 
