@@ -37,8 +37,7 @@ def process_triangulation(triangulation):
         representing the top-level simplices of the triangulation.
     """
     simplices = np.asarray(
-        [np.fromstring(line, sep=",", dtype=int)
-         for line in triangulation.split("\n")]
+        [np.fromstring(line, sep=",", dtype=int) for line in triangulation.split("\n")]
     )
 
     dimensions = [len(simplex) - 1 for simplex in simplices]
@@ -247,9 +246,7 @@ if __name__ == "__main__":
         type=str,
         help="Type information for triangulations (optional)",
     )
-    parser.add_argument(
-        "-o", "--output", type=str, help="Output file (optional)"
-    )
+    parser.add_argument("-o", "--output", type=str, help="Output file (optional)")
 
     args = parser.parse_args()
     triangulations = process_triangulations(args.INPUT)
@@ -263,9 +260,7 @@ if __name__ == "__main__":
             triangulations[manifold].update(homology_groups[manifold])
 
     if args.type is not None:
-        types = process_homology_groups_or_types(
-            args.type, parse_topological_type
-            )
+        types = process_homology_groups_or_types(args.type, parse_topological_type)
 
         for manifold in triangulations:
             triangulations[manifold].update(types[manifold])
@@ -274,18 +269,15 @@ if __name__ == "__main__":
     # whole data set into a list of triangulations, making it easier
     # to add new triangulations later on.
     triangulations = [
-        {"id": manifold, **triangulations[manifold]}
-        for manifold in triangulations
+        {"id": manifold, **triangulations[manifold]} for manifold in triangulations
     ]
 
     with (
-        open(args.output, "w") if args.output is not
-        None else nullcontext(sys.stdout)
+        open(args.output, "w") if args.output is not None else nullcontext(sys.stdout)
     ) as f:
         result = json.dumps(triangulations, indent=2)
 
-        regex = re.compile(r"^(\s+)\[(.*?)\]([,]\s+?)",
-                           re.MULTILINE | re.DOTALL)
+        regex = re.compile(r"^(\s+)\[(.*?)\]([,]\s+?)", re.MULTILINE | re.DOTALL)
 
         def prettify_triangulation(match):
             """Auxiliary function for pretty-printing a triangulation.
@@ -313,8 +305,7 @@ if __name__ == "__main__":
         # Fix indent of "triangulation" fields afterwards. This ensures
         # that the closing bracket of the triangulation key aligns with
         # the start.
-        regex = re.compile(r"^(\s+)\"triangulation\":.*?\]\]",
-                           re.MULTILINE | re.DOTALL)
+        regex = re.compile(r"^(\s+)\"triangulation\":.*?\]\]", re.MULTILINE | re.DOTALL)
 
         indents = [len(match.group(1)) for match in regex.finditer(result)]
 
