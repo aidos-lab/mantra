@@ -8,13 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+      - uses: actions/setup-python@v5
         with:
-          python-version: 3.10.11
+          python-version: '3.10.11'
+          cache: 'pip' # caching pip dependencies
+      - run: pip install pylint
       - name: flake8 Lint
         uses: py-actions/flake8@v2
-      - uses: Silleellie/pylint-github-action@v2
-        with:
-          lint-path: mantra  # lint src package
-          python-version: 3.10.11  # python version which will lint the package
+      - name: Run Pylint
+        run: pylint mantra 
