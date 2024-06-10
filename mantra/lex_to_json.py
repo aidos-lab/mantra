@@ -15,9 +15,9 @@ import json
 import re
 import sys
 
-import numpy as np
-
 from contextlib import nullcontext
+
+import numpy as np
 
 
 def process_triangulation(triangulation):
