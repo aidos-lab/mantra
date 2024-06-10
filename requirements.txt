@@ -1,5 +1,0 @@
-numpy
-pandas
-pydantic
-torch
-torch-geometric

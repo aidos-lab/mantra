@@ -12,6 +12,10 @@
 
 STELLAR_URL=https://zenodo.org/api/records/11474260/files-archive
 
+# Make sure that we bail out directly in case any of the commands below
+# fail for whatever reason.
+set -e
+
 curl $STELLAR_URL --output data/manifolds.zip
 unzip -d data/ data/manifolds.zip
 

@@ -1,13 +1,18 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 61.0","setuptools-git-versioning>=2.0,<3"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools-git-versioning]
+enabled = true
+template = "{tag}"
+
 
 [tool.setuptools]
 packages = ["mantra"]
 
 [project]
+dynamic = ["version"]
 name = "mantra-dataset"
-version = "0.0.0"
 dependencies = [
     "numpy",
     "torch",
@@ -21,10 +26,17 @@ authors = [
 maintainers = [
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
 ]
-description = "A topological datasets for bechmarking higher order methods."
+description = "A package for working with higher-order datasets like manifold triangulations."
 readme = "README.md"
-license = {file = "LICENSE.txt"}
-keywords = ["topology", "deep learning", "topology", "tda"]
+license = {file = "LICENSE.md"}
+keywords = [
+  "topology",
+  "deep learning",
+  "tda",
+  "tdl",
+  "topological data analysis",
+  "topological deep learning"
+]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
