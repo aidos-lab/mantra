@@ -49,7 +49,9 @@ class SimplicialDataset(InMemoryDataset):
         root += "/simplicial"
         self.version = version
         url_prefix = "https://github.com/aidos-lab/MANTRADataset/releases/"
-        url_suffix = f"{self.version}/download/{self.manifold}_manifolds.json.gz"
+        url_suffix = (
+            f"{self.version}/download/{self.manifold}_manifolds.json.gz"
+        )
         self.url = url_prefix + url_suffix
         super().__init__(root, transform, pre_transform, pre_filter)
         self.load(self.processed_paths[0])
