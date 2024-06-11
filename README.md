@@ -10,13 +10,13 @@ vertices, can be manually downloaded
 A pytorch geometric wrapper for the dataset is installable via the following 
 command.
 
-```{python}
+```python
 pip install mantra-dataset
 ```
 
 After installation the dataset can be used with the follwing snippet.
 
-```{python}
+```python
 from mantra.simplicial import SimplicialDataset
 
 dataset = SimplicialDataset(root="./data", manifold="2", version="latest")
