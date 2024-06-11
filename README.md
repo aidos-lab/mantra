@@ -5,11 +5,13 @@
 ## Getting the Dataset
 
 The raw datasets, consisting of the 2 and 3 manifolds with up to 10
-vertices, can be downloaded under releases. A pytorch geometric wrapper
-for the dataset is installable via the following command.
+vertices, can be manually downloaded 
+[here](https://github.com/aidos-lab/mantra/releases/latest). 
+A pytorch geometric wrapper for the dataset is installable via the following 
+command.
 
 ```{python}
-pip install "git+https://github.com/aidos-lab/MANTRADataset/#subdirectory=mantra"
+pip install mantra-dataset
 ```
 
 After installation the dataset can be used with the follwing snippet.
@@ -17,7 +19,7 @@ After installation the dataset can be used with the follwing snippet.
 ```{python}
 from mantra.simplicial import SimplicialDataset
 
-dataset = SimplicialDataset(root="./data", manifold="2")
+dataset = SimplicialDataset(root="./data", manifold="2", version="latest")
 ```
 
 ## Folder Structure
