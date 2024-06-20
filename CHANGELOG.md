@@ -3,6 +3,12 @@
 `mantra-datasets` follows the [semantic versioning](https://semver.org).
 This changelog contains all notable changes in the project.
 
+# v0.0.5 
+
+## Added
+
+- Added automatic upload of the changelog to the github release.
+
 # v0.0.4
 
 ## Fixed
