@@ -1,4 +1,4 @@
-name: website
+name: Build the documentation.
 
 # build the documentation whenever there are new commits on main
 on:
@@ -6,7 +6,7 @@ on:
     # Alternative: only build for tags.
     tags:
       - '*'
-    workflow_dispatch:
+  workflow_dispatch:
 
 # security: restrict permissions for CI jobs.
 permissions:
