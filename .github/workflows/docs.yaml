@@ -7,7 +7,7 @@ on:
     tags:
       - '*'
     workflow_dispatch:
-    
+
 # security: restrict permissions for CI jobs.
 permissions:
   contents: read
@@ -25,12 +25,12 @@ jobs:
       - name: Install dependencies
         run: |
           pip install torch==2.2.0
-          pip install torch-scatter -f https://data.pyg.org/whl/torch-2.2.0+cpu.html
+          pip install numpy
           pip install git+https://github.com/Lezcano/geotorch/
           pip install pdoc
 
       # ADJUST THIS: install all dependencies (including pdoc)
-      - name: Install dect
+      - name: Install mantra
         run: |
           pip install -e .
 
@@ -39,7 +39,7 @@ jobs:
       - name: Build Docs
         run: |
           mkdir -p ./docs
-          python -m pdoc --docformat numpy --logo "https://avatars.githubusercontent.com/u/88346553?s=200&v=4" dect -o ./docs
+          python -m pdoc --docformat numpy --logo "https://avatars.githubusercontent.com/u/88346553?s=200&v=4" mantra -o ./docs
 
       - uses: actions/upload-pages-artifact@v3
         with:
