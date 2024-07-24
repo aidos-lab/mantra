@@ -34,16 +34,17 @@ jobs:
         run: |
           pip install -e .
 
-      # ADJUST THIS: build your documentation into docs/.
-      # We use a custom build script for pdoc itself, ideally you just run `pdoc -o docs/ ...` here.
-      - name: Build Docs
+      - name: Install sphinx
         run: |
-          mkdir -p ./docs
-          python -m pdoc --docformat numpy --logo "https://avatars.githubusercontent.com/u/88346553?s=200&v=4" mantra -o ./docs
+          pip install sphinx sphinx_rtd_theme myst_parser
+
+      - name: Sphinx build
+        run: |
+          sphinx-build doc build
 
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/
+          path: docs/build
 
   # Deploy the artifact to GitHub pages.
   # This is a separate job so that only actions/deploy-pages has the necessary permissions.
