@@ -1,7 +1,7 @@
-"""
-The dataset class for the manifolds. It consists of 2 and 3 manifolds
-along with the topological information. We follow the pytorch geometric
-conventions for the dataset.
+"""Datasets module
+
+This module contains datasets describing triangulations of manifolds,
+following the API `pytorch-geometric`.
 """
 
 import os
@@ -15,7 +15,7 @@ from torch_geometric.data import (
 )
 
 
-class SimplicialDataset(InMemoryDataset):
+class ManifoldTriangulations(InMemoryDataset):
 
     def __init__(
         self,

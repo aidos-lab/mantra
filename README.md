@@ -17,9 +17,9 @@ pip install mantra-dataset
 After installation the dataset can be used with the follwing snippet.
 
 ```python
-from mantra.simplicial import SimplicialDataset
+from mantra.datasets import ManifoldTriangulations
 
-dataset = SimplicialDataset(root="./data", manifold="2", version="latest")
+dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
 ```
 
 ## Folder Structure
