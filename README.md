@@ -50,7 +50,7 @@ triangulation having the following attributes:
 
 * `betti_numbers` (required, `list` of `int`): A list of the [Betti
   numbers](https://en.wikipedia.org/wiki/Betti_number) of the
-  triangulation, computed using $Z_2$ coefficients. This implies that
+  triangulation, computed using $Z$ coefficients. This implies that
   [torsion](https://en.wikipedia.org/wiki/Homology_(mathematics))
   coefficients are stored in another attribute.
 
