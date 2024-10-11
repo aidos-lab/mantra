@@ -1,8 +1,3 @@
----
-myst:
-  enable_extensions: ["deflist","html_admonition"]
-  fence_as_directive: true
----
 # MANTRA: Manifold Triangulations Assembly
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) ![GitHub](https://img.shields.io/github/license/aidos-lab/MANTRA) 
@@ -134,7 +129,6 @@ triangulation having the following attributes:
 
 ### Design Decisions
 
-> [!NOTE]
 > This section is *understanding-oriented* and provides additional
 > justifications for our data format.
 

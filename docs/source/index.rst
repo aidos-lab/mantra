@@ -1,10 +1,13 @@
 .. include:: readme.rst 
 
 .. toctree::
-   :maxdepth: 2
+   :hidden: 
    :caption: Modules
 
    datasets
 
+.. toctree::
+   :hidden: 
+   :caption: Licence
 
-
+   licence
