@@ -16,6 +16,22 @@ author = "Ernst Röell, Daniel Bin Schmid, Bastian Rieck"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx_rtd_theme",
+    "myst_parser",
+]
+
+myst_enable_extensions = [
+    "amsmath",
+    "colon_fence",
+    "deflist",
+    "dollarmath",
+    "fieldlist",
+    "html_admonition",
+    "html_image",
+    "linkify",
+    "replacements",
+    "smartquotes",
+    "substitution",
+    "tasklist",
 ]
 
 templates_path = ["_templates"]
@@ -41,5 +57,11 @@ default_role = "obj"
 
 html_theme = "sphinx_rtd_theme"
 html_static_path = ["_static"]
+html_logo = "logo_aidos.png"
+html_theme_options = {
+    "logo_only": True,
+}
+html_favicon = "favicon.ico"
+
 
 modindex_common_prefix = ["mantra."]

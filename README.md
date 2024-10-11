@@ -1,8 +1,13 @@
+---
+myst:
+  enable_extensions: ["deflist","html_admonition"]
+  fence_as_directive: true
+---
 # MANTRA: Manifold Triangulations Assembly
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) ![GitHub](https://img.shields.io/github/license/aidos-lab/MANTRA) 
 
-![image](./assets/manifold_triangulation_orbit.gif)
+![image](_static/manifold_triangulation_orbit.gif)
 
 ## Getting the Dataset
 
@@ -28,7 +33,6 @@ dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
 
 ## Data Format
 
-> [!NOTE]
 > This section is mostly *information-oriented* and provides a brief
 > overview of the data format, followed by a short [example](#example).
 
