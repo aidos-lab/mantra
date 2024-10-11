@@ -195,6 +195,20 @@ i.e., a canonical description, of the topological space described
 by the triangulation. We opted to minimize any inconvenience that
 would arise from having to perform additional parsing operations.
 
+Please use the following citation for our work:
+
+```bibtex
+@misc{ballester2024mantramanifoldtriangulationsassemblage,
+      title={ {MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage}, 
+      author={Rub{\'e}n Ballester and Ernst R{\"o}ell and Daniel Bin Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
+      year={2024},
+      eprint={2410.02392},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2410.02392}, 
+}
+```
+
 ## Acknowledgments
 
 This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
