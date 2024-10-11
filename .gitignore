@@ -12,3 +12,5 @@ scratch_**
 /build
 /visualization 
 /tables
+
+docs/build

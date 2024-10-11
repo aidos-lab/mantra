@@ -19,9 +19,9 @@ pip install mantra-dataset
 After installation the dataset can be used with the follwing snippet.
 
 ```python
-from mantra.simplicial import SimplicialDataset
+from mantra.datasets import ManifoldTriangulations
 
-dataset = SimplicialDataset(root="./data", manifold="2", version="latest")
+dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
 ```
 
 ## Folder Structure
@@ -52,7 +52,7 @@ triangulation having the following attributes:
 
 * `betti_numbers` (required, `list` of `int`): A list of the [Betti
   numbers](https://en.wikipedia.org/wiki/Betti_number) of the
-  triangulation, computed using $Z_2$ coefficients. This implies that
+  triangulation, computed using $Z$ coefficients. This implies that
   [torsion](https://en.wikipedia.org/wiki/Homology_(mathematics))
   coefficients are stored in another attribute.
 
