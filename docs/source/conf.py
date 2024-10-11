@@ -13,11 +13,7 @@ author = "Ernst Röell, Daniel Bin Schmid, Bastian Rieck"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = [
-    "sphinx.ext.autodoc",
-    "sphinx_rtd_theme",
-    "myst_parser",
-]
+extensions = ["sphinx.ext.autodoc", "sphinx_rtd_theme", "myst_parser"]
 
 myst_enable_extensions = [
     "amsmath",
@@ -33,6 +29,9 @@ myst_enable_extensions = [
     "substitution",
     "tasklist",
 ]
+
+myst_gfm_only = True
+
 
 templates_path = ["_templates"]
 exclude_patterns = ["build", "Thumbs.db", ".DS_Store"]
