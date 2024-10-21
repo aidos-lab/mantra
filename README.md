@@ -6,6 +6,12 @@
 
 ## Getting the Dataset
 
+The raw MANTRA dataset consisting of the $2$ and $3$ manifolds with up to $10$ vertices 
+is provided [here](https://github.com/aidos-lab/mantra/releases/latest). 
+For machine learning applications and research, we provide a custom [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/stable/) dataset in the form of a python package. 
+
+For installations via pip, run  
+
 The raw datasets, consisting of the 2 and 3 manifolds with up to 10
 vertices, can be manually downloaded 
 [here](https://github.com/aidos-lab/mantra/releases/latest). 

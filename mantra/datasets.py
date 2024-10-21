@@ -32,12 +32,15 @@ class ManifoldTriangulations(InMemoryDataset):
         Parameters
         ----------
         manifold: string
-            Wether to use the 2 or 3 manifolds. Default is 2.
+            Wether to use the 2 or 3 manifolds. The 2-manifold consist of all
+            surfaces with up to 10 vertices. The 3-manifolds consist of volumes
+            with up to 10 vertices.
         version: string
-            Version of the dataset to use. The version should correspond to
-            a released version of the dataset which can be found
+            Version of the dataset to use. The version should correspond to a
+            released version of the dataset which can be found
             ![here](https://github.com/aidos-lab/mantra/releases). Default is
-            the latest version.
+            the latest version. Unless specific reproducibility requirements are
+            to be met, using `latest` is recommended.
         """
 
         if manifold not in ["2", "3"]:
@@ -63,11 +66,23 @@ class ManifoldTriangulations(InMemoryDataset):
         return ["data.pt"]
 
     def download(self) -> None:
+        """
+        Downloads the specified version of the 2 or 3 manifolds in json format
+        into the raw folder and extracts the results. The dataset version can
+        specified when instantiating the class.
+        """
         path = download_url(self.url, self.raw_dir)
         extract_gz(path, self.raw_dir)
         os.unlink(path)
 
     def process(self):
+        """
+        Processes the raw json file and loads the result into a torch-geometric
+        dataset. If provided during initialization, pretransforms and/or
+        prefilters are applied before saving the preprocessed dataset.
+        More information on pretransforms and prefilters can be found in the
+        torch-geometric documentation.
+        """
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
