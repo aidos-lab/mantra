@@ -43,6 +43,10 @@ class ManifoldTriangulations(InMemoryDataset):
             to be met, using `latest` is recommended.
         """
 
+        # The properties need to be set before the super().__init__() call to
+        # make sure they exist during processing. The process and download are
+        # called during the super call.
+
         if manifold not in ["2", "3"]:
             raise ValueError(
                 f"Manifolds should either be 2 or 3, you provided {manifold}"
@@ -57,12 +61,22 @@ class ManifoldTriangulations(InMemoryDataset):
 
     @property
     def raw_file_names(self):
+        """
+        Stores the raw  file names that need to be present in the raw folder for
+        downloading to be skipped. To reference raw file names, use the property
+        self.raw_paths.
+        """
         return [
             f"{self.manifold}_manifolds.json",
         ]
 
     @property
     def processed_file_names(self):
+        """
+        Stores the processed data in a file, if this file is present in the
+        processed folder, it will skip processing. Othewise it will run the
+        process function.
+        """
         return ["data.pt"]
 
     def download(self) -> None:
