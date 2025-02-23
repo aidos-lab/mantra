@@ -1,20 +1,13 @@
-
-MANTRA
-======
+.. include:: readme.rst 
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
-
-.. toctree::
-   :maxdepth: 2
+   :hidden: 
    :caption: Modules
 
    datasets
 
-Indices and tables
-==================
+.. toctree::
+   :hidden: 
+   :caption: Licence
 
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   licence
