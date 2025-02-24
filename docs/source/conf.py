@@ -36,7 +36,6 @@ myst_gfm_only = True
 templates_path = ["_templates"]
 exclude_patterns = ["build", "Thumbs.db", ".DS_Store"]
 
-
 # Ensure that member functions are documented. These are sane defaults.
 autodoc_default_options = {
     "members": True,
