@@ -44,6 +44,12 @@ from mantra.datasets import ManifoldTriangulations
 dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
 ```
 
+## Changelog
+
+For recent notes on patches, check the changelog:
+
+[![CHANGELOG](https://img.shields.io/badge/CHANGELOG-darkred)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md)
+
 ## Acknowledgments
 
 This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
