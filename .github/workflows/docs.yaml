@@ -36,7 +36,7 @@ jobs:
 
       - name: Install sphinx
         run: |
-          pip install sphinx sphinx_rtd_theme myst_parser
+          pip install sphinx sphinx_rtd_theme myst_parser[linkify]
 
       - name: Sphinx build
         run: |
