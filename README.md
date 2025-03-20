@@ -1,6 +1,6 @@
 # MANTRA: Manifold Triangulations Assembly
 
-[![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) [![CHANGELOG](https://img.shields.io/badge/CHANGELOG)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md) ![License](https://img.shields.io/github/license/aidos-lab/MANTRA) 
+[![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) [![CHANGELOG](https://img.shields.io/badge/Changelog--default)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md) ![License](https://img.shields.io/github/license/aidos-lab/MANTRA) 
 
 ![image](_static/manifold_triangulation_orbit.gif)
 
