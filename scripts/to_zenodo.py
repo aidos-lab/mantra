@@ -3,7 +3,7 @@ from typing import Optional
 import json
 import argparse
 
-ZENODO_URL = "https://sandbox.zenodo.org"
+ZENODO_URL = "https://zenodo.org"
 
 
 def get_endpoints(deposition_id: str, access_token: str):
@@ -85,7 +85,7 @@ class ZenodoAPI:
         params = {"access_token": self.access_token}
 
         with open(path, "rb") as fp:
-            r = requests.put(
+            requests.put(
                 "%s/%s" % (bucket_url, filename),
                 data=fp,
                 params=params,
