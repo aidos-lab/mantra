@@ -63,7 +63,9 @@ def delete(endpoints, access):
     data = json.loads(json_str)
     for file in data:
         id_ = file["id"]
-        r = requests.delete(f"{files_api}/{id_}", params={"access_token": access})
+        r = requests.delete(
+            f"{files_api}/{id_}", params={"access_token": access}
+        )
 
 
 class ZenodoAPI:
@@ -111,7 +113,9 @@ class ZenodoAPI:
             metadata["version"] = version
         if creators is not None:
             # add dummy creators
-            metadata["creators"] = [{"name": "Doe, John", "affiliation": "Zenodo"}]
+            metadata["creators"] = [
+                {"name": "Doe, John", "affiliation": "Zenodo"}
+            ]
         update_metadata(metadata, self.raw_endpoints, self.access_token)
 
     def publish(self):
