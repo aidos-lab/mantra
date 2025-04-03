@@ -3,7 +3,7 @@ from typing import Optional
 import json
 import argparse
 
-ZENODO_URL = "https://zenodo.org"
+ZENODO_URL = "https://sandbox.zenodo.org"
 
 
 def get_endpoints(deposition_id: str, access_token: str):
