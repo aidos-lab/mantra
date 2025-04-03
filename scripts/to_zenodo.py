@@ -41,7 +41,9 @@ def discard(raw_endpoints: requests.Response, access_token):
     response = requests.post(
         discard_api, params={"access_token": access_token}
     )
-    response.raise_for_status()
+
+    # No need to check response here---it is possible that we cannot
+    # discard somehing because there is no draft.
 
 
 def update_metadata(data, raw_endpoints, access_token):
