@@ -42,6 +42,35 @@ from mantra.datasets import ManifoldTriangulations
 dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
 ```
 
+To add random node features to the dataset, we can add it as a transform to the dataset.
+
+```python
+# Load all required packages. 
+from torch_geometric.transforms import Compose, FaceToEdge
+
+# Load the mantra dataset
+from mantra.datasets import ManifoldTriangulations
+from mantra.transforms import NodeIndex, RandomNodeFeatures
+
+dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest",
+                                 transform=Compose([
+                                        NodeIndex(),
+                                        RandomNodeFeatures(),
+                                        FaceToEdge(remove_faces=False),
+                                        ]
+                                    ),
+                                    force_reload=True,
+                                )
+
+```
+
+## Examples 
+
+Under the `examples` folder we have included two notebooks. The first notebook 
+contains an example for training Graph Neural Network with our dataset and 
+the second notebook contains an analysis of the data distribution.
+
+
 ## Acknowledgements
 
 This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
