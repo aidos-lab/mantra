@@ -9,7 +9,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: psf/black@stable
         with:
-          options: "--check --verbose --line-length 80 --exclude docs/"
+          options: "--check --verbose --line-length 79 --exclude docs/"
           # Ignore Jupyter notebooks for now to simplify rapid
           # prototyping.
           jupyter: false
