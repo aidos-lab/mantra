@@ -57,15 +57,13 @@ def update_metadata(data, raw_endpoints, access_token):
 
 
 def delete(endpoints, access):
-    files_api = endpoints.json()['links']['files']
-    r = requests.get(files_api,
-                    params={'access_token': access})
-    json_str = r.content.decode('utf-8')
+    files_api = endpoints.json()["links"]["files"]
+    r = requests.get(files_api, params={"access_token": access})
+    json_str = r.content.decode("utf-8")
     data = json.loads(json_str)
     for file in data:
-        id_ = file['id']
-        r = requests.delete(f"{files_api}/{id_}", params={'access_token': access})
-        
+        id_ = file["id"]
+        r = requests.delete(f"{files_api}/{id_}", params={"access_token": access})
 
 
 class ZenodoAPI:
@@ -135,6 +133,7 @@ class ZenodoAPI:
     def delete_files(self):
         delete(self.raw_endpoints, self.access_token)
 
+
 def main():
     parser = argparse.ArgumentParser(description="")
 
@@ -142,9 +141,10 @@ def main():
     parser.add_argument("-t", "--access_token", type=str, help="")
     parser.add_argument("-v", "--version", default="0.0.0", type=str, help="")
     parser.add_argument(
-        "-f", "--files",
-        nargs="+",                  # Accepts one or more arguments
-        help="List of file paths to upload"
+        "-f",
+        "--files",
+        nargs="+",  # Accepts one or more arguments
+        help="List of file paths to upload",
     )
 
     args = parser.parse_args()
