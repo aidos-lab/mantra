@@ -34,7 +34,7 @@ jobs:
 
       - name: Install sphinx
         run: |
-          apt install pandoc
+          sudo apt install pandoc
           pip install pypandoc
           pip install sphinx sphinx_rtd_theme myst_parser[linkify] nbsphinx
 
