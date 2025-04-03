@@ -1,5 +1,13 @@
 # CHANGELOG
 
+# v0.0.7
+
+## Added
+
+- Depositing the generated files automatically on Zenodo, thus adding
+  additional versioning and the ability to refer to a particular version
+  using a DOI.
+
 # v0.0.6
 
 ## Fixed
