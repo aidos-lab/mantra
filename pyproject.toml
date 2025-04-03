@@ -16,7 +16,7 @@ packages = ["mantra"]
 dynamic = ["version"]
 name = "mantra-dataset"
 dependencies = [
-  "black",
+  "black>=22.0",
   "numpy",
   "torch",
   "torch_geometric"
