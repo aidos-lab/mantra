@@ -25,6 +25,7 @@ class ManifoldTriangulations(InMemoryDataset):
         transform=None,
         pre_transform=None,
         pre_filter=None,
+        force_reload=False,
     ):
         """
         The dataset class for the manifold triangulations.
@@ -52,7 +53,9 @@ class ManifoldTriangulations(InMemoryDataset):
         root += "/simplicial"
         self.version = version
         self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"  # noqa
-        super().__init__(root, transform, pre_transform, pre_filter)
+        super().__init__(
+            root, transform, pre_transform, pre_filter, force_reload
+        )
         self.load(self.processed_paths[0])
 
     @property
