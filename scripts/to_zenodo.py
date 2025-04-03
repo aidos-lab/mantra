@@ -56,6 +56,18 @@ def update_metadata(data, raw_endpoints, access_token):
         print(r.json())
 
 
+def delete(endpoints, access):
+    files_api = endpoints.json()['links']['files']
+    r = requests.get(files_api,
+                    params={'access_token': access})
+    json_str = r.content.decode('utf-8')
+    data = json.loads(json_str)
+    for file in data:
+        id_ = file['id']
+        r = requests.delete(f"{files_api}/{id_}", params={'access_token': access})
+        
+
+
 class ZenodoAPI:
 
     def __init__(
@@ -120,6 +132,8 @@ class ZenodoAPI:
     def discard(self):
         discard(self.raw_endpoints, self.access_token)
 
+    def delete_files(self):
+        delete(self.raw_endpoints, self.access_token)
 
 def main():
     parser = argparse.ArgumentParser(description="")
@@ -144,6 +158,7 @@ def main():
 
     # create new version: https://developers.zenodo.org/#new-version
     zenodo_api.new_version()
+    zenodo_api.delete_files()
 
     # upload files
     for file in files:
