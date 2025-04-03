@@ -3,57 +3,58 @@ from typing import Optional
 import json
 import argparse
 
-ZENODO_URL = "https://zenodo.org"
+ZENODO_BASE_URL = "https://zenodo.org/api"
+
+
+def get_latest_deposition_id(conceptrecid: str, access_token: str):
+    url = f"{ZENODO_BASE_URL}/records/{conceptrecid}"
+
+    response = requests.get(url, params={"access_token": access_token})
+    response.raise_for_status()
+
+    latest_record = response.json()
+    latest_deposition_id = latest_record["id"]
+
+    return latest_deposition_id
 
 
 def get_endpoints(deposition_id: str, access_token: str):
     params = {"access_token": access_token}
-    url = f"{ZENODO_URL}/api/deposit/depositions/{deposition_id}"
-    r = requests.get(url, params=params)
+    url = f"{ZENODO_BASE_URL}/deposit/depositions/{deposition_id}"
+    response = requests.get(url, params=params)
+    response.raise_for_status()
 
-    success = r.status_code == 200
-    if not success:
-        print("warning in get endpoints")
-        print(r.json())
-    return r
+    return response
 
 
 def new_version(raw_endpoints: requests.Response, access_token):
     url = f"{raw_endpoints.json()['links']['latest_draft']}/actions/newversion"
 
-    r = requests.post(url, params={"access_token": access_token})
-    success = r.status_code == 201
+    response = requests.post(url, params={"access_token": access_token})
+    response.raise_for_status()
 
-    if not success:
-        print("warning in new version")
-        print(r.json())
-    return r
+    return response
 
 
 def discard(raw_endpoints: requests.Response, access_token):
     discard_api = raw_endpoints.json()["links"]["discard"]
-    r = requests.post(discard_api, params={"access_token": access_token})
-    success = r.status_code == 201
-    if success:
-        print("Discarded edit draft")
-    else:
-        print("no draft to discard.")
+    response = requests.post(
+        discard_api, params={"access_token": access_token}
+    )
+    response.raise_for_status()
 
 
 def update_metadata(data, raw_endpoints, access_token):
     edit_api = raw_endpoints.json()["links"]["latest_draft"]
-
     headers = {"Content-Type": "application/json"}
-    r = requests.put(
+
+    response = requests.put(
         edit_api,
         params={"access_token": access_token},
         data=json.dumps({"metadata": data}),
         headers=headers,
     )
-    success = r.status_code == 200
-    if not success:
-        print("warning in update metadata")
-        print(r.json())
+    response.raise_for_status()
 
 
 def delete(endpoints, access):
@@ -141,23 +142,24 @@ class ZenodoAPI:
 def main():
     parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument("-id", "--deposition_id", help="")
-    parser.add_argument("-t", "--access_token", type=str, help="")
-    parser.add_argument("-v", "--version", default="0.0.0", type=str, help="")
+    parser.add_argument("-c", "--concept-record-id", required=True)
+    parser.add_argument("-t", "--access_token", type=str, required=True)
+    parser.add_argument("-v", "--version", default="0.0.0", type=str)
     parser.add_argument(
         "-f",
         "--files",
-        nargs="+",  # Accepts one or more arguments
+        nargs="+",
         help="List of file paths to upload",
     )
 
     args = parser.parse_args()
 
-    deposition_id = args.deposition_id
     access_token = args.access_token
+    concept_record_id = args.concept_record_id
     version = args.version
     files = args.files
 
+    deposition_id = get_latest_deposition_id(concept_record_id, access_token)
     zenodo_api = ZenodoAPI(access_token, deposition_id)
 
     # create new version: https://developers.zenodo.org/#new-version
