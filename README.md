@@ -1,8 +1,12 @@
-# MANTRA: Manifold Triangulations Assembly
+# MANTRA: Manifold Triangulations Assemblage
 
 [![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) [![CHANGELOG](https://img.shields.io/badge/Changelog--default)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md) ![License](https://img.shields.io/github/license/aidos-lab/MANTRA) 
 
 ![image](_static/manifold_triangulation_orbit.gif)
+
+MANTRA is a dataset consisting of *combinatorial triangulations* of
+manifolds. It can be used to create novel algorithms in topological
+deep learning or debug existing ones. See our [ICLR 2025 paper](https://openreview.net/pdf?id=X6y5CC44HM) for more details on potential experiments.
 
 Please use the following citation for our work:
 
@@ -21,9 +25,10 @@ Please use the following citation for our work:
 
 ## Getting the Dataset
 
-The raw MANTRA dataset consisting of the $2$ and $3$ manifolds with up to $10$ vertices 
+The raw MANTRA dataset consisting of $2$- and $3$-manifolds with up to $10$ vertices 
 is provided [here](https://github.com/aidos-lab/mantra/releases/latest). 
-For machine learning applications and research, we provide a custom [PyTorch Geometric](https://pytorch-geometric.readthedocs.io/en/stable/) dataset loader, which can be installed via the following command:
+For machine-learning applications and research, we provide a custom
+dataset loader, which can be installed via the following command:
 
 ```python
 pip install mantra-dataset
