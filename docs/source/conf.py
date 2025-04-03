@@ -13,7 +13,7 @@ author = "Ernst Röell, Daniel Bin Schmid, Bastian Rieck"
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
-extensions = ["sphinx.ext.autodoc", "sphinx_rtd_theme", "myst_parser"]
+extensions = ["sphinx.ext.autodoc", "sphinx_rtd_theme", "myst_parser","nbsphinx"]
 
 myst_enable_extensions = [
     "amsmath",
