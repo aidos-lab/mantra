@@ -25,13 +25,14 @@ jobs:
           pip install numpy
           pip install git+https://github.com/Lezcano/geotorch/
 
+
       - name: Install mantra
         run: |
           pip install -e .
 
       - name: Install sphinx
         run: |
-          pip install sphinx sphinx_rtd_theme myst_parser[linkify]
+          pip install sphinx sphinx_rtd_theme myst_parser[linkify] nbsphinx
 
       - name: Sphinx build
         run: |
