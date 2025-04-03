@@ -10,12 +10,13 @@
 #
 # This script *only* works on compressed files.
 
+set -e
+
 TMP_ONE=$(mktemp)
 TMP_TWO=$(mktemp)
 
 for FIELD in "triangulation" "name"; do
   echo -n Field "$FIELD"...
-  
 
   gunzip -c $1 | jq ".[] | {$FIELD}" | jq -c > $TMP_ONE
   gunzip -c $2 | jq ".[] | {$FIELD}" | jq -c > $TMP_TWO
