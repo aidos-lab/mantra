@@ -67,7 +67,7 @@ dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest",
 ## Examples 
 
 Under the `examples` folder we have included two notebooks. The first notebook 
-contains an example for training Graph Neural Network with our dataset and 
+contains an example for training a Graph Neural Network with the MANTRA dataset while  
 the second notebook contains an analysis of the data distribution.
 
 
