@@ -49,5 +49,6 @@ jobs:
       - name: Run the Python script
         env:
           TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
+          DEPOSITION_ID: ${{ vars.DEPOSITION_ID }}
         run: |
-          python scripts/to_zenodo.py -id 194036 -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz
+          python scripts/to_zenodo.py -id "$DEPOSITION_ID" -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz
