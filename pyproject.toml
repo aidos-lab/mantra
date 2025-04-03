@@ -43,3 +43,6 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
 ]
+
+[tool.black]
+line-length = 79
