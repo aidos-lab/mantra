@@ -13,18 +13,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
   
-      - name: Install Python and cache
+      - name: Install Python and dependencies
         uses: actions/setup-python@v5
         with:
           python-version: '3.10.11'
           cache: 'pip'
-      - run: pip install numpy
+      - run: |
+          python -m pip install --upgrade pip
+          pip install numpy
+          pip install requests
 
-      - name: Run conversion script
+      - name: Run data conversion script
         run: | 
           sh scripts/convert_manifolds.sh
       
-      - name: Release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           draft: true
@@ -40,14 +43,9 @@ jobs:
         run: |
           echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
       
-      - name: Install dependencies for new Zenodo release
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests
-
       - name: Create new Zenodo release
         env:
           TOKEN: ${{ secrets.ZENODO_TOKEN }}
-          DEPOSITION_ID: ${{ vars.ZENODO_DEPOSITION_ID }}
+          ID: ${{ vars.ZENODO_CONCEPT_RECORD_ID }}
         run: |
-          python scripts/to_zenodo.py -id "$DEPOSITION_ID" -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz
+          python scripts/to_zenodo.py -c "$ID" -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz
