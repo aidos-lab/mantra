@@ -1,14 +1,11 @@
-name: Build the documentation.
+name: Create documentation
 
-# build the documentation whenever there are new commits on main
 on:
   push:
-    # Alternative: only build for tags.
     tags:
       - '*'
   workflow_dispatch:
 
-# security: restrict permissions for CI jobs.
 permissions:
   contents: read
 
@@ -29,7 +26,6 @@ jobs:
           pip install git+https://github.com/Lezcano/geotorch/
           pip install pdoc
 
-      # ADJUST THIS: install all dependencies (including pdoc)
       - name: Install mantra
         run: |
           pip install -e .

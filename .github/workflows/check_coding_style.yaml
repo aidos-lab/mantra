@@ -1,4 +1,4 @@
-name: Enforce coding style
+name: Check and enforce coding style via `black`
 
 on: [ push, pull_request ]
 
