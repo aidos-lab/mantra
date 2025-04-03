@@ -1,5 +1,15 @@
 # CHANGELOG
 
+This is a [changelog](https://keepachangelog.com/) of all notable
+changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
+
+# v0.0.8
+
+## Fixed
+
+- Using proper logic to name releases on Zenodo. This is just a minor
+  choice of aesthetics.
+
 # v0.0.7
 
 ## Added
