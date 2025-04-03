@@ -3,6 +3,13 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.9
+
+## Fixed
+
+- Finally using the correct tag by creating a new release *before* we
+  send everything to Zenodo. Life is hard.
+
 # v0.0.8
 
 ## Fixed
