@@ -34,7 +34,7 @@ jobs:
 
       - name: Install sphinx
         run: |
-          $CONDA/bin/conda install conda-forge::pandoc
+          apt install pandoc
           pip install pypandoc
           pip install sphinx sphinx_rtd_theme myst_parser[linkify] nbsphinx
 
