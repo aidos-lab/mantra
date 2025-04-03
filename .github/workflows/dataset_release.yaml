@@ -35,4 +35,19 @@ jobs:
           files: |
             2_manifolds.json.gz
             3_manifolds.json.gz
+      
+      - name: Get latest Git tag
+        id: get_tag
+        run: |
+          echo "VERSION=$(git describe --tags --abbrev=0)" >> $GITHUB_ENV
+      
+      - name: Install dependencies for zenodo publish
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
 
+      - name: Run the Python script
+        env:
+          TOKEN: ${{ secrets.ZENODO_SANDBOX_TOKEN }}
+        run: |
+          python scripts/to_zenodo.py -id 194036 -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz
