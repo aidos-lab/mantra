@@ -1,13 +1,24 @@
-# Changelog
+# CHANGELOG
 
-`mantra-datasets` follows the [semantic versioning](https://semver.org).
-This changelog contains all notable changes in the project.
+# v0.0.7
+
+## Added
+
+- Depositing the generated files automatically on Zenodo, thus adding
+  additional versioning and the ability to refer to a particular version
+  using a DOI.
+
+# v0.0.6
+
+## Fixed
+
+- Using better class names to be consistent with the paper.
 
 # v0.0.5 
 
 ## Added
 
-- Added automatic upload of the changelog to the github release.
+- Added automatic upload of the changelog to the GitHub release.
 
 # v0.0.4
 

@@ -1,14 +1,11 @@
-name: Build the documentation.
+name: Create documentation
 
-# build the documentation whenever there are new commits on main
 on:
   push:
-    # Alternative: only build for tags.
     tags:
       - '*'
   workflow_dispatch:
 
-# security: restrict permissions for CI jobs.
 permissions:
   contents: read
 
@@ -28,14 +25,13 @@ jobs:
           pip install numpy
           pip install git+https://github.com/Lezcano/geotorch/
 
-      # ADJUST THIS: install all dependencies (including pdoc)
       - name: Install mantra
         run: |
           pip install -e .
 
       - name: Install sphinx
         run: |
-          pip install sphinx sphinx_rtd_theme myst_parser
+          pip install sphinx sphinx_rtd_theme myst_parser[linkify]
 
       - name: Sphinx build
         run: |

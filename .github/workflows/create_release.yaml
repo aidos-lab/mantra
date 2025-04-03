@@ -1,0 +1,51 @@
+name: Create new release
+
+on: 
+  workflow_dispatch:
+  push: 
+    tags:
+      - "v*.*.*"
+
+jobs: 
+  run-python: 
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Checkout code
+        uses: actions/checkout@v3
+  
+      - name: Install Python and dependencies
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10.11'
+          cache: 'pip'
+      - run: |
+          python -m pip install --upgrade pip
+          pip install numpy
+          pip install requests
+
+      - name: Run data conversion script
+        run: | 
+          sh scripts/convert_manifolds.sh
+      
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          body_path: CHANGELOG.md
+          generate_release_notes: true
+          make_latest: true
+          files: |
+            2_manifolds.json.gz
+            3_manifolds.json.gz
+      
+      - name: Get latest Git tag
+        id: get_tag
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      
+      - name: Create new Zenodo release
+        env:
+          TOKEN: ${{ secrets.ZENODO_TOKEN }}
+          ID: ${{ vars.ZENODO_CONCEPT_RECORD_ID }}
+        run: |
+          python scripts/to_zenodo.py -c "$ID" -t "$TOKEN" -v "$VERSION" -f 2_manifolds.json.gz 3_manifolds.json.gz

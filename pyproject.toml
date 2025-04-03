@@ -16,9 +16,10 @@ packages = ["mantra"]
 dynamic = ["version"]
 name = "mantra-dataset"
 dependencies = [
-    "numpy",
-    "torch",
-    "torch_geometric"
+  "black>=22.0",
+  "numpy",
+  "torch",
+  "torch_geometric"
 ]
 requires-python = ">=3.8"
 authors = [
@@ -36,6 +37,7 @@ keywords = [
   "deep learning",
   "tda",
   "tdl",
+  "topological machine learning",
   "topological data analysis",
   "topological deep learning"
 ]
@@ -43,3 +45,6 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
 ]
+
+[tool.black]
+line-length = 79
