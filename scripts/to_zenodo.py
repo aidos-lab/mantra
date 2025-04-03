@@ -99,7 +99,7 @@ class ZenodoAPI:
         self.raw_endpoints = r
         self.deposition_id = r.json()["id"]
 
-    def edit_metdata(
+    def edit_metadata(
         self,
         upload_type: str = "dataset",
         title: Optional[str] = None,
@@ -146,7 +146,9 @@ def main():
 
     parser.add_argument("-c", "--concept-record-id", required=True)
     parser.add_argument("-t", "--access_token", type=str, required=True)
-    parser.add_argument("-v", "--version", default="0.0.0", type=str)
+    parser.add_argument(
+        "-v", "--version", default="0.0.0", type=str, required=True
+    )
     parser.add_argument(
         "-f",
         "--files",
@@ -164,21 +166,14 @@ def main():
     deposition_id = get_latest_deposition_id(concept_record_id, access_token)
     zenodo_api = ZenodoAPI(access_token, deposition_id)
 
-    # create new version: https://developers.zenodo.org/#new-version
     zenodo_api.new_version()
     zenodo_api.delete_files()
 
-    # upload files
     for file in files:
         zenodo_api.upload_file(file, file)
 
-    # update version tag
-    zenodo_api.edit_metdata(version=version)
-
-    # publish
+    zenodo_api.edit_metadata(version=version)
     zenodo_api.publish()
-
-    # discard draft
     zenodo_api.discard()
 
 
