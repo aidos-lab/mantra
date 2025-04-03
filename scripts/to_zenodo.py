@@ -38,9 +38,7 @@ def new_version(raw_endpoints: requests.Response, access_token):
 
 def discard(raw_endpoints: requests.Response, access_token):
     discard_api = raw_endpoints.json()["links"]["discard"]
-    response = requests.post(
-        discard_api, params={"access_token": access_token}
-    )
+    response = requests.post(discard_api, params={"access_token": access_token})
     response.raise_for_status()
 
 
@@ -64,9 +62,7 @@ def delete(endpoints, access):
     data = json.loads(json_str)
     for file in data:
         id_ = file["id"]
-        r = requests.delete(
-            f"{files_api}/{id_}", params={"access_token": access}
-        )
+        r = requests.delete(f"{files_api}/{id_}", params={"access_token": access})
 
 
 class ZenodoAPI:
@@ -114,9 +110,7 @@ class ZenodoAPI:
             metadata["version"] = version
         if creators is not None:
             # add dummy creators
-            metadata["creators"] = [
-                {"name": "Doe, John", "affiliation": "Zenodo"}
-            ]
+            metadata["creators"] = [{"name": "Doe, John", "affiliation": "Zenodo"}]
         update_metadata(metadata, self.raw_endpoints, self.access_token)
 
     def publish(self):
