@@ -1,4 +1,7 @@
 name: Publish package to PyPI
+# As a small aside, the workflow filename 
+# needs to correspond to the filename in 
+# PyPI. If not PyPI raises an error.
 
 on: 
   workflow_dispatch:
