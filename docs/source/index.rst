@@ -11,6 +11,7 @@
    :caption: Examples:
 
    notebooks/train_gnn.ipynb
+   notebooks/visualize_data.ipynb
 
 
 
