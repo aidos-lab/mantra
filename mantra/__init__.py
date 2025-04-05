@@ -7,9 +7,9 @@ from mantra.transforms import (
 from mantra.datasets import ManifoldTriangulations
 
 __all__ = [
-    'NodeIndex',
-    'RandomNodeFeatures',
-    'DegreeTransform',
-    'DegreeTransformOneHot',
-    'ManifoldTriangulations',
+    "NodeIndex",
+    "RandomNodeFeatures",
+    "DegreeTransform",
+    "DegreeTransformOneHot",
+    "ManifoldTriangulations",
 ]
