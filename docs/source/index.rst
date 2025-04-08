@@ -12,6 +12,7 @@
 
    notebooks/train_gnn.ipynb
    notebooks/visualize_data.ipynb
+   notebooks/adding_new_task.ipynb
 
 
 
