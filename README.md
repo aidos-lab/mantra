@@ -80,12 +80,6 @@ folder:
 2. [Training a GNN on MANTRA](/examples/train_gnn.ipynb)
 3. [Visualizing the MANTRA dataset](/examples/visualize_data.ipynb)
 
-## Acknowledgements
-
-This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
-who passed away unexpectedly on November 10, 2023. May his memory be
-a blessing.
-
 ## FAQ
 
 #### Q: Why MANTRA?
@@ -100,3 +94,8 @@ A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTr
 
 *Have a question that's not answered here? Please open an issue on our GitHub repository.*
 
+# Acknowledgements
+
+This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
+who passed away unexpectedly on November 10, 2023. May his memory be
+a blessing.
