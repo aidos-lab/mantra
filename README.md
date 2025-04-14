@@ -26,9 +26,9 @@ Please use the following citation for our work:
 The raw MANTRA dataset consisting of $2$- and $3$-manifolds with up to $10$ vertices 
 is provided [here](https://github.com/aidos-lab/mantra/releases/latest). 
 For machine-learning applications and research, we provide a custom
-dataset loader, which can be installed via the following command:
+dataset loader package, which can be installed via the following command:
 
-```python
+```console
 pip install mantra-dataset
 ```
 
@@ -37,37 +37,48 @@ After installation, the dataset can be used like this:
 ```python
 from mantra.datasets import ManifoldTriangulations
 
-dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest")
+dataset = ManifoldTriangulations(
+    root="./data",      # Root folder for storing data
+    manifold="2",       # Whether to load 2- or 3-manifolds
+    version="latest"    # Which version of the dataset to load
+)
 ```
 
-To add random node features to the dataset, we can add it as a transform to the dataset.
+As a more comprehensive example, let us consider adding *random node
+features* to the dataset and transform it for usage with graph neural
+networks:
 
 ```python
-# Load all required packages. 
 from torch_geometric.transforms import Compose, FaceToEdge
 
-# Load the mantra dataset
 from mantra.datasets import ManifoldTriangulations
 from mantra.transforms import NodeIndex, RandomNodeFeatures
 
-dataset = ManifoldTriangulations(root="./data", manifold="2", version="latest",
-                                 transform=Compose([
-                                        NodeIndex(),
-                                        RandomNodeFeatures(),
-                                        FaceToEdge(remove_faces=False),
-                                        ]
-                                    ),
-                                    force_reload=True,
-                                )
-
+dataset = ManifoldTriangulations(
+    root="./data",
+    manifold="2",
+    version="latest",
+    transform=Compose(
+        [
+            NodeIndex(),
+            RandomNodeFeatures(),
+            # Converts face indices to edge indices, thus essentially
+            # making the 1-skeleton available to a model.
+            FaceToEdge(remove_faces=False),
+        ]
+    ),
+    force_reload=True,
+)
 ```
 
-## Examples 
+## More Examples 
 
-Under the `examples` folder we have included three notebooks. The first notebook 
-contains an example for training a Graph Neural Network with the MANTRA dataset, the second notebook contains an analysis of the data distribution, and the third one an 
-example on how to extend current labels to develop new prediction tasks.
+Please find more example notebooks in the [`examples`](/examples)
+folder:
 
+1. [Adding new tasks to MANTRA](/examples/adding_new_task.ipynb)
+2. [Training a GNN on MANTRA](/examples/train_gnn.ipynb)
+3. [Visualizing the MANTRA dataset](/examples/visualize_data.ipynb)
 
 ## Acknowledgements
 
