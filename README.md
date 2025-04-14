@@ -12,13 +12,12 @@ deep learning or debug existing ones. See our [ICLR 2025 paper](https://openrevi
 Please use the following citation for our work:
 
 ```bibtex
-@inproceedings{
-ballester2025mantra,
-title={{MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage},
-author={Rub{\'e}n Ballester and Ernst R{\"o}ell and Daniel Bin Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
-booktitle={The Thirteenth International Conference on Learning Representations},
-year={2025},
-url={https://openreview.net/forum?id=X6y5CC44HM}
+@inproceedings{Ballester25a,
+  title         = {{MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage},
+  author        = {Rubén Ballester and Ernst Röell and Daniel Bīn Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
+  year          = 2025,
+  booktitle     = {International Conference on Learning Representations},
+  url           = {https://openreview.net/forum?id=X6y5CC44HM},
 }
 ```
 
