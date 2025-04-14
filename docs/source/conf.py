@@ -58,7 +58,7 @@ default_role = "obj"
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = "faro"
+html_theme = "furo"
 html_static_path = ["_static"]
 html_logo = "logo_aidos.png"
 html_theme_options = {
