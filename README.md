@@ -1,13 +1,16 @@
 # MANTRA: The Manifold Triangulations Assemblage
 
-
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14103581.svg)](https://doi.org/10.5281/zenodo.14103581) [![Maintainability](https://api.codeclimate.com/v1/badges/82f86d7e2f0aae342055/maintainability)](https://codeclimate.com/github/aidos-lab/MANTRA/maintainability) ![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA) [![CHANGELOG](https://img.shields.io/badge/Changelog--default)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md) ![License](https://img.shields.io/github/license/aidos-lab/MANTRA) 
 
 ![image](_static/manifold_triangulation_orbit.gif)
 
 MANTRA is a dataset consisting of *combinatorial triangulations* of
 manifolds. It can be used to create novel algorithms in topological
-deep learning or debug existing ones. See our [ICLR 2025 paper](https://openreview.net/pdf?id=X6y5CC44HM) for more details on potential experiments.
+deep learning or debug existing ones. See our [ICLR 2025
+paper](https://openreview.net/pdf?id=X6y5CC44HM) for more details and
+our [**benchmarks
+repository**](https://github.com/aidos-lab/mantra-benchmarks) for
+additional code to reproduce all experiments.
 
 Please use the following citation for our work:
 
