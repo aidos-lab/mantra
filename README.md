@@ -46,15 +46,18 @@ dataset = ManifoldTriangulations(
 )
 ```
 
-As a more comprehensive example, let us consider adding *random node
-features* to the dataset and transform it for usage with graph neural
-networks:
+Provided you have [`pytorch-geometric`](https://github.com/pyg-team/pytorch_geometric) installed,
+here is a more comprehensive example, showing the use of *random node features* and how to transform it
+for using graph neural networks:
 
 ```python
-from torch_geometric.transforms import Compose, FaceToEdge
+from torch_geometric.transforms import Compose
+from torch_geometric.transforms import FaceToEdge
 
 from mantra.datasets import ManifoldTriangulations
-from mantra.transforms import NodeIndex, RandomNodeFeatures
+from mantra.transforms import NodeIndex
+from mantra.transforms impor RandomNodeFeatures
+
 
 dataset = ManifoldTriangulations(
     root="./data",
