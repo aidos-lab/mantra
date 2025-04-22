@@ -5,6 +5,7 @@
    :caption: Modules 
    
    datasets
+   transforms
 
 .. toctree::
    :hidden: 
