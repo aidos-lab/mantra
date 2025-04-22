@@ -99,7 +99,7 @@ class ManifoldTriangulations(InMemoryDataset):
         dataset. If provided during initialization, pretransforms and/or
         prefilters are applied before saving the preprocessed dataset.
         More information on pretransforms and prefilters can be found in the
-        torch-geometric documentation.
+        `pytorch-geometric documentation <https://pytorch-geometric.readthedocs.io/en/latest/modules/transforms.html>`__.
         """
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
