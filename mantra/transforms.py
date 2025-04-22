@@ -1,34 +1,44 @@
-"""
-A set of base transforms for the MANTRA dataset. In the
-paper these transforms are used and are provided as base
-transforms for training your own neural networks.
+"""Transforms module
+
+A set of base transforms for the MANTRA dataset. We make use of such
+transformations in `our paper <https://openreview.net/pdf?id=X6y5CC44HM>`__
+to enable the training on different neural-network architectures.
 """
 
 import torch
-from torch_geometric.transforms import FaceToEdge, OneHotDegree
+
+from torch_geometric.transforms import Compose
+from torch_geometric.transforms import FaceToEdge
+from torch_geometric.transforms import OneHotDegree
+
 from torch_geometric.utils import degree
-from torchvision.transforms import Compose
 
 
 class NodeIndex:
+    """
+    This transform ensures the compatibility with `pytorch-geometric` by
+    changing the node/vertex indices to be zero-indexed.
+    """
+
     def __call__(self, data):
-        """
-        In the base dataset, the vertex start index is 1 and is provided as a
-        list. The transform converts the list to a tensor and changes the start
-        index to 0, for compatibility with torch-geometric.
-        """
         data.face = torch.tensor(data.triangulation).T - 1
         return data
 
 
 class RandomNodeFeatures:
+    """
+    Adds random node features to the dataset. The main purpose behind
+    this transformation is to ensure compatibility with architectures
+    that require node features, while also showing their respective
+    shortcomings. In our dataset, unlike many others, node coordinates
+    and the triangulations themselves are fully decoupled.
+    """
+
+    def __init__(self, dimension=8):
+        self.dimension = dimension
+
     def __call__(self, data):
-        """
-        We create an 8-dimensional vector with random numbers for each vertex.
-        Often the coordinates of the graph or triangulation are tightly coupled
-        with the structure of the graph, an assumtion we hope to tackle.
-        """
-        data.x = torch.rand(size=(data.face.max() + 1, 8))
+        data.x = torch.rand(size=(data.face.max() + 1, self.dimension))
         return data
 
 
