@@ -46,5 +46,11 @@ classifiers = [
   "Programming Language :: Python"
 ]
 
+[project.urls]
+documentation = "https://aidos.group/mantra/"
+repository = "https://github.com/aidos-lab/mantra"
+issues = "https://github.com/aidos-lab/mantra/issues"
+changelog = "https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md"
+
 [tool.black]
 line-length = 79
