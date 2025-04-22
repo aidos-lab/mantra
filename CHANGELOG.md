@@ -3,6 +3,12 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.13
+
+## Fixed
+
+- Addresses some issues with building the documentation.
+
 # v0.0.12
 
 ## Added
