@@ -1,7 +1,7 @@
 """Datasets module
 
 This module contains datasets describing triangulations of manifolds,
-following the API `pytorch-geometric`.
+following the API of `pytorch-geometric`.
 """
 
 import os
@@ -38,10 +38,11 @@ class ManifoldTriangulations(InMemoryDataset):
             with up to 10 vertices.
         version: string
             Version of the dataset to use. The version should correspond to a
-            released version of the dataset which can be found
-            ![here](https://github.com/aidos-lab/mantra/releases). Default is
-            the latest version. Unless specific reproducibility requirements are
-            to be met, using `latest` is recommended.
+            released version of the dataset, all of which can be found
+            `on GitHub <https://github.com/aidos-lab/mantra/releases>`__.
+            By default, the latest version will be downloaded. Unless
+            specific reproducibility requirements are to be met, using
+            `latest` is recommended.
         """
 
         # The properties need to be set before the super().__init__() call to
