@@ -3,6 +3,14 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.12
+
+## Added
+
+- Included `transforms` in main documentation.
+- Extended `pyproject.toml` with project URLs.
+- Fixed look-and-feel of PyPI documentation.
+
 # v0.0.11
 
 ## Fixed
