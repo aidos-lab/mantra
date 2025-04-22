@@ -3,6 +3,19 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.11
+
+## Fixed
+
+- Minor changes to documentation of individual `transforms`.
+- Simplified dependencies.
+
+# v0.0.10
+
+## Fixed
+
+- Minor changes to the release scripts.
+
 # v0.0.9
 
 ## Fixed
