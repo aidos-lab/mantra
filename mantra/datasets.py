@@ -81,7 +81,7 @@ class ManifoldTriangulations(InMemoryDataset):
         processed folder, it will skip processing. Othewise it will run the
         process function.
         """
-        return ["data.pt"]
+        return [f"data_{self.manifold}.pt"]
 
     def download(self) -> None:
         """
