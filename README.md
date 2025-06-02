@@ -56,7 +56,7 @@ from torch_geometric.transforms import FaceToEdge
 
 from mantra.datasets import ManifoldTriangulations
 from mantra.transforms import NodeIndex
-from mantra.transforms impor RandomNodeFeatures
+from mantra.transforms import RandomNodeFeatures
 
 
 dataset = ManifoldTriangulations(
