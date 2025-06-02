@@ -3,6 +3,12 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.14
+
+## Fixed
+
+- Changed root path to ensure the 2D and 3D datasets do not resolve to the same file. 
+
 # v0.0.13
 
 ## Fixed
