@@ -55,7 +55,7 @@ class ManifoldTriangulations(InMemoryDataset):
             )
 
         self.manifold = manifold
-        root += "/simplicial"
+        root += f"/mantra/{self.manifold}D"
         self.version = version
         self.url = f"https://github.com/aidos-lab/MANTRA/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"  # noqa
         super().__init__(
