@@ -33,9 +33,9 @@ class ManifoldTriangulations(InMemoryDataset):
         Parameters
         ----------
         manifold: string
-            Wether to use the 2 or 3 manifolds. The 2-manifold consist of all
-            surfaces with up to 10 vertices. The 3-manifolds consist of volumes
-            with up to 10 vertices.
+            Wether to use the 2- or 3- manifolds. The 2-manifold dataset
+            consist of all surfaces with up to 10 vertices. The
+            3-manifolds consist of all triangulatoins with up to 10 vertices.
         version: string
             Version of the dataset to use. The version should correspond to a
             released version of the dataset, all of which can be found
@@ -57,7 +57,7 @@ class ManifoldTriangulations(InMemoryDataset):
         self.manifold = manifold
         root += "/simplicial"
         self.version = version
-        self.url = f"https://github.com/aidos-lab/MANTRADataset/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"  # noqa
+        self.url = f"https://github.com/aidos-lab/MANTRA/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"  # noqa
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload
         )
