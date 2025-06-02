@@ -4,15 +4,45 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
-import os
 import json
+import os
 
+import requests
 from torch_geometric.data import (
     Data,
     InMemoryDataset,
     download_url,
     extract_gz,
 )
+
+
+def get_url(version: str, manifold: str) -> str:
+    """
+    Function to fetch the full download url.
+    """
+    if version == "latest":
+        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{manifold}_manifolds.json.gz"  # noqa
+
+    # Set headers for GitHub API
+    headers = {
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+    # Fetch the list of versions.
+    response = requests.get(
+        "https://api.github.com/repos/aidos-lab/mantra/releases",
+        headers=headers,
+    )
+    all_available_versions = [item["name"] for item in response.json()]
+    if version not in all_available_versions:
+        raise ValueError(
+            f"Version {version} not available, please choose one of the following versions: {all_available_versions}."
+        )
+
+    # Note that the url order is different (inconsistent) for a
+    # specific release as compared to "latest".
+    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{manifold}_manifolds.json.gz"  # noqa
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -55,9 +85,14 @@ class ManifoldTriangulations(InMemoryDataset):
             )
 
         self.manifold = manifold
-        root += f"/mantra/{self.manifold}D"
         self.version = version
-        self.url = f"https://github.com/aidos-lab/MANTRA/releases/{self.version}/download/{self.manifold}_manifolds.json.gz"  # noqa
+
+        self.url = get_url(version, manifold)
+        if version == "latest":
+            root += f"/mantra/{self.manifold}D"
+        else:
+            root += f"/mantra/{version}/{self.manifold}D"
+
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload
         )
