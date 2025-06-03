@@ -6,8 +6,8 @@ following the API of `pytorch-geometric`.
 
 import json
 import os
-
 import requests
+
 from torch_geometric.data import (
     Data,
     InMemoryDataset,
