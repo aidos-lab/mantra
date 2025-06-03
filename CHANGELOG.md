@@ -5,9 +5,15 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 # v0.0.14
 
+## Added 
+
+- Proper handling of the dataset versions. In case the provided version does not exist 
+  a `ValueError` will be raised and all available versions will be listed to the user. 
+
 ## Fixed
 
 - Changed root path to ensure the 2D and 3D datasets do not resolve to the same file. 
+
 
 # v0.0.13
 
