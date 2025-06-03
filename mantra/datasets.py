@@ -95,7 +95,7 @@ class ManifoldTriangulations(InMemoryDataset):
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload
         )
-        
+
         self.load(self.processed_paths[0])
 
     @property
