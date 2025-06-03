@@ -86,8 +86,8 @@ class ManifoldTriangulations(InMemoryDataset):
 
         self.manifold = manifold
         self.version = version
-
         self.url = get_url(version, manifold)
+        
         if version == "latest":
             root += f"/mantra/{self.manifold}D"
         else:
@@ -96,6 +96,7 @@ class ManifoldTriangulations(InMemoryDataset):
         super().__init__(
             root, transform, pre_transform, pre_filter, force_reload
         )
+        
         self.load(self.processed_paths[0])
 
     @property
