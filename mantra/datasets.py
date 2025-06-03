@@ -74,7 +74,6 @@ class ManifoldTriangulations(InMemoryDataset):
             specific reproducibility requirements are to be met, using
             `latest` is recommended.
         """
-
         # The properties need to be set before the super().__init__() call to
         # make sure they exist during processing. The process and download are
         # called during the super call.
@@ -87,7 +86,7 @@ class ManifoldTriangulations(InMemoryDataset):
         self.manifold = manifold
         self.version = version
         self.url = get_url(version, manifold)
-        
+
         if version == "latest":
             root += f"/mantra/{self.manifold}D"
         else:
