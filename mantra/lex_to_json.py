@@ -227,35 +227,38 @@ def hash_triangulation(triangulation):
     return hashlib.sha256(str(triangulation).encode("utf-8")).hexdigest()
 
 
-def deduplicate_triangulations(triangulations):
-    """Deduplicate a list of triangulations.
+def find_duplicates(triangulations):
+    """Find duplicate triangulations in a dict of triangulations.
 
-    Given a list of triangulations, uses `hash_triangulation()` to
-    deduplicate the list.
+    Given a dict of triangulations, uses `hash_triangulation()` to find
+    duplicate triangulations.
 
     Parameters
     ----------
-    triangulations : list
-        List of triangulations, specified using top-level simplices.
+    triangulations : dict
+        Dictionary of triangulations, with a "name" key (which is
+        already guaranteed to be unique) but a possibly non-unique
+        sequence of top-level simplices.
 
     Returns
     -------
     list
-        List of triangulations, with duplicates removed. This function
-        preserves insertion order.
+        List of names of triangulations that are not unique. The idea is
+        that these names can be used to directly remove some keys from a
+        dict. Since this function preserves insertion order, the *first*
+        instance of each element will be preserved.
     """
     seen = set()
-    result = []
+    names = []
 
-    for triangulation in triangulations:
-        h = hash_triangulation(triangulation)
+    for name, data in triangulations.items():
+        h = hash_triangulation(data["triangulation"])
         if h in seen:
-            continue
+            names.append(name)
+        else:
+            seen.add(h)
 
-        seen.add(h)
-        result.append(triangulation)
-
-    return result
+    return names
 
 
 def process_triangulations(filename):
