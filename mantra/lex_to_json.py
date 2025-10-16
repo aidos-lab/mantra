@@ -330,6 +330,18 @@ if __name__ == "__main__":
         for manifold in triangulations:
             triangulations[manifold].update(types[manifold])
 
+    print(
+        f"Deduplicating {len(triangulations)} triangulations...",
+        file=sys.stderr,
+    )
+
+    duplicates = find_duplicates(triangulations)
+    for duplicate in duplicates:
+        print(f"- {duplicate}", file=sys.stderr)
+        triangulations.pop(duplicate)
+
+    print(f"Storing {len(triangulations)} triangulations...", file=sys.stderr)
+
     # Turn ID into a separate attribute. This enables us to turn the
     # whole data set into a list of triangulations, making it easier
     # to add new triangulations later on.
