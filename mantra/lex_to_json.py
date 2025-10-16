@@ -11,6 +11,7 @@ storage, and downstream tasks.
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -201,6 +202,60 @@ def process_homology_groups_or_types(filename, parse_fn):
     matches = [re.match(r"(manifold_.*):\s+(.*)$", line) for line in lines]
 
     return {match.group(1): parse_fn(match.group(2)) for match in matches}
+
+
+def hash_triangulation(triangulation):
+    """Calculate a hash value (fingerprint) for a triangulation.
+
+    Given a triangulation in the form of a list of top-level simplices,
+    calculates a hash (fingerprint) that is order-invariant. This makes
+    it possible to prevent duplicates when merging different datasets.
+
+    Parameters
+    ----------
+    triangulation : list of list of int
+        Triangulation, specified in the form of top-level simplices.
+
+    Returns
+    -------
+    int
+        Hash value, calculated based on SHA-256.
+    """
+    triangulation = [list(sorted(simplex)) for simplex in triangulation]
+    triangulation = list(sorted(triangulation))
+
+    return hashlib.sha256(str(triangulation).encode("utf-8")).hexdigest()
+
+
+def deduplicate_triangulations(triangulations):
+    """Deduplicate a list of triangulations.
+
+    Given a list of triangulations, uses `hash_triangulation()` to
+    deduplicate the list.
+
+    Parameters
+    ----------
+    triangulations : list
+        List of triangulations, specified using top-level simplices.
+
+    Returns
+    -------
+    list
+        List of triangulations, with duplicates removed. This function
+        preserves insertion order.
+    """
+    seen = set()
+    result = []
+
+    for triangulation in triangulations:
+        h = hash_triangulation(triangulation)
+        if h in seen:
+            continue
+
+        seen.add(h)
+        result.append(triangulation)
+
+    return result
 
 
 def process_triangulations(filename):
