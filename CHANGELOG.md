@@ -3,6 +3,18 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.15
+
+## Added
+
+- New deduplication routine for merging different types of manifold
+  datasets.
+
+- Added 4787 triangulations of small valence, originally collected by
+  Frank Lutz but published *without* homology group information. This
+  information was added to the upstream repository and is now part of
+  the larger 3-manifold dataset.
+
 # v0.0.14
 
 ## Added 
