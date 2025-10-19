@@ -11,6 +11,7 @@ storage, and downstream tasks.
 """
 
 import argparse
+import hashlib
 import json
 import re
 import sys
@@ -203,6 +204,63 @@ def process_homology_groups_or_types(filename, parse_fn):
     return {match.group(1): parse_fn(match.group(2)) for match in matches}
 
 
+def hash_triangulation(triangulation):
+    """Calculate a hash value (fingerprint) for a triangulation.
+
+    Given a triangulation in the form of a list of top-level simplices,
+    calculates a hash (fingerprint) that is order-invariant. This makes
+    it possible to prevent duplicates when merging different datasets.
+
+    Parameters
+    ----------
+    triangulation : list of list of int
+        Triangulation, specified in the form of top-level simplices.
+
+    Returns
+    -------
+    int
+        Hash value, calculated based on SHA-256.
+    """
+    triangulation = [list(sorted(simplex)) for simplex in triangulation]
+    triangulation = list(sorted(triangulation))
+
+    return hashlib.sha256(str(triangulation).encode("utf-8")).hexdigest()
+
+
+def find_duplicates(triangulations):
+    """Find duplicate triangulations in a dict of triangulations.
+
+    Given a dict of triangulations, uses `hash_triangulation()` to find
+    duplicate triangulations.
+
+    Parameters
+    ----------
+    triangulations : dict
+        Dictionary of triangulations, with a "name" key (which is
+        already guaranteed to be unique) but a possibly non-unique
+        sequence of top-level simplices.
+
+    Returns
+    -------
+    list
+        List of names of triangulations that are not unique. The idea is
+        that these names can be used to directly remove some keys from a
+        dict. Since this function preserves insertion order, the *first*
+        instance of each element will be preserved.
+    """
+    seen = set()
+    names = []
+
+    for name, data in triangulations.items():
+        h = hash_triangulation(data["triangulation"])
+        if h in seen:
+            names.append(name)
+        else:
+            seen.add(h)
+
+    return names
+
+
 def process_triangulations(filename):
     """Process file in lexicographical format."""
     with open(filename) as f:
@@ -271,6 +329,18 @@ if __name__ == "__main__":
 
         for manifold in triangulations:
             triangulations[manifold].update(types[manifold])
+
+    print(
+        f"Deduplicating {len(triangulations)} triangulations...",
+        file=sys.stderr,
+    )
+
+    duplicates = find_duplicates(triangulations)
+    for duplicate in duplicates:
+        print(f"- {duplicate}", file=sys.stderr)
+        triangulations.pop(duplicate)
+
+    print(f"Storing {len(triangulations)} triangulations...", file=sys.stderr)
 
     # Turn ID into a separate attribute. This enables us to turn the
     # whole data set into a list of triangulations, making it easier

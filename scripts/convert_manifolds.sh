@@ -10,7 +10,7 @@
 #
 # This script assumes it runs in the base directory of the package. 
 
-STELLAR_URL=https://zenodo.org/api/records/11474260/files-archive
+STELLAR_URL=https://zenodo.org/api/records/17376786/files-archive
 
 # Make sure that we bail out directly in case any of the commands below
 # fail for whatever reason.
@@ -34,9 +34,9 @@ gzip --best 2_manifolds.json
 
 echo "Converting 3-manifolds..."
 
-cat data/3_manifolds_all.txt      data/3_manifolds_10_all.txt      > data/3_manifolds.txt
-cat data/3_manifolds_all_type.txt data/3_manifolds_10_all_type.txt > data/3_manifolds_type.txt
-cat data/3_manifolds_all_hom.txt  data/3_manifolds_10_all_hom.txt  > data/3_manifolds_hom.txt
+cat data/3_manifolds_all.txt      data/3_manifolds_10_all.txt      data/manifolds_lex_d3_deg5.txt      > data/3_manifolds.txt
+cat data/3_manifolds_all_type.txt data/3_manifolds_10_all_type.txt data/manifolds_lex_d3_deg5_type.txt > data/3_manifolds_type.txt
+cat data/3_manifolds_all_hom.txt  data/3_manifolds_10_all_hom.txt  data/manifolds_lex_d3_deg5_hom.txt  > data/3_manifolds_hom.txt
 
 python -m mantra.lex_to_json            data/3_manifolds.txt      \
                              --type     data/3_manifolds_type.txt \
