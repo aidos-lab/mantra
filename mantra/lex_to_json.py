@@ -17,7 +17,7 @@ import sys
 
 import numpy as np
 
-from utils import store_triangulations
+from mantra.utils import store_triangulations
 
 
 def process_triangulation(triangulation):
