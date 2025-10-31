@@ -48,6 +48,15 @@ python -m mantra.lex_to_json            data/2_manifolds.txt      \
                              --homology data/2_manifolds_hom.txt  \
           > 2_manifolds.json
 
+echo "Marking vertex-transitive triangulations..."
+
+python -m mantra.set_property -i data/2_manifolds_vt.txt \
+                              -n vertex-transitive       \
+                              -v true                    \
+                              -O false                   \
+                              -o 2_manifolds.json        \
+                              2_manifolds.json
+
 gzip --best 2_manifolds.json
 
 echo "Converting 3-manifolds..."
@@ -60,5 +69,14 @@ python -m mantra.lex_to_json            data/3_manifolds.txt      \
                              --type     data/3_manifolds_type.txt \
                              --homology data/3_manifolds_hom.txt  \
           > 3_manifolds.json
+
+echo "Marking vertex-transitive triangulations..."
+
+python -m mantra.set_property -i data/3_manifolds_vt.txt \
+                              -n vertex-transitive       \
+                              -v true                    \
+                              -o 3_manifolds.json        \
+                              -O false                   \
+                              3_manifolds.json
 
 gzip --best 3_manifolds.json
