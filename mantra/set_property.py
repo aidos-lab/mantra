@@ -19,7 +19,6 @@ triangulations. The script operates based on five inputs:
 """
 
 import argparse
-import ast
 import json
 import re
 import sys
@@ -33,13 +32,6 @@ def maybe_coerce(s):
 
     try:
         return json.loads(s)
-    except:  # noqa
-        pass
-
-    try:
-        # This is **not** safe but we do not anticipate that this script
-        # receives non-trusted inputs.
-        return ast.literal_eval(s)
     except:  # noqa
         pass
 
