@@ -23,6 +23,8 @@ import ast
 import json
 import re
 
+from utils import store_triangulations
+
 
 def maybe_coerce(s):
     """Try to coerce a string to a JSON data type if possible."""
@@ -90,8 +92,11 @@ if __name__ == "__main__":
         "-O",
         "--other-value",
         type=str,
-        help="Value to set for all non-identified triangulations",
+        help="Value to set for all other triangulations",
         required=True,
+    )
+    parser.add_argument(
+        "-o", "--output", type=str, help="Output file (optional)"
     )
 
     args = parser.parse_args()
@@ -103,9 +108,9 @@ if __name__ == "__main__":
     other_value = maybe_coerce(args.other_value)
 
     with open(args.INPUT) as f:
-        data = json.load(f)
+        triangulations = json.load(f)
 
-    for triangulation in data:
+    for triangulation in triangulations:
         # Do not overwrite stuff but rather raise an error; this
         # should *not* happen.
         assert key not in triangulation.keys(), "Property name must not exist"
@@ -115,4 +120,4 @@ if __name__ == "__main__":
         else:
             triangulation[key] = other_value
 
-    print(json.dumps(data, indent=2))
+    store_triangulations(triangulations, args.output)
