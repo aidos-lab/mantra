@@ -89,8 +89,10 @@ def parse_topological_type(s):
         result["name"] = parts[1].strip()
 
     # Case: There is only a single part, and the triangulation has no
-    # canonical name.
-    if parts[0].strip().startswith("("):
+    # canonical name. The second part of the condition prevents a set
+    # of 3-manifolds, consisting of connected sums, from breaking the
+    # parse process.
+    if parts[0].strip().startswith("(") and "#" not in parts[0]:
         # Parse the "topological type" field, consisting of a bracketed
         # expression indicating whether the manifold is orientable, and
         # the genus.
