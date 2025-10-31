@@ -12,13 +12,12 @@ storage, and downstream tasks.
 
 import argparse
 import hashlib
-import json
 import re
 import sys
 
-from contextlib import nullcontext
-
 import numpy as np
+
+from mantra.utils import store_triangulations
 
 
 def process_triangulation(triangulation):
@@ -90,8 +89,10 @@ def parse_topological_type(s):
         result["name"] = parts[1].strip()
 
     # Case: There is only a single part, and the triangulation has no
-    # canonical name.
-    if parts[0].strip().startswith("("):
+    # canonical name. The second part of the condition prevents a set
+    # of 3-manifolds, consisting of connected sums, from breaking the
+    # parse process.
+    if parts[0].strip().startswith("(") and "#" not in parts[0]:
         # Parse the "topological type" field, consisting of a bracketed
         # expression indicating whether the manifold is orientable, and
         # the genus.
@@ -350,54 +351,4 @@ if __name__ == "__main__":
         for manifold in triangulations
     ]
 
-    with (
-        open(args.output, "w")
-        if args.output is not None
-        else nullcontext(sys.stdout)
-    ) as f:
-        result = json.dumps(triangulations, indent=2)
-
-        regex = re.compile(
-            r"^(\s+)\[(.*?)\]([,]\s+?)", re.MULTILINE | re.DOTALL
-        )
-
-        def prettify_triangulation(match):
-            """Auxiliary function for pretty-printing a triangulation.
-
-            Given a match that contains *all* the top-level vertices
-            involved in the triangulation, this function will ensure
-            that they are all printed on individual lines. Plus, any
-            indent is preserved.
-            """
-            groups = match.groups()
-            indent = match.group(1)
-            vertex = match.group(2)
-            vertex = vertex.replace("\n", "")
-            vertex = re.sub(r"\s+", "", vertex)
-
-            result = f"{indent}[{vertex}]"
-
-            if len(groups) == 3:
-                result += ",\n"
-
-            return result
-
-        result = regex.sub(prettify_triangulation, result)
-
-        # Fix indent of "triangulation" fields afterwards. This ensures
-        # that the closing bracket of the triangulation key aligns with
-        # the start.
-        regex = re.compile(
-            r"^(\s+)\"triangulation\":.*?\]\]", re.MULTILINE | re.DOTALL
-        )
-
-        indents = [len(match.group(1)) for match in regex.finditer(result)]
-
-        assert len(indents) != 0
-        assert indents[0] > 0
-        assert sum(indents) / indents[0] == len(indents)
-
-        indent = " " * indents[0]
-        result = result.replace("]],", f"]\n{indent}],")
-
-        f.write(result)
+    store_triangulations(triangulations, args.output)
