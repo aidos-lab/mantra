@@ -22,6 +22,7 @@ import argparse
 import ast
 import json
 import re
+import sys
 
 from utils import store_triangulations
 
@@ -117,7 +118,14 @@ if __name__ == "__main__":
 
         if triangulation["id"] in identifiers:
             triangulation[key] = value
+            identifiers.remove(triangulation["id"])
         else:
             triangulation[key] = other_value
+
+    if identifiers:
+        print("Did not find the following triangulations:")
+
+        for identifier in identifiers:
+            print(f"- {identifier}", file=sys.stderr)
 
     store_triangulations(triangulations, args.output)
