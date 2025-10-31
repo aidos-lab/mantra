@@ -52,9 +52,9 @@ gzip --best 2_manifolds.json
 
 echo "Converting 3-manifolds..."
 
-cat data/3_manifolds_all.txt      data/3_manifolds_10_all.txt      data/manifolds_lex_d3_deg5.txt      > data/3_manifolds.txt
-cat data/3_manifolds_all_type.txt data/3_manifolds_10_all_type.txt data/manifolds_lex_d3_deg5_type.txt > data/3_manifolds_type.txt
-cat data/3_manifolds_all_hom.txt  data/3_manifolds_10_all_hom.txt  data/manifolds_lex_d3_deg5_hom.txt  > data/3_manifolds_hom.txt
+cat data/3_manifolds_vt.txt      data/3_manifolds_all.txt      data/3_manifolds_10_all.txt      data/manifolds_lex_d3_deg5.txt      > data/3_manifolds.txt
+cat data/3_manifolds_vt_type.txt data/3_manifolds_all_type.txt data/3_manifolds_10_all_type.txt data/manifolds_lex_d3_deg5_type.txt > data/3_manifolds_type.txt
+cat data/3_manifolds_vt_hom.txt  data/3_manifolds_all_hom.txt  data/3_manifolds_10_all_hom.txt  data/manifolds_lex_d3_deg5_hom.txt  > data/3_manifolds_hom.txt
 
 python -m mantra.lex_to_json            data/3_manifolds.txt      \
                              --type     data/3_manifolds_type.txt \
