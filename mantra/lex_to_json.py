@@ -293,6 +293,52 @@ def process_triangulations(filename):
     return triangulations
 
 
+def guess_name(triangulation):
+    """Guess the name of a triangulation.
+
+    This function makes use of the classification theorem for manifolds
+    to guess the canonical name of a triangulation. Currently, this may
+    only be taken seriously for 2-manifolds.
+
+    Applying this to triangulations that already have a name will raise
+    an error. This is deliberate.
+
+    Parameters
+    ----------
+    triangulation : dict
+        Triangulation with information about top-level simplices and all
+        other attributes.
+
+    Returns
+    -------
+    str
+        The assigned name of this triangulation. Will be left empty in
+        case no name can be found.
+    """
+    name = triangulation["name"]
+
+    assert not name, RuntimeError("Triangulation already has a name")
+
+    if (
+        "genus" not in triangulation
+        or "betti_numbers" not in triangulation
+        or "orientable" not in triangulation
+    ):
+        return name
+
+    g = triangulation["genus"]
+
+    if triangulation["orientable"]:
+        if g >= 2:
+            name = ["T^2"] * g
+    else:
+        if g >= 2:
+            name = " # ".join(["RP^2"] * g)
+            print(name)
+
+    return name
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("INPUT", type=str, help="Input file")
