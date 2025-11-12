@@ -340,12 +340,12 @@ def guess_name(triangulation):
         expected_betti_numbers = [1, 2 * g, 1]
         expected_torsion_coefficients = ["", "", ""]
 
-        name = " # ".join(["T^2"] * g)
+        name = f"#^{g:d} T^2"
     else:
         expected_betti_numbers = [1, g - 1, 0]
         expected_torsion_coefficients = ["", "Z_2", ""]
 
-        name = " # ".join(["RP^2"] * g)
+        name = f"#^{g:d} RP^2"
 
     # We always check Betti numbers because every triangulation is
     # guaranteed to have it.
