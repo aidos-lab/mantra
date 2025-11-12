@@ -319,6 +319,11 @@ def guess_name(triangulation):
 
     assert not name, RuntimeError("Triangulation already has a name")
 
+    # Sorry, but we can only do this for 2-manifolds at the moment. Stay
+    # tuned, folks!
+    if triangulation["dimension"] != 2:
+        return name
+
     if (
         "genus" not in triangulation
         or "betti_numbers" not in triangulation
@@ -327,14 +332,39 @@ def guess_name(triangulation):
         return name
 
     g = triangulation["genus"]
+    betti_numbers = triangulation["betti_numbers"]
+
+    assert g >= 2, f"Encountered unexpected genus 'g = {g}'"
 
     if triangulation["orientable"]:
-        if g >= 2:
-            name = ["T^2"] * g
+        expected_betti_numbers = [1, 2 * g, 1]
+        expected_torsion_coefficients = ["", "", ""]
+
+        name = " # ".join(["T^2"] * g)
     else:
-        if g >= 2:
-            name = " # ".join(["RP^2"] * g)
-            print(name)
+        expected_betti_numbers = [1, g - 1, 0]
+        expected_torsion_coefficients = ["", "Z_2", ""]
+
+        name = " # ".join(["RP^2"] * g)
+
+    # We always check Betti numbers because every triangulation is
+    # guaranteed to have it.
+    assert (
+        betti_numbers == expected_betti_numbers
+    ), f"Encountered unexpected Betti numbers '{betti_numbers}'"
+
+    # Only non-orientable triangulations need to have torsion
+    # coefficients, but if they exist, we check them.
+    assert (
+        triangulation["orientable"] or "torsion_coefficients" in triangulation
+    ), "Torsion coefficients are required for non-orientable manifolds"
+
+    if "torsion_coefficients" in triangulation:
+        torsion_coefficients = triangulation["torsion_coefficients"]
+
+        assert (
+            torsion_coefficients == expected_torsion_coefficients
+        ), f"Encountered unexpected torsion coefficients '{torsion_coefficients}'"  # noqa
 
     return name
 
@@ -376,6 +406,10 @@ if __name__ == "__main__":
 
         for manifold in triangulations:
             triangulations[manifold].update(types[manifold])
+
+    for _, triangulation in triangulations.items():
+        if not triangulation["name"]:
+            triangulation["name"] = guess_name(triangulation)
 
     print(
         f"Deduplicating {len(triangulations)} triangulations...",
