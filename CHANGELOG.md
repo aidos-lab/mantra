@@ -3,6 +3,19 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# v0.0.16
+
+## Added
+
+- Canonical names for *all* 2-manifolds, thus adding almost 40000 new
+  names.
+
+## Fixed
+
+- Renamed `vertex-transitive` attribute to `vertex_transitive`.
+
+- Fixed generation of release notes.
+
 # v0.0.15
 
 ## Added
@@ -25,7 +38,6 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 ## Fixed
 
 - Changed root path to ensure the 2D and 3D datasets do not resolve to the same file. 
-
 
 # v0.0.13
 
