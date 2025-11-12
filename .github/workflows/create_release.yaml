@@ -32,7 +32,7 @@ jobs:
         with:
           draft: false
           body_path: CHANGELOG.md
-          generate_release_notes: true
+          generate_release_notes: false  # Just use `CHANGELOG.md`
           make_latest: true
           files: |
             2_manifolds.json.gz
