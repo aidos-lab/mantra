@@ -51,7 +51,7 @@ python -m mantra.lex_to_json            data/2_manifolds.txt      \
 echo "Marking vertex-transitive triangulations..."
 
 python -m mantra.set_property -i data/2_manifolds_vt.txt \
-                              -n vertex-transitive       \
+                              -n vertex_transitive       \
                               -v true                    \
                               -O false                   \
                               -o 2_manifolds.json        \
@@ -73,7 +73,7 @@ python -m mantra.lex_to_json            data/3_manifolds.txt      \
 echo "Marking vertex-transitive triangulations..."
 
 python -m mantra.set_property -i data/3_manifolds_vt.txt \
-                              -n vertex-transitive       \
+                              -n vertex_transitive       \
                               -v true                    \
                               -o 3_manifolds.json        \
                               -O false                   \
