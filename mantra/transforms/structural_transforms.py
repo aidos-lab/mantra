@@ -47,7 +47,3 @@ class SetNumNodesTransform(T.BaseTransform):
         assert "n_vertices" in data
         data.num_nodes = data.n_vertices
         return data
-
-
-class AddSimplicialComplexTransform(T.BaseTransform):
-    pass
