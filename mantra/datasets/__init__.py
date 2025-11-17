@@ -1,3 +1,4 @@
-from .base_dataset import ManifoldTriangulations
+from .base import ManifoldTriangulations
+from .pairwise import PairwiseSimplicialDS
 
-__all__ = ["ManifoldTriangulations"]
+__all__ = ["ManifoldTriangulations", "PairwiseSimplicialDS"]
