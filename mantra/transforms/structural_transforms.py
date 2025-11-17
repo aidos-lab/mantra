@@ -40,8 +40,9 @@ class TriangulationToFaceTransform:
 
 class SetNumNodesTransform(T.BaseTransform):
     """
-        Convert the `n_vertices` attribute to `num_nodes`.
+    Convert the `n_vertices` attribute to `num_nodes`.
     """
+
     def forward(self, data: Data):
         assert "n_vertices" in data
         data.num_nodes = data.n_vertices
