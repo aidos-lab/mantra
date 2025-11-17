@@ -37,7 +37,7 @@ def get_url(version: str, manifold: str) -> str:
     all_available_versions = [item["name"] for item in response.json()]
     if version not in all_available_versions:
         raise ValueError(
-            f"Version {version} not available, please choose one of the following versions: {all_available_versions}."
+            f"Version {version} not available, please choose one of the following versions: {all_available_versions}."  # noqa
         )
 
     # Note that the url order is different (inconsistent) for a
