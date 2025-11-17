@@ -29,6 +29,8 @@ if __name__ == "__main__":
 
     sns.set_theme(style="white", palette="Set1")
 
-    sns.lineplot(df, x="n_vertices", y="count", hue="name")
+    g = sns.lineplot(df, x="n_vertices", y="count", hue="name")
+    g.set(yscale="log")
+
     plt.tight_layout()
     plt.show()
