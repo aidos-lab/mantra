@@ -1,6 +1,5 @@
 import os
-import typing
-from typing import Literal, Tuple, TypeAlias
+from typing import Literal, Tuple
 from tqdm import tqdm
 
 import torch
@@ -8,17 +7,9 @@ import torch
 from mantra.datasets import ManifoldTriangulations
 
 from torch_geometric.data import InMemoryDataset, Data
-from torch_geometric.transforms import Compose
-
-from mantra.configs import SplitConfig, Mode
 
 from mantra.manifold_types import Manifold2Type, Manifold3Type
 from mantra.tasks.task_types import TaskType
-
-from mantra.transforms.structural_transforms import (
-    AddSimplicialComplexTransform,
-    SetNumNodesTransform,
-)
 
 
 class PairwiseSimplicialDS(InMemoryDataset):
