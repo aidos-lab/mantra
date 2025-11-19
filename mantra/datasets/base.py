@@ -93,7 +93,11 @@ class ManifoldTriangulations(InMemoryDataset):
             root += f"/mantra/{version}/{self.manifold}D"
 
         super().__init__(
-            root, transform, pre_transform, pre_filter, force_reload
+            root=root,
+            transform=transform,
+            pre_transform=pre_transform,
+            pre_filter=pre_filter,
+            force_reload=force_reload,
         )
 
         self.load(self.processed_paths[0])
