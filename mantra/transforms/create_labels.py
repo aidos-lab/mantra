@@ -22,6 +22,7 @@ class CreateLabels(BaseTransform):
         super().__init__()
 
         self.source = source
+        self.label_to_index = {}
 
     def forward(self, data):
         """Assign label for a given `data` object.
@@ -38,4 +39,14 @@ class CreateLabels(BaseTransform):
             Data object with a label attached to it, stored in the `y`
             attribute of the tensor.
         """
+        assert (
+            self.source in data
+        ), f"Source attribute '{self.source}' is not present in data"
+
+        label = data[self.source]
+
+        if label not in self.label_to_index:
+            self.label_to_index[label] = len(self.label_to_index)
+
+        data.y = self.label_to_index[label]
         return data
