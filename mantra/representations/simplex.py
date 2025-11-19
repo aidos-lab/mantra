@@ -46,7 +46,6 @@ class Simplex(Generic[ElementType]):
     elements: frozenset[Hashable]
     name: str
 
-
     def __init__(
         self,
         elements: Collection[Hashable],
@@ -60,30 +59,30 @@ class Simplex(Generic[ElementType]):
     def __hash__(self) -> int:
         """Returns a hash of the simplex.
 
-            Returns
-            -------
-            int
-                Hash of the elements.
+        Returns
+        -------
+        int
+            Hash of the elements.
         """
         return hash(self.elements)
 
     def __len__(self) -> int:
         """Returns the number of nodes in the simplex.
 
-            Returns
-            -------
-            int
-                Number of nodes.
+        Returns
+        -------
+        int
+            Number of nodes.
         """
         return len(self.elements)
 
     def __iter__(self) -> Iterable:
-        """ Returns an iterator over the elements in the simplex.
+        """Returns an iterator over the elements in the simplex.
 
-            Returns
-            -------
-            Iterable
-                Iterator over simplex elements.
+        Returns
+        -------
+        Iterable
+            Iterator over simplex elements.
         """
 
         return iter(self.elements)
@@ -105,7 +104,6 @@ class Simplex(Generic[ElementType]):
             Returns `True` if the given simplex is equal to this simplex and `False` otherwise.
         """
         return type(self) is type(other) and self.elements == other.elements
-
 
     def __contains__(self, item: ElementType | Iterable[ElementType]) -> bool:
         """Return True if the given element is a subset of the nodes.
