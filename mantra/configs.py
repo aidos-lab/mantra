@@ -1,5 +1,6 @@
 from typing import Tuple, TypeAlias, Literal
 
+
 class SplitConfig:
     def __init__(
         self,
@@ -10,5 +11,6 @@ class SplitConfig:
         self.split = split
         self.seed = seed
         self.use_stratified = use_stratified
+
 
 Mode: TypeAlias = Literal["train", "test", "val"]
