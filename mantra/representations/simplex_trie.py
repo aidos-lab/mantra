@@ -25,7 +25,7 @@ from mantra.representations.simplex import Simplex
 __all__ = ["SimplexNode", "SimplexTrie"]
 
 ElementType = TypeVar("ElementType", bound=Hashable)
-T= TypeVar("T")
+T = TypeVar("T")
 
 
 def is_ordered_subset(one: Sequence[T], other: Sequence[T]) -> bool:
@@ -171,7 +171,9 @@ class SimplexNode(Generic[ElementType]):
             if node.label is not None:
                 # skip root node
                 yield node
-            queue += [node.children[label] for label in sorted(node.children.keys())]
+            queue += [
+                node.children[label] for label in sorted(node.children.keys())
+            ]
 
 
 class SimplexTrie(Generic[ElementType]):
@@ -247,7 +249,9 @@ class SimplexTrie(Generic[ElementType]):
         """
         return self.find(item) is not None
 
-    def __getitem__(self, item: Iterable[ElementType]) -> SimplexNode[ElementType]:
+    def __getitem__(
+        self, item: Iterable[ElementType]
+    ) -> SimplexNode[ElementType]:
         """Return the simplex node for a given simplex.
 
         Parameters
@@ -347,7 +351,9 @@ class SimplexTrie(Generic[ElementType]):
 
         return node
 
-    def find(self, search: Iterable[ElementType]) -> SimplexNode[ElementType] | None:
+    def find(
+        self, search: Iterable[ElementType]
+    ) -> SimplexNode[ElementType] | None:
         """Find the node in the trie that matches the search.
 
         Parameters
@@ -462,7 +468,9 @@ class SimplexTrie(Generic[ElementType]):
         if rank < 0:
             raise ValueError(f"`rank` must be a positive integer, got {rank}.")
         if rank >= len(self.shape):
-            raise ValueError(f"`rank` {rank} exceeds maximum rank {len(self.shape)}.")
+            raise ValueError(
+                f"`rank` {rank} exceeds maximum rank {len(self.shape)}."
+            )
 
         for nodes in self.label_lists[rank + 1].values():
             yield from nodes
