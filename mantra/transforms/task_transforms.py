@@ -79,14 +79,10 @@ class BinaryHomeomorphicTransform(T.BaseTransform):
 
     def forward(self, data: Data):
         assert "triangulation" in data, "No triangulation in this object"
-        assert data.triangulation.shape[0] == 2, "Need pairwise tensors of triangulations"
+        assert (
+            data.triangulation.shape[0] == 2
+        ), "Need pairwise tensors of triangulations"
 
         data.y = torch.tensor([data.name[0] == data.name[1]], dtype=torch.long)
 
         return data
-
-
-
-
-
-
