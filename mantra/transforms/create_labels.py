@@ -27,6 +27,14 @@ class CreateLabels(BaseTransform):
     def forward(self, data):
         """Assign label for a given `data` object.
 
+        Given a source attribute to create a label, assign a numerical
+        index to be used for downstream classification tasks. There is
+        one interesting thing happening here: The class assigns labels
+        based on the data type. If a boolean property is detected, the
+        mapping will default to `False = 0` and `True = 1`. Otherwise,
+        for string-based attributes, indices will be assigned based on
+        the order in which they are encountered.
+
         Parameters
         ----------
         data : torch_geometric.data.Data
@@ -45,8 +53,12 @@ class CreateLabels(BaseTransform):
 
         label = data[self.source]
 
-        if label not in self.label_to_index:
-            self.label_to_index[label] = len(self.label_to_index)
+        if isinstance(label, bool):
+            data.y = int(label)
+        else:
+            if label not in self.label_to_index:
+                self.label_to_index[label] = len(self.label_to_index)
 
-        data.y = self.label_to_index[label]
+            data.y = self.label_to_index[label]
+
         return data
