@@ -37,7 +37,7 @@ class OrientableToClassTransform(T.BaseTransform):
 
 class NameToClass2MTransform:
     """
-    Encode the homeomorphism type (`name`) as a nominal target for 2-manifolds.
+    Encode the homemorphism type (`name`) as a nominal target for 2-manifolds.
     """
 
     def __init__(self):
