@@ -8,15 +8,13 @@ import json
 import os
 import requests
 
-from torch_geometric.data import (
-    Data,
-    InMemoryDataset,
-    download_url,
-    extract_gz,
-)
+from torch_geometric.data import Data
+from torch_geometric.data import InMemoryDataset
+from torch_geometric.data import download_url
+from torch_geometric.data import extract_gz
 
 
-def get_url(version: str, manifold: str) -> str:
+def _get_dataset_url(version: str, manifold: str) -> str:
     """Get URL to download dataset from."""
     if version == "latest":
         return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{manifold}_manifolds.json.gz"  # noqa
@@ -44,6 +42,7 @@ def get_url(version: str, manifold: str) -> str:
 
 
 class ManifoldTriangulations(InMemoryDataset):
+    """Base class for storing manifold triangulations."""
 
     def __init__(
         self,
@@ -56,7 +55,7 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload=False,
     ):
         """
-        Load new dataset of manifold triangulations.
+        Create a new dataset of manifold triangulations.
 
         Parameters
         ----------
@@ -77,7 +76,7 @@ class ManifoldTriangulations(InMemoryDataset):
 
         self.manifold = manifold
         self.version = version
-        self.url = get_url(version, manifold)
+        self.url = _get_dataset_url(version, manifold)
 
         if version == "latest":
             root += f"/mantra/{self.manifold}D"
