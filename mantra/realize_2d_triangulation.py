@@ -132,8 +132,9 @@ def realize_triangulation(data):
             area_difference = np.max(all_areas) - np.min(all_areas)
 
             if best[0] is None or area_difference < best[1]:
-                best = (X / k, area_difference)
+                best = (X, area_difference)
                 print("Found triangulation after", i, "tries:", X / k)
+                print("Area difference:", area_difference)
 
     plot(data["id"], data["name"], top_level_simplices, best[0])
 
@@ -163,9 +164,6 @@ if __name__ == "__main__":
     rng = np.random.default_rng(42)
 
     for triangulation in triangulations:
-        if (
-            triangulation["name"] == "S^2"
-            and triangulation["n_vertices"] == 10
-        ):
+        if triangulation["name"] == "T^2":
             realize_triangulation(triangulation)
             break
