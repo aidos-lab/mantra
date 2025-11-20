@@ -31,7 +31,7 @@ class AddSimplexTrie(T.BaseTransform):
         return data
 
 
-class ConnectivitySCTransform(T.BaseTransform):
+class ConnectivitySimplicialComplex(T.BaseTransform):
     """Base class for connectivity transforms.
 
     Parent class for implementing a transform that adds a
@@ -106,8 +106,9 @@ class ConnectivitySCTransform(T.BaseTransform):
         for rank_idx in range(0, max_rank + 1):
             connectivity_name = f"{self.connectivity_name}_{rank_idx}"
             try:
-                data[connectivity_name] = from_sparse(
-                    self.generate_matrix(data.simplex_trie, rank_idx, max_rank)
+                data[connectivity_name] = _from_sparse(
+                    self.generate_matrix(data.simplex_trie, rank_idx, max_rank),
+                    device=data.triangulation.device
                 )
             except ValueError as e:
                 idx_low_simp = rank_idx - 1 if rank_idx > 0 else rank_idx
@@ -115,17 +116,17 @@ class ConnectivitySCTransform(T.BaseTransform):
                     data[connectivity_name] = torch.zeros(
                         [shape[idx_low_simp], shape[rank_idx]],
                         layout=torch.sparse_coo,
-                    ).coalesce()
+                    ).coalesce().to(data.triangulations.device)
                 elif "adjacency" in self.connectivity_name:
                     data[connectivity_name] = torch.zeros(
                         [shape[rank_idx], shape[rank_idx]],
                         layout=torch.sparse_coo,
-                    ).coalesce()
+                    ).coalesce().to(data.triangulations.device)
 
         return data
 
 
-class IncidenceSCTransform(ConnectivitySCTransform):
+class IncidenceSimplicialComplex(ConnectivitySimplicialComplex):
     """Add incidences of a simplicial complex."""
 
     def __init__(self, signed: bool, index=False):
@@ -170,7 +171,7 @@ class IncidenceSCTransform(ConnectivitySCTransform):
         return boundary
 
 
-class UpLaplacianSCTransform(ConnectivitySCTransform):
+class UpLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
     """Add Up Laplacian of a simplicial complex."""
 
     def __init__(self, signed: bool, index: bool = False):
@@ -179,7 +180,7 @@ class UpLaplacianSCTransform(ConnectivitySCTransform):
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ):
-        incidence_matrix_transform = IncidenceSCTransform(
+        incidence_matrix_transform = IncidenceSimplicialComplex(
             self.signed, index=True
         )
 
@@ -200,7 +201,7 @@ class UpLaplacianSCTransform(ConnectivitySCTransform):
         return L_up
 
 
-class DownLaplacianSCTransform(ConnectivitySCTransform):
+class DownLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
     """Add Down Laplacian of a simplicial complex."""
 
     def __init__(self, signed: bool, index: bool = False):
@@ -209,7 +210,7 @@ class DownLaplacianSCTransform(ConnectivitySCTransform):
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ):
-        incidence_matrix_transform = IncidenceSCTransform(
+        incidence_matrix_transform = IncidenceSimplicialComplex(
             self.signed, index=True
         )
 
@@ -229,7 +230,7 @@ class DownLaplacianSCTransform(ConnectivitySCTransform):
         return L_down
 
 
-class AdjacencySCTransform(ConnectivitySCTransform):
+class AdjacencySimplicialComplex(ConnectivitySimplicialComplex):
     """Add adjacencies of a simplicial complex."""
 
     def __init__(self, signed: bool):
@@ -238,7 +239,7 @@ class AdjacencySCTransform(ConnectivitySCTransform):
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ):
-        up_lap_transform = UpLaplacianSCTransform(self.signed, index=True)
+        up_lap_transform = UpLaplacianSimplicialComplex(self.signed, index=True)
         ind, l_up = up_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
         )
@@ -250,8 +251,40 @@ class AdjacencySCTransform(ConnectivitySCTransform):
         return l_up
 
 
-class CoadjacencySCTransform(ConnectivitySCTransform):
-    """Add coadjacencies of a simplicial complex."""
+class CoadjacencySimplicialComplex(ConnectivitySimplicialComplex):
+    """Add coadjacencies of a simplicial complex.
+
+        Notes
+        -----
+        This constructs matrices that relate two simplices $\\sigma, $\\tau$
+        if there is a $\\lambda$ whose rank is lower than both $\\sigma,\\tau$
+        and $\\lambda \\subset \\sigma \\wedge \\lambda \\subset \\tau$.
+
+        Example
+        -------
+        triangulations = [
+            [0, 1, 2],
+            [1, 2, 3]
+        ]
+        data = Data(triangulation = triangulation)
+        transform = CoadjacencySimplicialComplex(signed=False)
+        data = transform(data)
+        # Then the tensors look like
+        data.coadjacency_0 = torch.zeros(4,4)
+        data.coadjacency_1 = [ # (0, 1), (0, 2), (1, 2), (1, 3), (2, 3)
+            [0, 1, 1, 1, 1]
+            [1, 0, 1, 0, 1]
+            [1, 1, 0, 1, 1]
+            [1, 0, 1, 0, 1]
+            [0, 1, 1, 1, 0]
+        ]
+        data.coadjacency_2 = [ # (0, 1, 2), (1, 2, 3)
+            [0, 1]
+            [1, 0]
+        ]
+            
+
+    """
 
     def __init__(self, signed: bool):
         super().__init__(signed, "coadjacency", index=False)
@@ -259,7 +292,7 @@ class CoadjacencySCTransform(ConnectivitySCTransform):
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ):
-        down_lap_transform = DownLaplacianSCTransform(self.signed, index=True)
+        down_lap_transform = DownLaplacianSimplicialComplex(self.signed, index=True)
 
         ind, L_down = down_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
@@ -270,7 +303,7 @@ class CoadjacencySCTransform(ConnectivitySCTransform):
         return L_down
 
 
-def from_sparse(data, device=None) -> torch.Tensor:
+def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
     """Convert sparse input data directly to torch sparse coo format.
 
     Parameters
@@ -285,16 +318,14 @@ def from_sparse(data, device=None) -> torch.Tensor:
         input data converted to tensor.
     """
     if device is None:
-        device = torch.device("cpu")
+        device = data.device("cpu")
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
-    values = torch.FloatTensor(coo.data)
-    values = values.to(device)
-    indices = torch.LongTensor(np.vstack((coo.row, coo.col)))
-    indices = indices.to(device)
+    values = torch.FloatTensor(coo.data, device=device)
+    indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
     sparse_data = torch.sparse_coo_tensor(
-        indices, values, coo.shape
+        indices, values, coo.shape,
+        device=device
     ).coalesce()
-    sparse_data = sparse_data.to(device)
     return sparse_data
