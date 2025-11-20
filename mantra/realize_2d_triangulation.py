@@ -95,7 +95,7 @@ def realize_triangulation(data):
 
     # Store triangulation (first argument) and its area (second
     # argument).
-    best_triangulation = (None, None)
+    best = (None, None)
 
     # Let's try this only a couple of times...
     for i in range(max_tries):
@@ -127,21 +127,15 @@ def realize_triangulation(data):
                 break
 
         if not invalid:
-            # print("Required", i, "tries:", X / k)
 
             all_areas = areas(top_level_simplices, X / k)
             area_difference = np.max(all_areas) - np.min(all_areas)
 
-            print(area_difference)
+            if best[0] is None or area_difference < best[1]:
+                best = (X / k, area_difference)
+                print("Found triangulation after", i, "tries:", X / k)
 
-            if (
-                best_triangulation[0] is None
-                or area_difference < best_triangulation[1]
-            ):
-                best_triangulation = (X / k, area_difference)
-
-            # plot(data["id"], data["name"], top_level_simplices, X)
-            # break
+    plot(data["id"], data["name"], top_level_simplices, best[0])
 
 
 def plot(id, name, top_level_simplices, coordinates):
