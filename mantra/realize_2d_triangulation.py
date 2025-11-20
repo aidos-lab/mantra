@@ -93,6 +93,8 @@ def realize_triangulation(data):
     simplices.sort()
     simplices.sort(key=len)
 
+    Z = None
+
     # Let's try this only a couple of times...
     for i in range(max_tries):
         X = rng.integers(low=1, high=k + 1, size=(n, 3))
@@ -123,14 +125,17 @@ def realize_triangulation(data):
                 break
 
         if not invalid:
-            print("Required", i, "tries:", X / k)
+            #print("Required", i, "tries:", X / k)
 
             all_areas = areas(top_level_simplices, X / k)
+            area_difference = np.max(all_areas) - np.min(all_areas)
 
-            print(np.min(all_areas), np.max(all_areas))
+            print(area_difference)
 
-            plot(data["id"], data["name"], top_level_simplices, X)
-            break
+            Z = X.copy()
+
+            #plot(data["id"], data["name"], top_level_simplices, X)
+            #break
 
 
 def plot(id, name, top_level_simplices, coordinates):
