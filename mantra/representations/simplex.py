@@ -1,4 +1,6 @@
-"""Simplex Class."""
+"""Simplex Class.
+    Adapted from https://github.com/pyt-team/TopoNetX/blob/main/toponetx/classes/simplex.py
+"""
 
 import warnings
 from collections.abc import Collection, Hashable, Iterable
@@ -137,7 +139,7 @@ class Simplex(Generic[ElementType]):
 
         Parameters
         ----------
-        other : Any
+        other : Simplex
             The other simplex to compare with.
 
         Returns
@@ -145,8 +147,7 @@ class Simplex(Generic[ElementType]):
         bool
             True if this simplex comes before the other simplex in the lexicographic order.
         """
-        if not isinstance(other, Simplex):
-            return NotImplemented
+        assert isinstance(other, Simplex), f"Comparison object {other} is not a `Simplex`"
         return tuple(self.elements) <= tuple(other.elements)
 
     def __repr__(self) -> str:
