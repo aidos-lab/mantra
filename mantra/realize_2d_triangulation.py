@@ -113,8 +113,15 @@ def plot(id, name, top_level_simplices, coordinates):
     faces = np.asarray(top_level_simplices)
     faces = faces - 1
 
-    mesh = trimesh.Trimesh(vertices=coordinates, faces=faces, process=False)
-    mesh.show()
+    mesh = trimesh.Trimesh(vertices=coordinates, faces=faces)
+    mesh.fix_normals()
+
+    points = trimesh.points.PointCloud(coordinates, colors=[0, 0, 0, 255])
+
+    scene = mesh.scene()
+    scene.add_geometry(points)
+
+    scene.show(smooth=False)
 
 
 if __name__ == "__main__":
@@ -126,7 +133,7 @@ if __name__ == "__main__":
     for triangulation in triangulations:
         if (
             triangulation["name"] == "S^2"
-            and triangulation["n_vertices"] == 10
+            and triangulation["n_vertices"] == 9
         ):
             realize_triangulation(triangulation)
             break
