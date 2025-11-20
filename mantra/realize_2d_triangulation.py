@@ -12,7 +12,29 @@ import sys
 import numpy as np
 
 k = 32768
-max_tries = 3000
+max_tries = 50000
+
+
+def area(x, y, z):
+    a = y - x
+    b = z - x
+
+    cross = np.cross(a, b)
+    return float(0.5 * np.linalg.norm(cross))
+
+
+def areas(top_level_simplices, coordinates):
+    result = []
+
+    for triangle in top_level_simplices:
+        x = coordinates[triangle[0] - 1]
+        y = coordinates[triangle[1] - 1]
+        z = coordinates[triangle[2] - 1]
+
+        A = area(x, y, z)
+        result.append(A)
+
+    return result
 
 
 # TODO: Check if this actually works, I cobbled it together from
@@ -102,6 +124,11 @@ def realize_triangulation(data):
 
         if not invalid:
             print("Required", i, "tries:", X / k)
+
+            all_areas = areas(top_level_simplices, X / k)
+
+            print(np.min(all_areas), np.max(all_areas))
+
             plot(data["id"], data["name"], top_level_simplices, X)
             break
 
@@ -133,7 +160,7 @@ if __name__ == "__main__":
     for triangulation in triangulations:
         if (
             triangulation["name"] == "S^2"
-            and triangulation["n_vertices"] == 9
+            and triangulation["n_vertices"] == 10
         ):
             realize_triangulation(triangulation)
             break
