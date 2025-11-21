@@ -25,13 +25,26 @@ def _calculate_moment_curve(n, d):
         float values.
     """
     t = np.arange(n, dtype=float)
-    t /= (n - 1)
+    t /= n - 1
 
     X = np.vstack([t**k for k in range(1, 2 * d + 2)]).T
     return X
 
 
 class MomentCurveEmbedding(BaseTransform):
+
+    def __init__(self, normalize=False):
+        """Create new moment curve embedding transform.
+
+        Parameters
+        ----------
+        normalize : bool
+            If set, normalize coordinates to a higher-dimensional
+            sphere, thus increasing dimensionality by one.
+        """
+        super().__init__()
+
+        self.normalize = normalize
 
     def forward(self, data):
         """Calculate moment curve embedding for a data object.
@@ -53,23 +66,19 @@ class MomentCurveEmbedding(BaseTransform):
         d = data["dimension"].item()
 
         X = _calculate_moment_curve(n, d)
+
+        if self.normalize:
+            norms = np.linalg.norm(X, axis=1)
+            X = X / norms.max()
+
+            # TODO: Continue here :-)
+            #
+            # - Check norms
+            # - Add new point based on 1 - norms (for each coordinate)
+            # - Done
+            #
+            # This should project everything to a sphere.
+
         data["moment_curve_embedding"] = X
 
         return data
-
-    def spherical_moment_curve(n, d):
-        t = np.linspace(0, 1, n, endpoint=False)
-        t = t + 0.5 / n
-
-        p = np.vstack([t**k for k in range(1, 2 * d + 1)]).T
-
-        return p
-
-        #norms = np.linalg.norm(p, axis=1)
-        #q = p / norms.max()  # scale so all norms ≤ 1
-
-        #rq = np.linalg.norm(q, axis=1)
-
-        #z = np.sqrt(1.0 - rq**2)  # last coord to land on S^5
-        #return np.hstack([q, z[:, None]])  # shape (n, 6)
-
