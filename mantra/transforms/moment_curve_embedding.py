@@ -34,12 +34,26 @@ def _calculate_moment_curve(n, d):
 class MomentCurveEmbedding(BaseTransform):
 
     def forward(self, data):
-        print(data.keys())
+        """Calculate moment curve embedding for a data object.
+
+        Parameters
+        ----------
+        data : torch_geometric.data.Data
+            Input data object
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Data object with a new `moment_curve_embedding` key added.
+            The attribute will be overwritten if already present.
+        """
+        assert "n_vertices" in data and "dimension" in data
+
         n = data["n_vertices"].item()
         d = data["dimension"].item()
 
         X = _calculate_moment_curve(n, d)
-        print(X)
+        data["moment_curve_embedding"] = X
 
         return data
 
