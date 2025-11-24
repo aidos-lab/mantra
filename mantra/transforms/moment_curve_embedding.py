@@ -68,7 +68,18 @@ class MomentCurveEmbedding(BaseTransform):
         X = _calculate_moment_curve(n, d)
 
         if self.normalize:
-            # We first get the original norms of all points
+            # 1. We first get the "original" norms of points on the
+            #    moment curve.
+            #
+            # 2. We re-normalize so that the largest norm is *one*.
+            #    Notice that this is *not* a proper projection yet.
+            #
+            # 3. We calculate the difference to a unit-norm vector,
+            #    thus figuring out what the *new* coordinate should
+            #    be so that the point is on the sphere.
+            #
+            #  4. We concatenate the new coordinate, thus *finally*
+            #     putting everything on the sphere.
             norms = np.linalg.norm(X, axis=1)
             X = X / norms.max()
             Z = np.linalg.norm(X, axis=1)
