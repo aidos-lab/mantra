@@ -84,14 +84,7 @@ class MomentCurveEmbedding(BaseTransform):
             X = X / norms.max()
             Z = np.linalg.norm(X, axis=1)
             Z = np.sqrt(1 - Z**2)
-
-            # TODO: Continue here :-)
-            #
-            # - Check norms
-            # - Add new point based on 1 - norms (for each coordinate)
-            # - Done
-            #
-            # This should project everything to a sphere.
+            X = np.column_stack((X, Z))
 
         data["moment_curve_embedding"] = X
 
