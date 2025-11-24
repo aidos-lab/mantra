@@ -37,6 +37,48 @@ def _calculate_moment_curve(n, d):
     return X
 
 
+def _sample_from_special_orthogonal_group(n, rng=None):
+    """Generate a sample (a matrix) from SO(n), the special orthogonal group.
+
+    This function calculates an element of SO(n), the special orthogonal
+    group in dimension `n`.
+
+    Parameters
+    ----------
+    n : int
+        Dimension of the desired matrix. Negative numbers are not
+        accepted.
+
+    rng : np.random.Generator or None
+        Random number generator object. If set to `None`, the default
+        generator (`np.random.default_rng()`) will be used.
+
+    Returns
+    -------
+    np.array of shape (n, n)
+        A random element of SO(n)
+    """
+    assert n > 0, "Positive dimension is required"
+
+    if rng is None:
+        rng = np.random.default_rng()
+
+    A = rng.standard_normal((n, n))
+    Q, R = np.linalg.qr(A)
+
+    # Flip the sign of the diagonal entries to be positive. This is
+    # numerically more stable than the Mezzadri's approach.
+    s = np.sign(np.diag(R))
+    s[s == 0] = 1
+    Q = Q * s
+
+    # Enforce a positive determinant by optionally flipping the sign of
+    # the first column.
+    Q[:, 0] *= np.sign(np.linalg.det(Q))
+
+    return Q
+
+
 class MomentCurveEmbedding(BaseTransform):
 
     def __init__(self, normalize=False):
