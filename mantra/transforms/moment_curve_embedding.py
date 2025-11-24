@@ -29,6 +29,17 @@ def _calculate_moment_curve(n, d):
     np.array of shape (n, 2 * d + 1)
         Coordinates of vertices on the moment curve. Coordinates are
         float values.
+
+    Notes
+    -----
+    This function is implemented inspired by an article of Francesco
+    Mezzadri [1]_.
+
+    References
+    ----------
+    .. [1] Francesco Mezzadri, "How to Generate Random Matrices from the
+    Classical Compact Groups," Notices of the American Mathematical
+    Society, Vol. 54, pp. 592--604, 2007.
     """
     t = np.arange(n, dtype=float)
     t /= n - 1
