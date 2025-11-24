@@ -10,6 +10,12 @@ def _calculate_moment_curve(n, d):
     `n` vertices of a `d`-dimensional manifold. Notice that the curve
     will have coordinates of dimension `2d + 1`.
 
+    The moment curve is a canonical representation of a triangulation
+    but its coordinates are by necessity high-dimensional, and merely
+    making use of the number of vertices and the dimension. This will
+    mean that the coordinates, by themselves, are not enough to fully
+    characterize a triangulation (which is a good thing).
+
     Parameters
     ----------
     n : int
