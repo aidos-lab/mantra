@@ -68,8 +68,11 @@ class MomentCurveEmbedding(BaseTransform):
         X = _calculate_moment_curve(n, d)
 
         if self.normalize:
+            # We first get the original norms of all points
             norms = np.linalg.norm(X, axis=1)
             X = X / norms.max()
+            Z = np.linalg.norm(X, axis=1)
+            Z = np.sqrt(1 - Z**2)
 
             # TODO: Continue here :-)
             #
