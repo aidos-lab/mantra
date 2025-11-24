@@ -92,18 +92,40 @@ def _sample_from_special_orthogonal_group(n, rng=None):
 
 class MomentCurveEmbedding(BaseTransform):
 
-    def __init__(self, normalize=False):
+    def __init__(self, perturb=False, normalize=False, rng=None):
         """Create new moment curve embedding transform.
 
         Parameters
         ----------
+        perturb : bool
+            If set, perturbs all coordinates by applying a random
+            rotation to them. This has the effect of rotating the
+            triangulation but does not change any distances, thus
+            making any tasks operating with triangulations harder
+            and ensuring that all manifolds will have nigh-unique
+            coordinates.
+
         normalize : bool
             If set, normalize coordinates to a higher-dimensional
             sphere, thus increasing dimensionality by one.
+
+        rng : np.random.Generator, int, or None
+            Random number generator object. If set to `None`, the
+            default generator (`np.random.default_rng()`) will be
+            used. If set to an int, it will be used as a seed for
+            a new `np.random.default_rng()` instance.
         """
         super().__init__()
 
+        self.perturb = perturb
         self.normalize = normalize
+
+        self.rng = rng if rng is not None else np.random.default_rng()
+
+        # Let's see whether we are actually a random number generator or
+        # not...
+        if isinstance(self.rng, int):
+            self.rng = np.random.default_rng(seed=self.rng)
 
     def forward(self, data):
         """Calculate moment curve embedding for a data object.
@@ -125,6 +147,10 @@ class MomentCurveEmbedding(BaseTransform):
         d = data["dimension"].item()
 
         X = _calculate_moment_curve(n, d)
+
+        if self.perturb:
+            Q = _sample_from_special_orthogonal_group(X.shape[1], rng=self.rng)
+            X = X @ Q.T
 
         if self.normalize:
             # 1. We first get the "original" norms of points on the
