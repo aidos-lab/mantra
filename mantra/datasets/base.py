@@ -82,7 +82,11 @@ class ManifoldTriangulations(InMemoryDataset):
             parallel. Otherwise, the `force_reload` flag of the base class
             has to be used always, obviating the need for pre-processing the
             dataset. The name will be used for storing all processed files of
-            the dataset.
+            the dataset. Under the hood, this property will only change the
+            place in which processed data is stored.
+
+            As a suggestion the name should not include any spaces, thus
+            making it easier to parse for the OS.
         """
         assert manifold in ["2", "3"]
 
@@ -117,16 +121,21 @@ class ManifoldTriangulations(InMemoryDataset):
         return [f"{self.manifold}_manifolds.json"]
 
     @property
+    def processed_dir(self):
+        """Return directory for storing processed data."""
+        if self.name is not None:
+            return os.path.join(self.root, "processed", self.name)
+        else:
+            return super().processed_dir
+
+    @property
     def processed_file_names(self):
         """Return process file names.
 
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        if self.name is not None:
-            return [f"data_{self.manifold}_{self.name}.pt"]
-        else:
-            return [f"data_{self.manifold}.pt"]
+        return [f"data_{self.manifold}.pt"]
 
     def download(self) -> None:
         """Download dataset depending on specified version."""
