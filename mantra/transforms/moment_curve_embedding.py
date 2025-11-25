@@ -168,7 +168,7 @@ class MomentCurveEmbedding(BaseTransform):
             norms = np.linalg.norm(X, axis=1)
             X = X / norms.max()
             Z = np.linalg.norm(X, axis=1)
-            Z = np.sqrt(1 - Z**2)
+            Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
         data["moment_curve_embedding"] = X
