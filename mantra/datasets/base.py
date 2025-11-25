@@ -49,6 +49,7 @@ class ManifoldTriangulations(InMemoryDataset):
         root,
         manifold="2",
         version="latest",
+        name=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -59,22 +60,34 @@ class ManifoldTriangulations(InMemoryDataset):
 
         Parameters
         ----------
-        manifold : string
+        manifold : str
             Dimension of manifolds to load. Currently, only "2" or "3"
             are supported, denoting surfaces and 3-manifolds,
             respectively.
 
-        version : string
+        version : str
             Version of the dataset to use. The version should correspond to a
             released version of the dataset, all of which can be found
             `on GitHub <https://github.com/aidos-lab/mantra/releases>`__.
             By default, the latest version will be downloaded. Unless
             specific reproducibility requirements are to be met, using
             `latest` is recommended.
+
+        name : str or None
+            If set, the name denotes a way to distinguish between datasets
+            based on the *same* data source but potentially prepared in a
+            different fashion, i.e., by a different set of pre-transforms.
+
+            Using different names enables such datasets to coexist in
+            parallel. Otherwise, the `force_reload` flag of the base class
+            has to be used always, obviating the need for pre-processing the
+            dataset. The name will be used for storing all processed files of
+            the dataset.
         """
         assert manifold in ["2", "3"]
 
         self.manifold = manifold
+        self.name = name
         self.version = version
         self.url = _get_dataset_url(version, manifold)
 
@@ -110,7 +123,10 @@ class ManifoldTriangulations(InMemoryDataset):
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        return [f"data_{self.manifold}.pt"]
+        if self.name is not None:
+            return [f"data_{self.manifold}_{self.name}.pt"]
+        else:
+            return [f"data_{self.manifold}.pt"]
 
     def download(self) -> None:
         """Download dataset depending on specified version."""
