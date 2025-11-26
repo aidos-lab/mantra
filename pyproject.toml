@@ -17,9 +17,10 @@ dynamic = ["version"]
 name = "mantra-dataset"
 dependencies = [
   "black>=22.0",
+  "ruff>=0.14.06",
   "numpy",
   "torch",
-  "torch_geometric"
+  "torch_geometric",
 ]
 requires-python = ">=3.8"
 authors = [
