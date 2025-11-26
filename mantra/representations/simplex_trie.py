@@ -72,7 +72,7 @@ def is_ordered_subset(one: Sequence[T], other: Sequence[T]) -> bool:
 
 
 class SimplexNode(Generic[ElementType]):
-    """Node in a simplex tree.
+    """Node in a simplex trie.
 
     Parameters
     ----------
@@ -95,7 +95,7 @@ class SimplexNode(Generic[ElementType]):
         label: ElementType | None,
         parent: "SimplexNode[ElementType] | None" = None,
     ) -> None:
-        """Node in a simplex tree.
+        """Node in a simplex trie.
 
         Parameters
         ----------
@@ -178,7 +178,7 @@ class SimplexNode(Generic[ElementType]):
 
 class SimplexTrie(Generic[ElementType]):
     """
-    Simplex tree data structure as presented in [1]_.
+    Simplex trie data structure as presented in [1]_.
 
     This class is intended for internal use by the `SimplicialComplex` class only. Any
     direct interactions with this class may break at any time.
@@ -194,7 +194,7 @@ class SimplexTrie(Generic[ElementType]):
     shape: list[int]
 
     def __init__(self) -> None:
-        """Simplex tree data structure as presented in [1]_.
+        """Simplex trie data structure as presented in [1]_.
 
         This class is intended for internal use by the `SimplicialComplex` class only.
         Any direct interactions with this class may break at any time.
@@ -286,7 +286,7 @@ class SimplexTrie(Generic[ElementType]):
         """
         yield from self.root.iter_all()
 
-    def insert(self, item: Sequence[ElementType]) -> None:
+    def insert(self, item: Sequence[ElementType], subtree: None | SimplexNode[ElementType] = None) -> None:
         """Insert a simplex into the trie.
 
         Any lower-dimensional simplices that do not exist in the trie are also inserted
@@ -295,27 +295,22 @@ class SimplexTrie(Generic[ElementType]):
 
         Parameters
         ----------
-        item : Sequence of ElementType
-            The simplex to insert. Must be ordered and contain only unique elements.
-        """
-        self._insert_helper(self.root, item)
-
-    def _insert_helper(
-        self, subtree: SimplexNode[ElementType], items: Sequence[ElementType]
-    ) -> None:
-        """Insert a simplex node under the given subtree.
-
-        Parameters
-        ----------
-        subtree : SimplexNode
-            The subtree to insert the simplex node under.
         items : Sequence
             The (partial) simplex to insert under the subtree.
+        subtree : SimplexNode
+            The subtree to insert the simplex node under. Defaults to root for the base-case
         """
-        for i, label in enumerate(items):
-            if label not in subtree.children:
-                self._insert_child(subtree, label)
-            self._insert_helper(subtree.children[label], items[i + 1 :])
+
+        # This is what the outside caller sees
+        if subtree is None:
+            item = sorted(frozenset(item))
+            self.insert(item, self.root)
+        # This is the recursive call
+        else:
+            for i, label in enumerate(item):
+                if label not in subtree.children:
+                    self._insert_child(subtree, label)
+                self.insert(item[i + 1 :], subtree.children[label])
 
     def _insert_child(
         self, parent: SimplexNode[ElementType], label: ElementType
@@ -336,7 +331,6 @@ class SimplexTrie(Generic[ElementType]):
         """
         node = SimplexNode(label, parent=parent)
 
-        # update label lists
         if node.depth not in self.label_lists:
             self.label_lists[node.depth] = {}
         if label in self.label_lists[node.depth]:
@@ -344,7 +338,6 @@ class SimplexTrie(Generic[ElementType]):
         else:
             self.label_lists[node.depth][label] = [node]
 
-        # update shape property
         if node.depth > len(self.shape):
             self.shape += [0]
         self.shape[node.depth - 1] += 1
