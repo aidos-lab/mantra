@@ -1,7 +1,6 @@
 from abc import abstractmethod, ABCMeta
-from typing import Dict, List
+from typing import List
 
-from networkx import incidence_matrix
 import numpy as np
 
 from scipy.sparse import csr_matrix
@@ -111,7 +110,7 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
                     ),
                     device=data.triangulation.device,
                 )
-            except ValueError as e:
+            except ValueError:
                 idx_low_simp = rank_idx - 1 if rank_idx > 0 else rank_idx
                 if "incidence" in self.connectivity_name:
                     data[connectivity_name] = (

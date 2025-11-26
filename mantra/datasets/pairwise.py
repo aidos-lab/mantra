@@ -1,5 +1,5 @@
 import os
-from typing import Literal, Tuple
+from typing import Tuple
 from tqdm import tqdm
 
 import torch
