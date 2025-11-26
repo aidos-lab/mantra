@@ -8,10 +8,6 @@ to enable the training on different neural-network architectures.
 import torch
 
 import torch_geometric.transforms as T
-from torch_geometric.data import Data
-from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
-from torch_geometric.transforms import OneHotDegree
 
 from torch_geometric.utils import degree
 

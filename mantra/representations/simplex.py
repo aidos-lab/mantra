@@ -2,10 +2,8 @@
 Adapted from https://github.com/pyt-team/TopoNetX/blob/main/toponetx/classes/simplex.py
 """
 
-import warnings
 from collections.abc import Collection, Hashable, Iterable
 from functools import total_ordering
-from itertools import combinations
 from typing import Generic, TypeVar, Any
 
 from typing_extensions import Self
