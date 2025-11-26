@@ -41,8 +41,8 @@ After installation, the dataset can be used like this:
 from mantra.datasets import ManifoldTriangulations
 
 dataset = ManifoldTriangulations(
-    root="./data",      # Root folder for storing data
-    manifold="2",       # Whether to load 2- or 3-manifolds
+    root="./data",      # root folder for storing data
+    dimension=2,        # Whether to load 2- or 3-manifolds
     version="latest"    # Which version of the dataset to load
 )
 ```
@@ -62,7 +62,7 @@ from mantra.transforms import RandomNodeFeatures
 
 dataset = ManifoldTriangulations(
     root="./data",
-    manifold="2",
+    dimension=2,
     version="latest",
     transform=Compose(
         [
