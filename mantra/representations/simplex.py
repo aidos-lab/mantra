@@ -161,14 +161,14 @@ class Simplex(Generic[ElementType]):
         return f"Simplex({tuple(self.elements)})"
 
     def __str__(self) -> str:
-        """Return string representation of the simplex.
+        """Return human readable (str) simplex.
 
         Returns
         -------
         str
-            A string representation of the simplex.
+            A human readable representation of the simplex.
         """
-        return f"Nodes set: {tuple(self.elements)}"
+        return f"Nodes: {tuple(self.elements)}"
 
     def clone(self) -> Self:
         """Return a copy of the simplex.

@@ -1,37 +1,38 @@
+from abc import abstractmethod, ABCMeta
 from typing import Dict, List
+
 from networkx import incidence_matrix
-import torch
 import numpy as np
+
 from scipy.sparse import csr_matrix
 import scipy
 
-import torch_geometric.transforms as T
+import torch
+from torch_geometric.transforms import BaseTransform
 from torch_geometric.data import Data
 
-from mantra.representations.simplex_trie import SimplexTrie, Simplex
+from mantra.representations.simplex_trie import SimplexTrie
+from mantra.representations.simplex_trie import Simplex
 
 
-class AddSimplexTrie(T.BaseTransform):
+class AddSimplexTrie(BaseTransform):
     """Add simplex trie to object.
 
     Takes in a `Data` object and computes a `SimplexTrie` for it.
     Then it adds it to it's storage to save up on computation
     of connectivity matrices.
-
-
     """
 
     def forward(self, data: Data):
         assert "triangulation" in data
         simplex_trie = SimplexTrie()
         for t in data.triangulation:
-            t_ = frozenset(t)
-            simplex_trie.insert(sorted(t_))
+            simplex_trie.insert(t)
         data.simplex_trie = simplex_trie
         return data
 
 
-class ConnectivitySimplicialComplex(T.BaseTransform):
+class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
     """Base class for connectivity transforms.
 
     Parent class for implementing a transform that adds a
@@ -39,7 +40,6 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
     field and represents this triangulation by the canonical
     representation of it's neighborhood relationships in the
     PyG edge-index format.
-
     """
 
     def __init__(self, signed: bool, connectivity_name: str, index: bool):
@@ -62,6 +62,7 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
         """
         return sorted(node.simplex for node in simplex_trie.skeleton(rank))
 
+    @abstractmethod
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ) -> scipy.sparse.csr_matrix:
@@ -80,7 +81,7 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
         -------
             Torch.tensor (torch.sparse.coo)
         """
-        raise NotImplementedError()
+        return
 
     def forward(self, data: Data):
         # If the trie is not already calculated then this calculates it and adds it
@@ -89,8 +90,7 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
             assert (
                 "triangulation" in data
             ), "Your data object does not contain a triangulation or a simplex trie"
-            st_transform = AddSimplexTrie()
-            data = st_transform(data)
+            data = AddSimplexTrie()(data)
 
         max_rank = data.dimension.item()
         # The shape that empty tensors should take
@@ -100,7 +100,6 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
                 (0, max_rank + 1 - len(data.simplex_trie.shape)),
             )
         )
-        print(shape)
 
         # NOTE: For some connectivity relatioship there will be 0 matrices
         for rank_idx in range(0, max_rank + 1):
@@ -126,7 +125,7 @@ class ConnectivitySimplicialComplex(T.BaseTransform):
         return data
 
 
-class IncidenceSimplicialComplex(ConnectivitySimplicialComplex):
+class IncidenceSimplicialComplex(AbstractSimplicialComplexConnectivity):
     """Add incidences of a simplicial complex."""
 
     def __init__(self, signed: bool, index=False):
@@ -171,7 +170,7 @@ class IncidenceSimplicialComplex(ConnectivitySimplicialComplex):
         return boundary
 
 
-class UpLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
+class UpLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
     """Add Up Laplacian of a simplicial complex."""
 
     def __init__(self, signed: bool, index: bool = False):
@@ -201,7 +200,7 @@ class UpLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
         return L_up
 
 
-class DownLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
+class DownLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
     """Add Down Laplacian of a simplicial complex."""
 
     def __init__(self, signed: bool, index: bool = False):
@@ -230,7 +229,7 @@ class DownLaplacianSimplicialComplex(ConnectivitySimplicialComplex):
         return L_down
 
 
-class AdjacencySimplicialComplex(ConnectivitySimplicialComplex):
+class AdjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
     """Add adjacencies of a simplicial complex."""
 
     def __init__(self, signed: bool):
@@ -251,7 +250,7 @@ class AdjacencySimplicialComplex(ConnectivitySimplicialComplex):
         return l_up
 
 
-class CoadjacencySimplicialComplex(ConnectivitySimplicialComplex):
+class CoadjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
     """Add coadjacencies of a simplicial complex.
 
         Notes
@@ -282,8 +281,6 @@ class CoadjacencySimplicialComplex(ConnectivitySimplicialComplex):
             [0, 1]
             [1, 0]
         ]
-            
-
     """
 
     def __init__(self, signed: bool):
