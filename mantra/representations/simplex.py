@@ -1,5 +1,5 @@
 """Simplex Class.
-    Adapted from https://github.com/pyt-team/TopoNetX/blob/main/toponetx/classes/simplex.py
+Adapted from https://github.com/pyt-team/TopoNetX/blob/main/toponetx/classes/simplex.py
 """
 
 import warnings
@@ -147,7 +147,9 @@ class Simplex(Generic[ElementType]):
         bool
             True if this simplex comes before the other simplex in the lexicographic order.
         """
-        assert isinstance(other, Simplex), f"Comparison object {other} is not a `Simplex`"
+        assert isinstance(
+            other, Simplex
+        ), f"Comparison object {other} is not a `Simplex`"
         return tuple(self.elements) <= tuple(other.elements)
 
     def __repr__(self) -> str:

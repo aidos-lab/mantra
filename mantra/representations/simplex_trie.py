@@ -286,7 +286,11 @@ class SimplexTrie(Generic[ElementType]):
         """
         yield from self.root.iter_all()
 
-    def insert(self, item: Sequence[ElementType], subtree: None | SimplexNode[ElementType] = None) -> None:
+    def insert(
+        self,
+        item: Sequence[ElementType],
+        subtree: None | SimplexNode[ElementType] = None,
+    ) -> None:
         """Insert a simplex into the trie.
 
         Any lower-dimensional simplices that do not exist in the trie are also inserted
