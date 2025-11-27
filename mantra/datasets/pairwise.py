@@ -36,7 +36,7 @@ class PairwiseSimplicialDS(InMemoryDataset):
         pre_filter=None,
     ):
         self.task_type = TaskType.HOMEOMORPHIC_DIST
-        self.dimension = dimension 
+        self.dimension = dimension
         self.comparison_pair = comparison_pair
         self.raw_simplicial_ds = ManifoldTriangulations(
             os.path.join(root, "raw_simplicial"),
