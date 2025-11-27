@@ -64,8 +64,10 @@ def _propagate_values(X, triangulation):
     X : np.array of shape (n, d)
         Vertex-based attributes
 
-    triangulation: list of int
-        A triangulation, expressed as a list of top-level simplices
+    triangulation : list of lists
+        A triangulation, expressed as a list of top-level simplices,
+        which themselves are lists (or iterable; we do not actually
+        care here).
 
     Returns
     -------
@@ -99,6 +101,9 @@ def _propagate_values(X, triangulation):
             # View as an array to correct for the index shift; our
             # triangulation is not zero-indexed.
             s = np.asarray(s)
+
+            # Calculate barycenter for the current simplex (i.e., one
+            # row of the result matrix).
             M.append(np.mean(X[s - 1, :], axis=0))
 
         M = np.asarray(M)
@@ -206,7 +211,6 @@ class MomentCurveEmbedding(BaseTransform):
         d = data["dimension"]
 
         X = _calculate_moment_curve(n, d)
-        X = _propagate_values(X, data["triangulation"])
 
         if self.perturb:
             Q = _sample_from_special_orthogonal_group(X.shape[1], rng=self.rng)
@@ -231,6 +235,8 @@ class MomentCurveEmbedding(BaseTransform):
             Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
-        data["moment_curve_embedding"] = X
+        data["moment_curve_embedding"] = _propagate_values(
+            X, data["triangulation"]
+        )
 
         return data
