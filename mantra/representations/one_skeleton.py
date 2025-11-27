@@ -38,9 +38,9 @@ class OneSkeleton(BaseTransform):
     def _build_one_skeleton(self, top_simplices):
         """Constructs the 1-skeleton.
 
-            The 1-skeleton of a triangulation $T$ is a graph
-            that has 0-simplices as nodes and 1-simplices as
-            edges.
+        The 1-skeleton of a triangulation $T$ is a graph
+        that has 0-simplices as nodes and 1-simplices as
+        edges.
 
         """
         # First we construct the Trie to optimally extract the 1-skeleton
@@ -48,7 +48,9 @@ class OneSkeleton(BaseTransform):
         for s in top_simplices:
             simplex_trie.insert(s)
 
-        one_simplices = sorted(node.simplex for node in simplex_trie.skeleton(1))
+        one_simplices = sorted(
+            node.simplex for node in simplex_trie.skeleton(1)
+        )
 
         G = nx.Graph()
 
@@ -59,8 +61,8 @@ class OneSkeleton(BaseTransform):
 
             # Add the nodes that are not contained in the graph yet
             for w in [u, v]:
-                if w - 1 not in G: # Convert to 0-index
+                if w - 1 not in G:  # Convert to 0-index
                     G.add_node(w - 1)
-            G.add_edge(u - 1,v - 1) # Again convert to 0-index
+            G.add_edge(u - 1, v - 1)  # Again convert to 0-index
 
         return G

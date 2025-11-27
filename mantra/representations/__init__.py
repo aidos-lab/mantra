@@ -9,5 +9,5 @@ __all__ = [
     "CoadjacencySCTransform",
     "DualGraph",
     "IncidenceSCTransform",
-    "OneSkeleton"
+    "OneSkeleton",
 ]
