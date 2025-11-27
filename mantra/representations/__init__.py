@@ -5,9 +5,9 @@ from .simplicial_connectivity import CoadjacencySimplicialComplex
 from .one_skeleton import OneSkeleton
 
 __all__ = [
-    "AdjacencySCTransform",
-    "CoadjacencySCTransform",
+    "AdjacencySimplicialComplex",
+    "CoadjacencySimplicialComplex",
     "DualGraph",
-    "IncidenceSCTransform",
+    "IncidenceSimplicialComplex",
     "OneSkeleton",
 ]
