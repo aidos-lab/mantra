@@ -26,6 +26,9 @@ jobs:
         pip install
         build
         --user
+    - name: Create versioning based on git
+      run: |
+        echo "__version__ = \"${GITHUB_REF#refs/*/}\"" >>  mantra/__init__.py
     - name: Build a binary wheel and a source tarball
       run: python3 -m build
     - name: Store the distribution packages
