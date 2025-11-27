@@ -27,8 +27,6 @@ class OneSkeleton(BaseTransform):
         G = self._build_one_skeleton(data["triangulation"])
         data_ = from_networkx(G)
 
-        del data["triangulation"]
-
         for k, v in data_.items():
             assert k not in data
             data[k] = v
@@ -54,9 +52,9 @@ class OneSkeleton(BaseTransform):
 
         G = nx.Graph()
 
-        # We loon over each pair of 0-simplices (u,v), where s = (u,v)  is a 1-simplex
+        # We loop over each pair of 0-simplices (u,v), where s = (u,v)  is a 1-simplex
         for s in one_simplices:
-            # This are the 0-simplices composing a 1-simplex
+            # These are the 0-simplices composing a 1-simplex
             u, v = list(s)
 
             # Add the nodes that are not contained in the graph yet
