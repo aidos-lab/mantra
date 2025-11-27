@@ -67,7 +67,9 @@ class DualGraph(BaseTransform):
 
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
-            G.add_node(i, simplex=[sim-1 for sim in s]) # -1 to convert 1-index to 0-indexed
+            G.add_node(
+                i, simplex=[sim - 1 for sim in s]
+            )  # -1 to convert 1-index to 0-indexed
 
         # Add an edge to connect all cofaces. Notice that we implicitly only
         # ever consider valid cofaces, i.e., list of length at least two.
