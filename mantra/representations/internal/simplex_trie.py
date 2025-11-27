@@ -19,10 +19,7 @@ References
 from collections.abc import Generator, Hashable, Iterable, Iterator, Sequence
 from typing import Any, Generic, TypeVar
 
-from mantra.representations.simplex import Simplex
-
-
-__all__ = ["SimplexNode", "SimplexTrie"]
+from .simplex import Simplex
 
 ElementType = TypeVar("ElementType", bound=Hashable)
 T = TypeVar("T")

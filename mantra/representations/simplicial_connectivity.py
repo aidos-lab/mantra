@@ -10,8 +10,8 @@ import torch
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.data import Data
 
-from mantra.representations.simplex_trie import SimplexTrie
-from mantra.representations.simplex_trie import Simplex
+from mantra.representations.internal import SimplexTrie
+from mantra.representations.internal import Simplex
 
 
 class AddSimplexTrie(BaseTransform):
