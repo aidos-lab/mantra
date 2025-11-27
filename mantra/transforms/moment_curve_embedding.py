@@ -1,6 +1,5 @@
 from torch_geometric.transforms import BaseTransform
 
-from collections import defaultdict
 from itertools import combinations
 
 import numpy as np
