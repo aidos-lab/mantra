@@ -9,8 +9,6 @@ from typing import Generic, TypeVar, Any
 from typing_extensions import Self
 
 
-__all__ = ["Simplex"]
-
 ElementType = TypeVar("ElementType", bound=Hashable)
 
 
