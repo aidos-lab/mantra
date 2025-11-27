@@ -20,15 +20,15 @@ class DualGraph(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with the `triangulation` key removed,
-            all other keys maintained, and `edge_index` information of
-            the dual graph being present.
+            Adjusted data object with all keys maintained and an `edge_index`
+            tensor for representing the dual graph being present.
         """
         G = self._build_dual_graph(data["triangulation"])
         data_ = from_networkx(G)
 
-        del data["triangulation"]
-
+        # Copy information from smaller `data_` object to the original
+        # `data` tensor. This operates under the assumption that keys
+        # are distinct.
         for k, v in data_.items():
             assert k not in data
             data[k] = v
