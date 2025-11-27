@@ -4,8 +4,8 @@ from .simplicial_connectivity import AdjacencySimplicialComplex
 from .simplicial_connectivity import CoadjacencySimplicialComplex
 
 __all__ = [
-    "AdjacencySCTransform",
-    "CoadjacencySCTransform",
+    "AdjacencySimplicialComplex",
+    "CoadjacencySimplicialComplex",
     "DualGraph",
-    "IncidenceSCTransform",
+    "IncidenceSimplicialComplex",
 ]
