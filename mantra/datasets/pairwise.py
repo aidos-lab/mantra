@@ -29,20 +29,20 @@ class PairwiseSimplicialDS(InMemoryDataset):
             Tuple[Manifold3Type, Manifold3Type]
             | Tuple[Manifold2Type, Manifold2Type]
         ) = (Manifold2Type.S_2, Manifold2Type.T_2),
-        manifold="2",
+        dimension=2,
         version="latest",
         transform=None,
         pre_transform=None,
         pre_filter=None,
     ):
         self.task_type = TaskType.HOMEOMORPHIC_DIST
-        self.manifold = manifold
+        self.dimension = dimension
         self.comparison_pair = comparison_pair
         self.raw_simplicial_ds = ManifoldTriangulations(
             os.path.join(root, "raw_simplicial"),
-            manifold,
-            version,
-            None,
+            dimension=dimension,
+            version=version,
+            transform=None,
             pre_transform=pre_transform,
             pre_filter=pre_filter,
         )
@@ -97,7 +97,7 @@ class PairwiseSimplicialDS(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        if self.manifold == "2":
+        if self.manifold == 2:
             f_names = [
                 self._data_filename(m_1, m_2)
                 for m_1 in Manifold2Type
@@ -110,7 +110,7 @@ class PairwiseSimplicialDS(InMemoryDataset):
     def process(self):
         print("---> Preprocessing dataset...)")
 
-        if self.manifold == "3":
+        if self.manifold == 3:
             raise NotImplementedError("TODO")
 
         # Convert to strings
