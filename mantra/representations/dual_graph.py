@@ -26,6 +26,7 @@ class DualGraph(BaseTransform):
         """
         G = self._build_dual_graph(data["triangulation"])
         data_ = from_networkx(G)
+        print(f"Comming data: {data}")
 
         del data["triangulation"]
 
@@ -66,7 +67,7 @@ class DualGraph(BaseTransform):
 
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
-            G.add_node(i, simplex=s)
+            G.add_node(i, simplex=[sim-1 for sim in s]) # -1 to convert 1-index to 0-indexed
 
         # Add an edge to connect all cofaces. Notice that we implicitly only
         # ever consider valid cofaces, i.e., list of length at least two.
