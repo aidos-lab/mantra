@@ -14,10 +14,10 @@ from torch_geometric.data import download_url
 from torch_geometric.data import extract_gz
 
 
-def _get_dataset_url(version: str, manifold: str) -> str:
+def _get_dataset_url(version: str, dimension: int) -> str:
     """Get URL to download dataset from."""
     if version == "latest":
-        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{manifold}_manifolds.json.gz"  # noqa
+        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{dimension}_manifolds.json.gz"  # noqa
 
     headers = {
         "Accept": "application/vnd.github+json",
@@ -38,7 +38,7 @@ def _get_dataset_url(version: str, manifold: str) -> str:
 
     # Note that the URL order is different and thus inconsistent for a
     # specific release.
-    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{manifold}_manifolds.json.gz"  # noqa
+    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{dimension}_manifolds.json.gz"  # noqa
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -47,8 +47,9 @@ class ManifoldTriangulations(InMemoryDataset):
     def __init__(
         self,
         root,
-        manifold="2",
+        dimension=2,
         version="latest",
+        name=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -59,29 +60,45 @@ class ManifoldTriangulations(InMemoryDataset):
 
         Parameters
         ----------
-        manifold : string
-            Dimension of manifolds to load. Currently, only "2" or "3"
-            are supported, denoting surfaces and 3-manifolds,
-            respectively.
+        dimension : int
+            Dimension of manifold triangulations to load. Currently, only
+            2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
+            and 3-manifolds, respectively.
 
-        version : string
+        version : str
             Version of the dataset to use. The version should correspond to a
             released version of the dataset, all of which can be found
             `on GitHub <https://github.com/aidos-lab/mantra/releases>`__.
             By default, the latest version will be downloaded. Unless
             specific reproducibility requirements are to be met, using
             `latest` is recommended.
-        """
-        assert manifold in ["2", "3"]
 
-        self.manifold = manifold
+        name : str or None
+            If set, the name denotes a way to distinguish between datasets
+            based on the *same* data source but potentially prepared in a
+            different fashion, i.e., by a different set of pre-transforms.
+
+            Using different names enables such datasets to coexist in
+            parallel. Otherwise, the `force_reload` flag of the base class
+            has to be used always, obviating the need for pre-processing the
+            dataset. The name will be used for storing all processed files of
+            the dataset. Under the hood, this property will only change the
+            place in which processed data is stored.
+
+            As a suggestion the name should not include any spaces, thus
+            making it easier to parse for the OS.
+        """
+        assert dimension in [2, 3]
+
+        self.dimension = dimension
+        self.name = name
         self.version = version
-        self.url = _get_dataset_url(version, manifold)
+        self.url = _get_dataset_url(version, dimension)
 
         if version == "latest":
-            root += f"/mantra/{self.manifold}D"
+            root += f"/mantra/{self.dimension}D"
         else:
-            root += f"/mantra/{version}/{self.manifold}D"
+            root += f"/mantra/{version}/{self.dimension}D"
 
         super().__init__(
             root=root,
@@ -101,7 +118,15 @@ class ManifoldTriangulations(InMemoryDataset):
         for downloading to be skipped. To reference raw file names, use the
         property `self.raw_paths`.
         """
-        return [f"{self.manifold}_manifolds.json"]
+        return [f"{self.dimension}_manifolds.json"]
+
+    @property
+    def processed_dir(self):
+        """Return directory for storing processed data."""
+        if self.name is not None:
+            return os.path.join(self.root, "processed", self.name)
+        else:
+            return super().processed_dir
 
     @property
     def processed_file_names(self):
@@ -110,9 +135,9 @@ class ManifoldTriangulations(InMemoryDataset):
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        return [f"data_{self.manifold}.pt"]
+        return [f"data_{self.dimension}.pt"]
 
-    def download(self) -> None:
+    def download(self):
         """Download dataset depending on specified version."""
         path = download_url(self.url, self.raw_dir)
         extract_gz(path, self.raw_dir)
