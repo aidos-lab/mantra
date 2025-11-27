@@ -25,7 +25,6 @@ class DualGraph(BaseTransform):
         """
         G = self._build_dual_graph(data["triangulation"])
         data_ = from_networkx(G)
-        print(f"Comming data: {data}")
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
