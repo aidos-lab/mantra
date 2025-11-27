@@ -1,5 +1,8 @@
 from torch_geometric.transforms import BaseTransform
 
+from collections import defaultdict
+from itertools import combinations
+
 import numpy as np
 
 
@@ -46,6 +49,62 @@ def _calculate_moment_curve(n, d):
 
     X = np.vstack([t**k for k in range(1, 2 * d + 2)]).T
     return X
+
+
+def _propagate_values(X, triangulation):
+    """Propagate vertex-based values to all simplices.
+
+    This helper function propagates vertex-based values to all simplices
+    by calculating the respective barycenter. That is, given any simplex
+    of dimension > 0, we will calculate the barycenter of its respective
+    values at the vertices.
+
+    Parameters
+    ----------
+    X : np.array of shape (n, d)
+        Vertex-based attributes
+
+    triangulation: list of int
+        A triangulation, expressed as a list of top-level simplices
+
+    Returns
+    -------
+    dict of np.array of shape (n_k, d)
+        A dictionary whose keys indicate the respective zero-indexed
+        dimension and whose values are the respective values for all
+        simplices of that dimension (ordered lexicographically).
+    """
+    simplices = set([tuple(s) for s in triangulation])
+    max_dim = len(next(iter(simplices)))
+
+    for simplex in triangulation:
+        for dim in range(1, max_dim):
+            simplices.update(s for s in combinations(simplex, r=dim))
+
+    # To sort lexicographically, we need to turn this back into
+    # something mutable.
+    simplices = list(simplices)
+    simplices.sort()
+    simplices.sort(key=len)
+
+    values = {
+        0: X,
+    }
+
+    for dim in range(1, max_dim + 1):
+        simplices_ = [s for s in simplices if len(s) == dim]
+        M = []
+
+        for s in simplices_:
+            # View as an array to correct for the index shift; our
+            # triangulation is not zero-indexed.
+            s = np.asarray(s)
+            M.append(np.mean(X[s - 1, :], axis=0))
+
+        M = np.asarray(M)
+        values[dim] = M
+
+    return values
 
 
 def _sample_from_special_orthogonal_group(n, rng=None):
@@ -143,10 +202,11 @@ class MomentCurveEmbedding(BaseTransform):
         """
         assert "n_vertices" in data and "dimension" in data
 
-        n = data["n_vertices"].item()
-        d = data["dimension"].item()
+        n = data["n_vertices"]
+        d = data["dimension"]
 
         X = _calculate_moment_curve(n, d)
+        X = _propagate_values(X, data["triangulation"])
 
         if self.perturb:
             Q = _sample_from_special_orthogonal_group(X.shape[1], rng=self.rng)
