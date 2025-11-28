@@ -92,8 +92,8 @@ def _propagate_values(X, triangulation):
         0: X,
     }
 
-    for dim in range(1, max_dim + 1):
-        simplices_ = [s for s in simplices if len(s) == dim]
+    for dim in range(1, max_dim):
+        simplices_ = [s for s in simplices if len(s) == dim + 1]
         M = []
 
         for s in simplices_:
