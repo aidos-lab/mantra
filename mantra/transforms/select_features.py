@@ -10,12 +10,10 @@ Representation: TypeAlias = Literal["graph", "sc"]
 class SelectFeatures(BaseTransform):
     """Select features to be assigned to nodes / simplices.
 
-    This transform is meant to encode any computed value stored in a `Data`
-    object to be assigned to the corresponding feature tensor. This should
-    be the before-last step in the pipeline. Depending on the chosen
-    representation this will choose a different tensor to encode the
-    features.
-
+    This transform assigns a computed value in a `Data`
+    object (i.e. `node_degrees`) the name of a feature tensor (i.e. `x`).
+    This process is needed as a formatting step for libraries that have 
+    a naming convention for feature tensors, like PyG. 
     """
 
     def __init__(
@@ -82,7 +80,6 @@ class SelectFeatures(BaseTransform):
             self.src in data
         ), f"The `data` obj does not contain `{self.src}`"
 
-        # Get source tensor or Dict of tensors
         src_tensor = getattr(data, self.src)
 
         # This is the completely explicit case, we pass the source and target
@@ -97,11 +94,9 @@ class SelectFeatures(BaseTransform):
 
             for i, (k, v) in enumerate(src_tensor.items()):
                 dst_i = self.dst[i]
+                data[dst_i] = v
 
-                # Set data[dst_i] =v
-                setattr(data, dst_i, v)
-
-        # This is the case where defaults are used, so the cannonical
+        # This is the case where defaults are used, so the canonical
         # representations for graph are PyG and indexed feature tensors based for simplicial complexes
         else:
             if self.representation == "graph":
@@ -109,8 +104,7 @@ class SelectFeatures(BaseTransform):
                     src_tensor, Tensor
                 ), "Attribute `src` is not a `torch.Tensor`"
 
-                # Setting the target tensor in the data object
-                setattr(data, self.dst, src_tensor)  # noqa
+                data[self.dst] = src_tensor # noqa
 
             else:  # The case for `sc`
                 assert isinstance(
@@ -122,5 +116,6 @@ class SelectFeatures(BaseTransform):
                 # simplices or a str that can be cast to int, that's why we
                 # explicitly cast it to flag possibe miss-alignment errors
                 for k, v in src_tensor.items():
-                    setattr(data, self.dst.format(int(k)), v)  # noqa
+                    dst_str = self.dst.format(int(k)) #noqa
+                    data[dst_str] = v
         return data
