@@ -12,8 +12,8 @@ class SelectFeatures(BaseTransform):
 
     This transform assigns a computed value in a `Data`
     object (i.e. `node_degrees`) the name of a feature tensor (i.e. `x`).
-    This process is needed as a formatting step for libraries that have 
-    a naming convention for feature tensors, like PyG. 
+    This process is needed as a formatting step for libraries that have
+    a naming convention for feature tensors, like PyG.
     """
 
     def __init__(
@@ -104,7 +104,7 @@ class SelectFeatures(BaseTransform):
                     src_tensor, Tensor
                 ), "Attribute `src` is not a `torch.Tensor`"
 
-                data[self.dst] = src_tensor # noqa
+                data[self.dst] = src_tensor  # noqa
 
             else:  # The case for `sc`
                 assert isinstance(
@@ -116,6 +116,6 @@ class SelectFeatures(BaseTransform):
                 # simplices or a str that can be cast to int, that's why we
                 # explicitly cast it to flag possibe miss-alignment errors
                 for k, v in src_tensor.items():
-                    dst_str = self.dst.format(int(k)) #noqa
+                    dst_str = self.dst.format(int(k))  # noqa
                     data[dst_str] = v
         return data
