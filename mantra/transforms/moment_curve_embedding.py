@@ -156,7 +156,9 @@ def _sample_from_special_orthogonal_group(n, rng=None):
 
 class MomentCurveEmbedding(BaseTransform):
 
-    def __init__(self, perturb=False, normalize=False, propagate=False, rng=None):
+    def __init__(
+        self, perturb=False, normalize=False, propagate=False, rng=None
+    ):
         """Create new moment curve embedding transform.
 
         Parameters
@@ -241,18 +243,21 @@ class MomentCurveEmbedding(BaseTransform):
             Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
-
-        # NOTE:: This fixes the case where we already performed a mapping from a 
+        # NOTE:: This fixes the case where we already performed a mapping from a
         # simplicial complex to a graph and want to get an embedding for
         # whatever the nodes are, however this leaves open
         # the case where we might want to embedding the simplicial complex
         # and then map the embedding through the conversion
         if self.propagate:
-            assert "triangulation" in data, "Data object must contain `triangulation` to perform propagation"
+            assert (
+                "triangulation" in data
+            ), "Data object must contain `triangulation` to perform propagation"
             data["moment_curve_embedding"] = _propagate_values(
                 X, data["triangulation"]
             )
         else:
-            data["moment_curve_embedding"] = torch.from_numpy(X).to(torch.float32)
+            data["moment_curve_embedding"] = torch.from_numpy(X).to(
+                torch.float32
+            )
 
         return data
