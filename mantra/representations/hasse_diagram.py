@@ -35,7 +35,7 @@ class HasseDiagram(BaseTransform):
             assert k not in data
             data[k] = v
 
-        data['n_vertices'] = G.number_of_nodes()
+        data["n_vertices"] = G.number_of_nodes()
 
         return data
 
