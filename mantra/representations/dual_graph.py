@@ -33,6 +33,9 @@ class DualGraph(BaseTransform):
             assert k not in data
             data[k] = v
 
+        # Update the vertex count for the new graph
+
+        data["n_vertices"] = G.number_of_nodes()
         return data
 
     def _build_dual_graph(self, top_simplices):
