@@ -1,9 +1,8 @@
 import networkx as nx
 
-from collections import defaultdict
 from itertools import combinations
 
-from typing import List, Tuple 
+from typing import Tuple
 
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
@@ -38,29 +37,31 @@ class HasseDiagram(BaseTransform):
 
         return data
 
-    def _build_connecting_lower_simplices(self, G: nx.Graph, k_simplex: Tuple[int]) -> None:
-        """ 
-            Create the Hasse diagram layer corresponding to k_simplices.
+    def _build_connecting_lower_simplices(
+        self, G: nx.Graph, k_simplex: Tuple[int]
+    ) -> None:
+        """
+        Create the Hasse diagram layer corresponding to k_simplices.
 
-            Given a graph and a k-simplex, add all k-1 simplices that are contained in
-            the k-simplex in Hasse diagram G, then connect them with edges.
+        Given a graph and a k-simplex, add all k-1 simplices that are contained in
+        the k-simplex in Hasse diagram G, then connect them with edges.
 
-            Parameters
-            ----------
-            G : nx.Graph
-                The `Graph` object used to construct the Hasse diagram.
-            k_simplex : Tuple[Int]
-                The tuple of vertices representing a k-simplex.
-            Returuns
-            --------
-            None
+        Parameters
+        ----------
+        G : nx.Graph
+            The `Graph` object used to construct the Hasse diagram.
+        k_simplex : Tuple[Int]
+            The tuple of vertices representing a k-simplex.
+        Returuns
+        --------
+        None
 
         """
         if len(k_simplex) == 1:
             return
 
         new_nodes = []
-        for k_simp in combinations(k_simplex, len(k_simplex)-1):
+        for k_simp in combinations(k_simplex, len(k_simplex) - 1):
 
             k_simp = tuple(k_simp)
 
@@ -72,11 +73,9 @@ class HasseDiagram(BaseTransform):
         for new_node in new_nodes:
             G.add_edge(k_simplex, new_node)
 
-
     def _build_hasse_diagram(self, top_simplices):
-
         """
-        Construct the Hasse diagram out of the triangulation of a 
+        Construct the Hasse diagram out of the triangulation of a
         $d$-manifold. There is a vertex for each k-simplex and it's joined
         in a directed fashion to the k+1 simplex it is a subset of.
 
