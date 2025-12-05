@@ -1,4 +1,5 @@
 from torch_geometric.transforms import BaseTransform
+import torch
 
 
 class CreateLabels(BaseTransform):
@@ -59,6 +60,6 @@ class CreateLabels(BaseTransform):
             if label not in self.label_to_index:
                 self.label_to_index[label] = len(self.label_to_index)
 
-            data.y = self.label_to_index[label]
+        data.y = torch.tensor([self.label_to_index[label]])
 
         return data
