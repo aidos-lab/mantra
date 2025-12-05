@@ -35,6 +35,8 @@ class HasseDiagram(BaseTransform):
             assert k not in data
             data[k] = v
 
+        data['n_vertices'] = G.number_of_nodes()
+
         return data
 
     def _build_connecting_lower_simplices(
@@ -93,6 +95,7 @@ class HasseDiagram(BaseTransform):
         G = nx.Graph()
 
         for top_simp in top_simplices:
+            top_simp = tuple(top_simp)
             G.add_node(top_simp)
             self._build_connecting_lower_simplices(G, top_simp)
 
