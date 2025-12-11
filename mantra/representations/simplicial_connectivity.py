@@ -31,7 +31,8 @@ class AddSimplexTrie(BaseTransform):
         return data
 
 
-class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
+class AbstractSimplicialComplexConnectivity(BaseTransform):
+    __metaclass__ = ABCMeta
     """Base class for connectivity transforms.
 
     Parent class for implementing a transform that adds a
@@ -108,7 +109,6 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
                     self.generate_matrix(
                         data.simplex_trie, rank_idx, max_rank
                     ),
-                    device=data.triangulation.device,
                 )
             except ValueError:
                 idx_low_simp = rank_idx - 1 if rank_idx > 0 else rank_idx
@@ -119,7 +119,6 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
                             layout=torch.sparse_coo,
                         )
                         .coalesce()
-                        .to(data.triangulations.device)
                     )
                 elif "adjacency" in self.connectivity_name:
                     data[connectivity_name] = (
@@ -128,7 +127,6 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABCMeta):
                             layout=torch.sparse_coo,
                         )
                         .coalesce()
-                        .to(data.triangulations.device)
                     )
 
         return data
@@ -328,7 +326,7 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
         input data converted to tensor.
     """
     if device is None:
-        device = data.device("cpu")
+        device = torch.device('cpu')
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
