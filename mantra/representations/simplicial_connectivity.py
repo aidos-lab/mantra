@@ -113,21 +113,15 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
             except ValueError:
                 idx_low_simp = rank_idx - 1 if rank_idx > 0 else rank_idx
                 if "incidence" in self.connectivity_name:
-                    data[connectivity_name] = (
-                        torch.zeros(
-                            [shape[idx_low_simp], shape[rank_idx]],
-                            layout=torch.sparse_coo,
-                        )
-                        .coalesce()
-                    )
+                    data[connectivity_name] = torch.zeros(
+                        [shape[idx_low_simp], shape[rank_idx]],
+                        layout=torch.sparse_coo,
+                    ).coalesce()
                 elif "adjacency" in self.connectivity_name:
-                    data[connectivity_name] = (
-                        torch.zeros(
-                            [shape[rank_idx], shape[rank_idx]],
-                            layout=torch.sparse_coo,
-                        )
-                        .coalesce()
-                    )
+                    data[connectivity_name] = torch.zeros(
+                        [shape[rank_idx], shape[rank_idx]],
+                        layout=torch.sparse_coo,
+                    ).coalesce()
 
         return data
 
@@ -326,7 +320,7 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
         input data converted to tensor.
     """
     if device is None:
-        device = torch.device('cpu')
+        device = torch.device("cpu")
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
