@@ -2,6 +2,7 @@ from typing import TypeAlias, Literal, Union, Dict, List
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
 from torch import Tensor
+import torch
 
 
 Representation: TypeAlias = Literal["graph", "sc"]
@@ -94,6 +95,9 @@ class SelectFeatures(BaseTransform):
 
             for i, (k, v) in enumerate(src_tensor.items()):
                 dst_i = self.dst[i]
+                # Needs to be a dict of tensors
+                if not isinstance(v, Tensor):
+                    v = torch.tensor(v)
                 data[dst_i] = v
 
         # This is the case where defaults are used, so the canonical
