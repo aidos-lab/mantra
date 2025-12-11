@@ -1,16 +1,12 @@
 [build-system]
-requires = ["setuptools >= 61.0","setuptools-git-versioning>=2.0,<3"]
-build-backend = "setuptools.build_meta"
-
-[tool.setuptools-git-versioning]
-enabled = true
-template = "{tag}"
+requires = ["uv_build>=0.9.13,<0.10.0"]
+build-backend = "uv_build"
 
 [tool.pylint.main]
 load-plugins = "pylint_actions"
 
-[tool.setuptools]
-packages = ["mantra"]
+[tool.uv.sources]
+mantra = { path = "mantra" }
 
 [project]
 dynamic = ["version"]
@@ -85,7 +81,7 @@ exclude = [
 ]
 
 # Same as Black.
-line-length = 88
+line-length = 79
 indent-width = 4
 
 # Assume Python 3.8
@@ -134,3 +130,5 @@ docstring-code-line-length = "dynamic"
 
 [tool.black]
 line-length = 79
+
+
