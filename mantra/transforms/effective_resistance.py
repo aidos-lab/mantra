@@ -68,10 +68,10 @@ def calculate_er(B_p, W_p_minus_1, L_up_p_minus_1):
     """
 
     # W_p^{1/2}
-    W_p_minus_1_sqrt = np.sqrt(W_p_minus_1)
+    W_p_minus_1_sqrt = torch.sqrt(W_p_minus_1)
 
     # W_{p_1}^{-1/2}
-    W_p_minus_1_sqrt_inv = np.linalg.inv(W_p_minus_1_sqrt)
+    W_p_minus_1_sqrt_inv = torch.linalg.inv(W_p_minus_1_sqrt)
 
 
     # W_{p-1}^{-1/2} L_{p-1}^{up} W_{p-1}^{1/2} 
@@ -85,7 +85,7 @@ def calculate_er(B_p, W_p_minus_1, L_up_p_minus_1):
     # B_p.T W_{p-1}^{-1/2} ( W_{p-1}^{-1/2} L_{p-1}^{up} W_{p-1}^{1/2} )^{*} W_{p-1}^{-1/2} B_p
     R_p = B_p.T @ W_p_minus_1_sqrt_inv @ pseudo_inv @ W_p_minus_1_sqrt_inv @ B_p
 
-    return np.diag(R_p)
+    return torch.diag(R_p)
 
 
 class EffectiveResistanceEmbedding(BaseTransform):
@@ -143,5 +143,85 @@ class EffectiveResistanceEmbedding(BaseTransform):
             X[p+1] = R_p_plus_1
 
         data.er = X
+
+        return data
+
+def er_statistics(x: torch.Tensor) -> torch.Tensor:
+    """
+    x: 1D tensor of effective resistances, shape (N,)
+    returns: 1D tensor of statistics, shape (7,)
+    """
+    # Ensure float tensor
+    x = x.float()
+
+    mean = x.mean()
+    std = x.std(unbiased=False)
+
+    minv = x.min()
+    maxv = x.max()
+
+    # Quantiles
+    q25 = torch.quantile(x, 0.25)
+    median = torch.quantile(x, 0.50)
+    q75 = torch.quantile(x, 0.75)
+
+    return torch.stack([mean, std, minv, maxv, median, q25, q75])
+
+
+class EffectiveResistanceStatisticsEmbedding(BaseTransform):
+
+    def __init__(
+        self 
+    ):
+        """Create new moment curve embedding transform.
+
+        Parameters
+        ----------
+        """
+        super().__init__()
+
+    def forward(self, data):
+        """Calculate moment curve embedding for a data object.
+
+        Parameters
+        ----------
+        data : torch_geometric.data.Data
+            Input data object
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Data object with a new `moment_curve_embedding` key added.
+            The attribute will be overwritten if already present.
+        """
+        assert "n_vertices" in data and "dimension" in data
+
+        d = data["dimension"]
+
+        #X = dict() 
+        stats = torch.empty(2, 7)
+        
+        for p in range(0, d):
+            if p == 0:
+                B_p_plus_1 = getattr(data, f'incidence_{p+1}') # [n_p, n_p+1]
+                B_p = torch.zeros((1, B_p_plus_1.shape[0])) # [1, n_p]
+                W_p_minus_1 = torch.ones((1, 1)) # [1,1]
+                W_p = torch.eye(B_p.shape[1]) # [n_p, n_p]
+                W_p_plus_1 = torch.eye(B_p_plus_1.shape[1]) # [ n_p+1, n_p+1]
+            else:
+                B_p_plus_1 = getattr(data, f'incidence_{p+1}') # [n_p. n_p+1]
+                B_p = getattr(data, f'incidence_{p}') # [n_p-1, n_p]
+                W_p_minus_1 = torch.eye(B_p.shape[0]) # [n_p-1, n_p-1]
+                W_p = torch.eye(B_p.shape[1]) # [n_p, n_p]
+                W_p_plus_1 = torch.eye(B_p_plus_1.shape[1]) # [n_p + 1, n_p+1]
+
+
+            L_up_p, L_down_p, L_hodge_p = weighted_chain_laplacian(B_p, B_p_plus_1, W_p, W_p_plus_1, W_p_minus_1)
+
+            R_p_plus_1 = calculate_er(B_p_plus_1, W_p, L_up_p)
+
+            stats[p] = er_statistics(R_p_plus_1)
+
+        data.er_stats = stats
 
         return data
