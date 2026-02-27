@@ -53,11 +53,10 @@ for using graph neural networks:
 
 ```python
 from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
 
 from mantra.datasets import ManifoldTriangulations
-from mantra.transforms import NodeIndex
 from mantra.transforms import RandomNodeFeatures
+from mantra.representations import OneSkeleton
 
 
 dataset = ManifoldTriangulations(
@@ -66,11 +65,10 @@ dataset = ManifoldTriangulations(
     version="latest",
     transform=Compose(
         [
-            NodeIndex(),
             RandomNodeFeatures(),
-            # Converts face indices to edge indices, thus essentially
-            # making the 1-skeleton available to a model.
-            FaceToEdge(remove_faces=False),
+            # Extracts the graph representing the 1-skeleton
+            # of the simplicial complex
+            OneSkeleton()
         ]
     ),
     force_reload=True,
