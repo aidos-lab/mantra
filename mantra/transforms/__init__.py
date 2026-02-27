@@ -4,4 +4,11 @@ from .create_labels import CreateLabels
 from .select_features import SelectFeatures
 from .attribute_transform import NodeDegreeTransform, NodeRandomTransform
 
-__all__ = ["CreateLabels", "MomentCurveEmbedding", "SelectAttributes", "SelectFeatures", "NodeRandomTransform", "NodeDegreeTransform"]
+__all__ = [
+    "CreateLabels",
+    "MomentCurveEmbedding",
+    "SelectAttributes",
+    "SelectFeatures",
+    "NodeRandomTransform",
+    "NodeDegreeTransform",
+]
