@@ -1,4 +1,4 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod, ABC
 from typing import List
 
 import numpy as np
@@ -31,8 +31,7 @@ class AddSimplexTrie(BaseTransform):
         return data
 
 
-class AbstractSimplicialComplexConnectivity(BaseTransform):
-    __metaclass__ = ABCMeta
+class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
     """Base class for connectivity transforms.
 
     Parent class for implementing a transform that adds a
@@ -92,7 +91,7 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
             ), "Your data object does not contain a triangulation or a simplex trie"
             data = AddSimplexTrie()(data)
 
-        max_rank = data.dimension.item()
+        max_rank = int(data.dimension)
         # The shape that empty tensors should take
         shape = list(
             np.pad(
@@ -135,6 +134,9 @@ class IncidenceSimplicialComplex(AbstractSimplicialComplexConnectivity):
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
     ) -> scipy.sparse.csr_matrix:
+
+        if rank == 0:
+            raise ValueError("Rank should be larger than 0 for incidence matrices, got 0.")
         idx_simplices, idx_faces, values = [], [], []
 
         simplex_dict_d = {
@@ -324,8 +326,14 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
-    values = torch.FloatTensor(coo.data, device=device)
-    indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
+    # values = torch.FloatTensor(coo.data, device=device)
+    # indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
+    values = torch.tensor(coo.data, dtype=torch.float32, device=device)
+    indices = torch.tensor(
+        np.vstack((coo.row, coo.col)),
+        dtype=torch.long,
+        device=device
+    )
     sparse_data = torch.sparse_coo_tensor(
         indices, values, coo.shape, device=device
     ).coalesce()
