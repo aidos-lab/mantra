@@ -214,7 +214,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
         # X = dict()
         stats = torch.empty(len(self.dimensions_to_compute), 7)
-        print("Computing effective resistance statistics...")
         for idx, dim in enumerate(self.dimensions_to_compute):
             p = dim - 1
             if p == 0:
@@ -237,7 +236,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
             R_p_plus_1 = calculate_er(B_p_plus_1, W_p, L_up_p)
 
             stats[idx] = er_statistics(R_p_plus_1, statistics_to_compute=self.statistics_to_compute)
-            print(f"Statistics for dimension {p}: {stats[p]}")
 
         data.er_stats = stats.flatten()
 
