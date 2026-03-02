@@ -152,33 +152,41 @@ def er_statistics(x: torch.Tensor) -> torch.Tensor:
     # Ensure float tensor
     x = x.float()
 
-    mean = x.mean()
-    std = x.std(unbiased=False)
-
-    # Clamp tiny numerical noise
-    eps = torch.finfo(x.dtype).eps
-    tol = 10 * eps  # small multiple of machine precision
-    std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
-
-    minv = x.min()
-    maxv = x.max()
-
-    # Quantiles
-    q25 = torch.quantile(x, 0.25)
-    median = torch.quantile(x, 0.50)
-    q75 = torch.quantile(x, 0.75)
-
-    return torch.stack([mean, std, minv, maxv, median, q25, q75])
+    stats = []
+    if "mean" in self.statistics_to_compute:
+        stats.append(x.mean())
+    if "std" in self.statistics_to_compute:
+        std = x.std(unbiased=False)
+        # Clamp tiny numerical noise
+        eps = torch.finfo(x.dtype).eps
+        tol = 10 * eps  # small multiple of machine precision
+        std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
+        stats.append(std)
+    if "min" in self.statistics_to_compute:
+        stats.append(x.min())
+    if "max" in self.statistics_to_compute:
+        stats.append(x.max())
+    if "median" in self.statistics_to_compute:
+        stats.append(torch.quantile(x, 0.50))
+    if "q25" in self.statistics_to_compute:
+        stats.append(torch.quantile(x, 0.25))
+    if "q75" in self.statistics_to_compute:
+        stats.append(torch.quantile(x, 0.75))
+    
+    return torch.stack(stats)
 
 
 class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
-    def __init__(self):
+    def __init__(self, statistics: list[str] = ["mean", "std", "min", "max", "median", "q25", "q75"]):
         """Create new moment curve embedding transform.
 
         Parameters
         ----------
+        statistics : list of str
+            List of statistics to compute. Default is ["mean", "std", "min", "max", "median", "q25", "q75"].
         """
+        self.statistics_to_compute = statistics
         super().__init__()
 
     def forward(self, data):
@@ -227,6 +235,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             stats[p] = er_statistics(R_p_plus_1)
 
-        data.er_stats = stats
+        data.er_stats = stats.flatten()
 
         return data
