@@ -23,7 +23,7 @@ class NodeRandomTransform(T.BaseTransform):
     def forward(self, data):
         assert "edge_index" in data, "No edge index in data"
         data.x = torch.rand(
-            size=(int(data.edge_index.max().item() + 1), self.dimension)
+            size=(int(data.edge_index.max() + 1), self.dimension)
         )
         return data
 
