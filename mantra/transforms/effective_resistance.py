@@ -157,6 +157,11 @@ def er_statistics(x: torch.Tensor) -> torch.Tensor:
     mean = x.mean()
     std = x.std(unbiased=False)
 
+    # Clamp tiny numerical noise
+    eps = torch.finfo(x.dtype).eps
+    tol = 10 * eps   # small multiple of machine precision
+    std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
+
     minv = x.min()
     maxv = x.max()
 
@@ -181,25 +186,28 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
         super().__init__()
 
     def forward(self, data):
-        """Calculate moment curve embedding for a data object.
+        """Calculate effective resistance statistics for a data object.
 
         Parameters
         ----------
         data : torch_geometric.data.Data
-            Input data object
+            Input data object.
 
         Returns
         -------
         torch_geometric.data.Data
-            Data object with a new `moment_curve_embedding` key added.
-            The attribute will be overwritten if already present.
+            The same data object with a new attribute `er_stats`: torch.Tensor of shape (d, 7) added, d the dimension of the triangulation. 
+            Each row contains the seven summary statistics 
+            mean, standard deviation, min, max, median, 25% quantile, and 75% quantile
+            of the effective resistances for each dimension 0, 1, ..., d-1.
+            If `er_stats` already exists, it is overwritten.
         """
         assert "n_vertices" in data and "dimension" in data
 
         d = data["dimension"]
 
         #X = dict() 
-        stats = torch.empty(2, 7)
+        stats = torch.empty(d, 7)
         
         for p in range(0, d):
             if p == 0:
