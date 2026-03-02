@@ -136,7 +136,9 @@ class IncidenceSimplicialComplex(AbstractSimplicialComplexConnectivity):
     ) -> scipy.sparse.csr_matrix:
 
         if rank == 0:
-            raise ValueError("Rank should be larger than 0 for incidence matrices, got 0.")
+            raise ValueError(
+                "Rank should be larger than 0 for incidence matrices, got 0."
+            )
         idx_simplices, idx_faces, values = [], [], []
 
         simplex_dict_d = {
@@ -330,9 +332,7 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
     # indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
     values = torch.tensor(coo.data, dtype=torch.float32, device=device)
     indices = torch.tensor(
-        np.vstack((coo.row, coo.col)),
-        dtype=torch.long,
-        device=device
+        np.vstack((coo.row, coo.col)), dtype=torch.long, device=device
     )
     sparse_data = torch.sparse_coo_tensor(
         indices, values, coo.shape, device=device
