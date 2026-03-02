@@ -227,6 +227,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             stats[p] = er_statistics(R_p_plus_1)
 
-        data.er_stats = stats
+        data.er_stats = stats.flatten()
 
         return data
