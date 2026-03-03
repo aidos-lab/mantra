@@ -1,6 +1,5 @@
 from torch_geometric.transforms import BaseTransform
 
-
 import numpy as np
 import torch
 
@@ -89,7 +88,9 @@ def calculate_er(B_p, W_p_minus_1, L_up_p_minus_1):
 
 class EffectiveResistanceEmbedding(BaseTransform):
 
-    def __init__(self):
+    def __init__(
+        self 
+    ):
         """Create new moment curve embedding transform.
 
         Parameters
@@ -237,6 +238,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             stats[idx] = er_statistics(R_p_plus_1, statistics_to_compute=self.statistics_to_compute)
 
-        data.er_stats = stats.flatten()
+        data.er_stats = stats.flatten().unsqueeze(0)
 
         return data

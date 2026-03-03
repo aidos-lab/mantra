@@ -5,11 +5,13 @@ from .effective_resistance import (
     EffectiveResistanceEmbedding,
     EffectiveResistanceStatisticsEmbedding,
 )
+from .select_features import SelectFeatures
 
 __all__ = [
     "CreateLabels",
     "MomentCurveEmbedding",
     "SelectAttributes",
+    "SelectFeatures",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
 ]
