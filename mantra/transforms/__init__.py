@@ -9,7 +9,10 @@ from .moment_curve_embedding import MomentCurveEmbedding
 from .select_attributes import SelectAttributes
 from .select_features import SelectFeatures
 from .attribute_transform import NodeDegreeTransform, NodeRandomTransform
-from .effective_resistance import EffectiveResistanceEmbedding, EffectiveResistanceStatisticsEmbedding
+from .effective_resistance import (
+    EffectiveResistanceEmbedding,
+    EffectiveResistanceStatisticsEmbedding,
+)
 
 __all__ = [
     "CreateLabels",
@@ -19,5 +22,5 @@ __all__ = [
     "NodeRandomTransform",
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
-    "EffectiveResistanceStatisticsEmbedding"
+    "EffectiveResistanceStatisticsEmbedding",
 ]
