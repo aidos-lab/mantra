@@ -116,6 +116,6 @@ class SelectFeatures(BaseTransform):
                 # simplices or a str that can be cast to int, that's why we
                 # explicitly cast it to flag possibe miss-alignment errors
                 for k, v in src_tensor.items():
-                    dst_str = self.dst.format(int(k))  # noqa
+                    dst_str = self.dst.format(d=int(k))  # noqa
                     data[dst_str] = v
         return data
