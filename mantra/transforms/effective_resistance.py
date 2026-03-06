@@ -172,13 +172,24 @@ def er_statistics(x: torch.Tensor) -> torch.Tensor:
         stats.append(torch.quantile(x, 0.25))
     if "q75" in self.statistics_to_compute:
         stats.append(torch.quantile(x, 0.75))
-    
+
     return torch.stack(stats)
 
 
 class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
-    def __init__(self, statistics: list[str] = ["mean", "std", "min", "max", "median", "q25", "q75"]):
+    def __init__(
+        self,
+        statistics: list[str] = [
+            "mean",
+            "std",
+            "min",
+            "max",
+            "median",
+            "q25",
+            "q75",
+        ],
+    ):
         """Create new moment curve embedding transform.
 
         Parameters
