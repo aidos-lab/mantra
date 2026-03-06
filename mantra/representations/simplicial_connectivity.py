@@ -1,5 +1,5 @@
-from abc import abstractmethod, ABCMeta
-from typing import List
+from abc import abstractmethod, ABC
+from typing import List, Dict, Tuple, Optional
 
 import numpy as np
 
@@ -22,7 +22,7 @@ class AddSimplexTrie(BaseTransform):
     of connectivity matrices.
     """
 
-    def forward(self, data: Data):
+    def forward(self, data: Data) -> Data:
         assert "triangulation" in data
         simplex_trie = SimplexTrie()
         for t in data.triangulation:
@@ -31,8 +31,7 @@ class AddSimplexTrie(BaseTransform):
         return data
 
 
-class AbstractSimplicialComplexConnectivity(BaseTransform):
-    __metaclass__ = ABCMeta
+class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
     """Base class for connectivity transforms.
 
     Parent class for implementing a transform that adds a
@@ -60,12 +59,12 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
             List[Simplex]
 
         """
-        return sorted(node.simplex for node in simplex_trie.skeleton(rank))
+        return list(sorted(node.simplex for node in simplex_trie.skeleton(rank)))
 
     @abstractmethod
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
-    ) -> scipy.sparse.csr_matrix:
+    ) -> scipy.sparse.csr_matrix | Tuple[Optional[Dict], Optional[Dict], scipy.sparse.csr_matrix]:
         """Generate a connectivity matrix.
 
         Parameters
@@ -81,9 +80,9 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
         -------
             Torch.tensor (torch.sparse.coo)
         """
-        return
+        return None
 
-    def forward(self, data: Data):
+    def forward(self, data: Data) -> Data:
         # If the trie is not already calculated then this calculates it and adds it
         # to the data object
         if "simplex_trie" not in data:
@@ -105,10 +104,14 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
         for rank_idx in range(0, max_rank + 1):
             connectivity_name = f"{self.connectivity_name}_{rank_idx}"
             try:
-                data[connectivity_name] = _from_sparse(
-                    self.generate_matrix(
+                connectivity_mat = self.generate_matrix(
                         data.simplex_trie, rank_idx, max_rank
-                    ),
+                )
+                if self.index:
+                    connectivity_mat = connectivity_mat[-1] # Pick last element
+
+                data[connectivity_name] = _from_sparse(
+                    connectivity_mat
                 )
             except ValueError:
                 idx_low_simp = rank_idx - 1 if rank_idx > 0 else rank_idx
@@ -122,7 +125,6 @@ class AbstractSimplicialComplexConnectivity(BaseTransform):
                         [shape[rank_idx], shape[rank_idx]],
                         layout=torch.sparse_coo,
                     ).coalesce()
-
         return data
 
 
@@ -134,7 +136,12 @@ class IncidenceSimplicialComplex(AbstractSimplicialComplexConnectivity):
 
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
-    ) -> scipy.sparse.csr_matrix:
+    ) -> scipy.sparse.csr_matrix | Tuple[Optional[Dict], Optional[Dict], scipy.sparse.csr_matrix]:
+
+        if rank == 0:
+            raise ValueError(
+                "Rank should be larger than 0 for incidence matrices, got 0."
+            )
         idx_simplices, idx_faces, values = [], [], []
 
         simplex_dict_d = {
@@ -179,7 +186,7 @@ class UpLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
 
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
-    ):
+    ) -> scipy.sparse.csr_matrix | Tuple[Optional[Dict], Optional[Dict], scipy.sparse.csr_matrix]:
         incidence_matrix_transform = IncidenceSimplicialComplex(
             self.signed, index=True
         )
@@ -196,7 +203,7 @@ class UpLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
         if not self.signed:
             L_up = abs(L_up)
         if self.index:
-            return row, L_up
+            return row, None, L_up
 
         return L_up
 
@@ -209,7 +216,7 @@ class DownLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
 
     def generate_matrix(
         self, simplex_trie: SimplexTrie, rank: int, max_rank: int
-    ):
+    ) -> scipy.sparse.csr_matrix | Tuple[Optional[Dict], Optional[Dict], scipy.sparse.csr_matrix]:
         incidence_matrix_transform = IncidenceSimplicialComplex(
             self.signed, index=True
         )
@@ -226,8 +233,59 @@ class DownLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
         if not self.signed:
             L_down = abs(L_down)
         if self.index:
-            return column, L_down
+            return column, None, L_down
         return L_down
+
+class HodgeLaplacianSimplicialComplex(AbstractSimplicialComplexConnectivity):
+    """Add the hodge-laplacian of a simplicial complex.
+
+    """
+    def __init__(self, signed: bool, index=False):
+        super().__init__(signed, "hodge_laplacian", index)
+
+    def generate_matrix(
+        self, simplex_trie: SimplexTrie, rank: int, max_rank: int
+    ) -> scipy.sparse.csr_matrix | Tuple[Optional[Dict], Optional[Dict], scipy.sparse.csr_matrix]:
+        if rank > max_rank:
+            raise ValueError(
+                "Rank should be larger than 0 for incidence matrices, got 0."
+            )
+
+        incidence_matrix_transform = IncidenceSimplicialComplex(
+            self.signed, index=True
+        )
+
+        if rank == 0:
+            row, column, B_next = incidence_matrix_transform.generate_matrix(
+                simplex_trie, rank + 1, max_rank
+            )
+            L_hodge = B_next @ B_next.transpose()
+            if not self.signed:
+                L_hodge = abs(L_hodge)
+            if self.index:
+                return row, None, L_hodge
+            return L_hodge
+
+        elif rank < max_rank:
+            row, column, B_next = incidence_matrix_transform.generate_matrix(
+                simplex_trie, rank + 1, max_rank
+            )
+            row, column, B = incidence_matrix_transform.generate_matrix(simplex_trie, rank, max_rank)
+            L_hodge = B_next @ B_next.transpose() + B.transpose() @ B
+            if not self.signed:
+                L_hodge = abs(L_hodge)
+            if self.index:
+                return column, None, L_hodge
+            return L_hodge
+
+        else:  # rank == max_rank:
+            row, column, B = incidence_matrix_transform.generate_matrix(simplex_trie, rank, max_rank) 
+            L_hodge = B.transpose() @ B
+            if not self.signed:
+                L_hodge = abs(L_hodge)
+            if self.index:
+                return column, None, L_hodge
+            return L_hodge
 
 
 class AdjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
@@ -303,6 +361,7 @@ class CoadjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
         if not self.signed:
             L_down = abs(L_down)
         return L_down
+
 
 
 def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
