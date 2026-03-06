@@ -5,7 +5,6 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-
 if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         data = json.load(f)
