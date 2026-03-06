@@ -8,7 +8,6 @@ from typing import Generic, TypeVar, Any
 
 from typing_extensions import Self
 
-
 ElementType = TypeVar("ElementType", bound=Hashable)
 
 
