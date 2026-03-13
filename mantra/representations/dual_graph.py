@@ -23,7 +23,12 @@ class DualGraph(BaseTransform):
             Adjusted data object with all keys maintained and an `edge_index`
             tensor for representing the dual graph being present.
         """
-        G = self._build_dual_graph(data["triangulation"])
+        top_simplices = list(set([tuple(s) for s in data["triangulation"]])) # Guarantee the ordering
+        # Lexicographical sort
+        top_simplices.sort()
+        top_simplices.sort(key=len)
+
+        G = self._build_dual_graph(top_simplices)
         data_ = from_networkx(G)
 
         # Copy information from smaller `data_` object to the original

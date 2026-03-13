@@ -9,6 +9,9 @@ from torch_geometric.utils import from_networkx
 
 
 class HasseDiagram(BaseTransform):
+    def __init__(self, feature_propagation: str | None):
+        self.feature_propagation = feature_propagation
+
     def forward(self, data):
         """Creates the Hasse diagram for a given triangulation.
 
@@ -25,7 +28,12 @@ class HasseDiagram(BaseTransform):
             tensor for representing the dual graph being present.
         """
 
-        G = self._build_hasse_diagram(data["triangulation"])
+        top_simplices = list(set([tuple(s) for s in data["triangulation"]]))
+
+        top_simplices.sort()
+        top_simplices.sort(key=len)
+
+        G = self._build_hasse_diagram(top_simplices, data)
         data_ = from_networkx(G)
 
         # Copy information from smaller `data_` object to the original
@@ -66,8 +74,13 @@ class HasseDiagram(BaseTransform):
         for k_simp in combinations(k_simplex, len(k_simplex) - 1):
 
             k_simp = tuple(k_simp)
-
-            G.add_node(k_simp)
+            if self.feature_propagation is None:
+                G.add_node(k_simp)
+            else:
+                ass_dict = {
+                        self.feature_propagation: data[self.feature_propagation][len(top_simp)-1]
+                }
+                G.add_node(k_simp, **as_dict)
             new_nodes.append(k_simp)
 
             self._build_connecting_lower_simplices(G, k_simp)
@@ -75,7 +88,7 @@ class HasseDiagram(BaseTransform):
         for new_node in new_nodes:
             G.add_edge(k_simplex, new_node)
 
-    def _build_hasse_diagram(self, top_simplices):
+    def _build_hasse_diagram(self, top_simplices, data):
         """
         Construct the Hasse diagram out of the triangulation of a
         $d$-manifold. There is a vertex for each k-simplex and it's joined
@@ -95,8 +108,13 @@ class HasseDiagram(BaseTransform):
         G = nx.Graph()
 
         for top_simp in top_simplices:
-            top_simp = tuple(top_simp)
-            G.add_node(top_simp)
+            if self.feature_propagation is None:
+                G.add_node(top_simp)
+            else:
+                ass_dict = {
+                        self.feature_propagation: data[self.feature_propagation][len(top_simp)-1]
+                }
+                G.add_node(top_simp, **ass_dict)
             self._build_connecting_lower_simplices(G, top_simp)
 
         return G
