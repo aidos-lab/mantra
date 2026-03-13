@@ -9,7 +9,8 @@ load-plugins = "pylint_actions"
 mantra = { path = "mantra" }
 
 [project]
-dynamic = ["version"]
+#dynamic = ["version"]
+version = "1.0.0"
 name = "mantra-dataset"
 dependencies = [
   "black>=22.0",
@@ -42,6 +43,9 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
 ]
+[tool.uv.build-backend]
+module-name = "mantra"
+module-root = ""
 
 [project.urls]
 documentation = "https://aidos.group/mantra/"
