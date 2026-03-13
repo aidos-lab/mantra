@@ -60,6 +60,38 @@ class SelectFeatures(BaseTransform):
             else:  # The case for `sc`
                 self.dst = "x_{d}"
 
+    def _select_dst_list(self, src_tensor: Tensor, data: Data):
+        assert isinstance(
+            src_tensor, Dict
+        ), f"The attribute {self.src} is not of type dict"
+        assert len(self.dst) == len(
+            src_tensor.keys()
+        ), f"There is a mismatch between num of `src` keys ( {len(src_tensor.keys())} ) and `dst` targets ( { len(self.dst) } )"
+
+        for i, (k, v) in enumerate(src_tensor.items()):
+            dst_i = self.dst[i]
+            data[dst_i] = v
+
+    def _select_dst_single(self, src_tensor: Tensor, data: Data):
+            if self.representation == "graph":
+                assert isinstance(
+                    src_tensor, Tensor
+                ), "Attribute `src` is not a `torch.Tensor`"
+                data[self.dst] = src_tensor  # noqa
+
+            else:  # The case for `sc`
+                assert isinstance(
+                    src_tensor, Dict
+                ), f"The attribute {self.src} is not of type dict"
+
+                # Iterate over each key in the `src` tensor.
+                # NOTE: The keys here should be an integer with the dimension of the
+                # simplices or a str that can be cast to int, that's why we
+                # explicitly cast it to flag possibe miss-alignment errors
+                for k, v in src_tensor.items():
+                    dst_str = self.dst.format(d=int(k))  # noqa
+                    data[dst_str] = v
+
     def forward(self, data: Data):
         """Modify `data` object and assign feature tensors.
 
@@ -85,40 +117,11 @@ class SelectFeatures(BaseTransform):
         # This is the completely explicit case, we pass the source and target
         # and the caller is in charge of making sure everything fits.
         if isinstance(self.dst, List):
-            assert isinstance(
-                src_tensor, Dict
-            ), f"The attribute {self.src} is not of type dict"
-            assert len(self.dst) == len(
-                src_tensor.keys()
-            ), f"There is a mismatch between num of `src` keys ( {len(src_tensor.keys())} ) and `dst` targets ( { len(self.dst) } )"
-
-            for i, (k, v) in enumerate(src_tensor.items()):
-                dst_i = self.dst[i]
-                data[dst_i] = v
+            self._select_dst_list(src_tensor, data)
 
         # This is the case where defaults are used, so the canonical
         # representations for graph are PyG and indexed feature tensors based for simplicial complexes
         else:
-            if self.representation == "graph":
-                if isinstance(src_tensor, Tensor): # This is a mapping situation
-                    # assert isinstance(
-                    #     src_tensor, Tensor
-                    # ), "Attribute `src` is not a `torch.Tensor`"
-                    data[self.dst] = src_tensor  # noqa
-                else:
-                    # TODO Change this depending on the representation
-                    data[self.dst] = src_tensor[data.dimension.item()] 
+            self._select_dst_single(src_tensor, data)
 
-            else:  # The case for `sc`
-                assert isinstance(
-                    src_tensor, Dict
-                ), f"The attribute {self.src} is not of type dict"
-
-                # Iterate over each key in the `src` tensor.
-                # NOTE: The keys here should be an integer with the dimension of the
-                # simplices or a str that can be cast to int, that's why we
-                # explicitly cast it to flag possibe miss-alignment errors
-                for k, v in src_tensor.items():
-                    dst_str = self.dst.format(int(k))  # noqa
-                    data[dst_str] = v
         return data
