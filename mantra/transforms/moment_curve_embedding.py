@@ -90,7 +90,7 @@ def _propagate_values(X, triangulation):
     simplices.sort(key=len)
 
     values = {
-        0: X,
+        0: torch.from_numpy(X).to(torch.float32),
     }
 
     for dim in range(1, max_dim):
