@@ -100,11 +100,14 @@ class SelectFeatures(BaseTransform):
         # representations for graph are PyG and indexed feature tensors based for simplicial complexes
         else:
             if self.representation == "graph":
-                assert isinstance(
-                    src_tensor, Tensor
-                ), "Attribute `src` is not a `torch.Tensor`"
-
-                data[self.dst] = src_tensor  # noqa
+                if isinstance(src_tensor, Tensor): # This is a mapping situation
+                    # assert isinstance(
+                    #     src_tensor, Tensor
+                    # ), "Attribute `src` is not a `torch.Tensor`"
+                    data[self.dst] = src_tensor  # noqa
+                else:
+                    # TODO Change this depending on the representation
+                    data[self.dst] = src_tensor[data.dimension.item()] 
 
             else:  # The case for `sc`
                 assert isinstance(
