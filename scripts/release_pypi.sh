@@ -85,7 +85,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "__version__='$new_version'" > ../mantra/__init__.py 
 
     # Commit changes. 
-    git add ../pyproject.toml
+    git add ../pyproject.toml ../mantra/__init__.py
     git status
     git commit -m "bump version to $new_version"
     git tag -a "v$new_version" -m "v$new_version"
