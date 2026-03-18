@@ -1,8 +1,9 @@
-
-#!/usr/bin/env bash
+#!/bin/bash
 #
-# Release the project and bump version number in the process.
+# Release the package and bump version number in the process.
 # Should be ran from the main branch after it is certain that everything works. 
+#
+# NOTE: Run this command as `bash scripts/release_pypi.sh` 
 #
 # Source: https://slhck.info/software/2025/10/01/dynamic-versioning-uv-projects.html
 
@@ -80,15 +81,15 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     new_version=$(uv version --short)
 
-    # commit changes
+    # Commit changes. 
+    git add ../pyproject.toml
     git status
-    git add pyproject.toml
     git commit -m "bump version to $new_version"
     git tag -a "v$new_version" -m "v$new_version"
 
-    # # push changes
-    # git push origin main
-    # git push origin tag "v$new_version"
+    # Push changes
+    git push origin main
+    git push origin tag "v$new_version"
 else
     echo $pwd
     echo "Aborted."
