@@ -40,9 +40,9 @@ classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python"
 ]
-[tool.uv.build-backend]
-module-name = "mantra"
-module-root = ""
+# [tool.uv.build-backend]
+# module-name = "mantra"
+# module-root = ""
 
 [project.urls]
 documentation = "https://aidos.group/mantra/"
