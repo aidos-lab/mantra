@@ -81,6 +81,9 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
 
     new_version=$(uv version --short)
 
+    # Set the version in the __init__.py
+    echo "__version__='$new_version'" > ../mantra/__init__.py 
+
     # Commit changes. 
     git add ../pyproject.toml
     git status
