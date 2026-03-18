@@ -1,6 +1,9 @@
 from torch_geometric.transforms import BaseTransform
 
+from itertools import combinations
+
 import numpy as np
+import torch
 
 
 def _calculate_moment_curve(n, d):
@@ -48,6 +51,67 @@ def _calculate_moment_curve(n, d):
     return X
 
 
+def _propagate_values(X, triangulation):
+    """Propagate vertex-based values to all simplices.
+
+    This helper function propagates vertex-based values to all simplices
+    by calculating the respective barycenter. That is, given any simplex
+    of dimension > 0, we will calculate the barycenter of its respective
+    values at the vertices.
+
+    Parameters
+    ----------
+    X : np.array of shape (n, d)
+        Vertex-based attributes
+
+    triangulation : list of lists
+        A triangulation, expressed as a list of top-level simplices,
+        which themselves are lists (or iterable; we do not actually
+        care here).
+
+    Returns
+    -------
+    dict of np.array of shape (n_k, d)
+        A dictionary whose keys indicate the respective zero-indexed
+        dimension and whose values are the respective values for all
+        simplices of that dimension (ordered lexicographically).
+    """
+    simplices = set([tuple(s) for s in triangulation])
+    max_dim = len(next(iter(simplices)))
+
+    for simplex in triangulation:
+        for dim in range(1, max_dim):
+            simplices.update(s for s in combinations(simplex, r=dim))
+
+    # To sort lexicographically, we need to turn this back into
+    # something mutable.
+    simplices = list(simplices)
+    simplices.sort()
+    simplices.sort(key=len)
+
+    values = {
+        0: X,
+    }
+
+    for dim in range(1, max_dim):
+        simplices_ = [s for s in simplices if len(s) == dim + 1]
+        M = []
+
+        for s in simplices_:
+            # View as an array to correct for the index shift; our
+            # triangulation is not zero-indexed.
+            s = np.asarray(s)
+
+            # Calculate barycenter for the current simplex (i.e., one
+            # row of the result matrix).
+            M.append(np.mean(X[s - 1, :], axis=0))
+
+        M = np.asarray(M)
+        values[dim] = torch.from_numpy(M).to(torch.float32)
+
+    return values
+
+
 def _sample_from_special_orthogonal_group(n, rng=None):
     """Generate a sample (a matrix) from SO(n), the special orthogonal group.
 
@@ -92,7 +156,9 @@ def _sample_from_special_orthogonal_group(n, rng=None):
 
 class MomentCurveEmbedding(BaseTransform):
 
-    def __init__(self, perturb=False, normalize=False, rng=None):
+    def __init__(
+        self, perturb=False, normalize=False, propagate=False, rng=None
+    ):
         """Create new moment curve embedding transform.
 
         Parameters
@@ -108,6 +174,11 @@ class MomentCurveEmbedding(BaseTransform):
         normalize : bool
             If set, normalize coordinates to a higher-dimensional
             sphere, thus increasing dimensionality by one.
+        propagate : bool
+            If set propagates the values upwards from the 0-simplices
+            to the k-simplices above by getting a barycenter. Note
+            this option requires that `triangulation` be present
+            in the data object.
 
         rng : np.random.Generator, int, or None
             Random number generator object. If set to `None`, the
@@ -117,6 +188,7 @@ class MomentCurveEmbedding(BaseTransform):
         """
         super().__init__()
 
+        self.propagate = propagate
         self.perturb = perturb
         self.normalize = normalize
 
@@ -143,8 +215,8 @@ class MomentCurveEmbedding(BaseTransform):
         """
         assert "n_vertices" in data and "dimension" in data
 
-        n = data["n_vertices"].item()
-        d = data["dimension"].item()
+        n = data["n_vertices"]
+        d = data["dimension"]
 
         X = _calculate_moment_curve(n, d)
 
@@ -171,6 +243,21 @@ class MomentCurveEmbedding(BaseTransform):
             Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
-        data["moment_curve_embedding"] = X
+        # NOTE:: This fixes the case where we already performed a mapping from a
+        # simplicial complex to a graph and want to get an embedding for
+        # whatever the nodes are, however this leaves open
+        # the case where we might want to embedding the simplicial complex
+        # and then map the embedding through the conversion
+        if self.propagate:
+            assert (
+                "triangulation" in data
+            ), "Data object must contain `triangulation` to perform propagation"
+            data["moment_curve_embedding"] = _propagate_values(
+                X, data["triangulation"]
+            )
+        else:
+            data["moment_curve_embedding"] = torch.from_numpy(X).to(
+                torch.float32
+            )
 
         return data
