@@ -1,3 +1,1 @@
-from importlib.metadata import version
-
-__version__ = version("mantra-dataset")
+__version__ = "0.0.16"
