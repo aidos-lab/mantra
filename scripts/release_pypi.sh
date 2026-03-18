@@ -81,14 +81,16 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     new_version=$(uv version --short)
 
     # commit changes
+    git status
     git add pyproject.toml
     git commit -m "bump version to $new_version"
     git tag -a "v$new_version" -m "v$new_version"
 
-    # push changes
-    git push origin main
-    git push origin "v$new_version"
+    # # push changes
+    # git push origin main
+    # git push origin tag "v$new_version"
 else
+    echo $pwd
     echo "Aborted."
     exit 1
 fi
