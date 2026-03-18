@@ -1,6 +1,10 @@
+
 #!/usr/bin/env bash
 #
 # Release the project and bump version number in the process.
+# Should be ran from the main branch after it is certain that everything works. 
+#
+# Source: https://slhck.info/software/2025/10/01/dynamic-versioning-uv-projects.html
 
 set -e
 
