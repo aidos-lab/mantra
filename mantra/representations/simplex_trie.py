@@ -21,7 +21,6 @@ from typing import Any, Generic, TypeVar
 
 from mantra.representations.simplex import Simplex
 
-
 __all__ = ["SimplexNode", "SimplexTrie"]
 
 ElementType = TypeVar("ElementType", bound=Hashable)
