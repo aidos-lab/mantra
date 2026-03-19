@@ -23,3 +23,11 @@ class Manifold3Type(Enum):
     """
 
     S_3 = "S^3"
+    S2_x_S1 = "S^2 x S^1"
+    S2_twist_S1 = "S^2 twist S^1"
+    RP_3 = "RP^3"
+    L_3_1 = "L(3,1)"
+    L_4_1 = "L(4,1)"
+    T_3 = "T^3"
+    S3_Q = "S^3/Q"
+    S2xS1_hash_S2xS1 = "(S^2 x S^1)#(S^2 x S^1)"
