@@ -6,6 +6,8 @@ following the API of `pytorch-geometric`.
 
 import json
 import os
+import shutil
+
 import requests
 
 from torch_geometric.data import Data
@@ -14,10 +16,15 @@ from torch_geometric.data import download_url
 from torch_geometric.data import extract_gz
 
 
-def _get_dataset_url(version: str, dimension: int) -> str:
+def _get_dataset_url(
+    version: str, dimension: int, balanced: bool = False
+) -> str:
     """Get URL to download dataset from."""
+    suffix = "_balanced" if balanced else ""
+    filename = f"{dimension}_manifolds{suffix}.json.gz"
+
     if version == "latest":
-        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{dimension}_manifolds.json.gz"  # noqa
+        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{filename}"  # noqa
 
     headers = {
         "Accept": "application/vnd.github+json",
@@ -38,7 +45,7 @@ def _get_dataset_url(version: str, dimension: int) -> str:
 
     # Note that the URL order is different and thus inconsistent for a
     # specific release.
-    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{dimension}_manifolds.json.gz"  # noqa
+    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{filename}"  # noqa
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -49,7 +56,9 @@ class ManifoldTriangulations(InMemoryDataset):
         root,
         dimension=2,
         version="latest",
+        balanced=False,
         name=None,
+        local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -73,6 +82,17 @@ class ManifoldTriangulations(InMemoryDataset):
             specific reproducibility requirements are to be met, using
             `latest` is recommended.
 
+        balanced : bool
+            If True, download the balanced variant of the dataset.
+            Balanced datasets have been augmented via Pachner moves
+            so that all manifold classes have roughly equal
+            representation and vertex count distributions.
+
+        local_path : str or None
+            If set, use a local JSON file instead of downloading from
+            GitHub. The file will be copied into the raw directory.
+            Useful for testing locally generated datasets.
+
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -91,9 +111,13 @@ class ManifoldTriangulations(InMemoryDataset):
         assert dimension in [2, 3]
 
         self.dimension = dimension
+        self.balanced = balanced
         self.name = name
         self.version = version
-        self.url = _get_dataset_url(version, dimension)
+        self.local_path = (
+            os.path.abspath(local_path) if local_path else None
+        )
+        self.url = _get_dataset_url(version, dimension, balanced)
 
         if version == "latest":
             root += f"/mantra/{self.dimension}D"
@@ -118,7 +142,8 @@ class ManifoldTriangulations(InMemoryDataset):
         for downloading to be skipped. To reference raw file names, use the
         property `self.raw_paths`.
         """
-        return [f"{self.dimension}_manifolds.json"]
+        suffix = "_balanced" if self.balanced else ""
+        return [f"{self.dimension}_manifolds{suffix}.json"]
 
     @property
     def processed_dir(self):
@@ -135,13 +160,18 @@ class ManifoldTriangulations(InMemoryDataset):
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        return [f"data_{self.dimension}.pt"]
+        suffix = "_balanced" if self.balanced else ""
+        return [f"data_{self.dimension}{suffix}.pt"]
 
     def download(self):
         """Download dataset depending on specified version."""
-        path = download_url(self.url, self.raw_dir)
-        extract_gz(path, self.raw_dir)
-        os.unlink(path)
+        if self.local_path is not None:
+            dst = os.path.join(self.raw_dir, self.raw_file_names[0])
+            shutil.copy2(self.local_path, dst)
+        else:
+            path = download_url(self.url, self.raw_dir)
+            extract_gz(path, self.raw_dir)
+            os.unlink(path)
 
     def process(self):
         """Processes dataset."""
