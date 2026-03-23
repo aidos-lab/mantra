@@ -56,7 +56,7 @@ class ManifoldTriangulations(InMemoryDataset):
         root,
         dimension=2,
         version="latest",
-        balanced=False,
+        balanced=True,
         name=None,
         local_path=None,
         transform=None,
