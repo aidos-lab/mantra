@@ -213,7 +213,9 @@ def are_isomorphic(tri1, tri2):
     return GM.is_isomorphic()
 
 
-def find_duplicates(triangulations, verbose=False):
+def find_duplicates(
+    triangulations, verbose=False, iso_max_group_size=50
+):
     """Find duplicate triangulations in a dataset.
 
     Uses a three-level filtering strategy:
@@ -221,12 +223,22 @@ def find_duplicates(triangulations, verbose=False):
     2. Subgroup by WL hash of the incidence graph
     3. Pairwise simplicial complex isomorphism within subgroups
 
+    For WL subgroups larger than ``iso_max_group_size``, the
+    expensive pairwise VF2 isomorphism check is skipped.
+    Instead, all but one member are treated as duplicates based
+    on the WL hash alone — a conservative but fast strategy.
+
     Parameters
     ----------
     triangulations : list of dict
         Each dict must have ``'triangulation'`` and ``'id'`` keys.
     verbose : bool
         If True, print progress to stderr.
+    iso_max_group_size : int
+        Maximum WL subgroup size for which full pairwise
+        isomorphism checks are performed. Larger subgroups
+        use WL-hash-only deduplication. Set to 0 to always
+        skip isomorphism checks.
 
     Returns
     -------
@@ -289,6 +301,22 @@ def find_duplicates(triangulations, verbose=False):
         # Pairwise isomorphism check within WL subgroups
         for wl_members in wl_groups.values():
             if len(wl_members) < 2:
+                continue
+
+            if len(wl_members) > iso_max_group_size:
+                # Group too large for pairwise VF2 — treat WL
+                # hash collisions as duplicates (keep first only).
+                if verbose:
+                    print(
+                        f"  WL subgroup size {len(wl_members)} > "
+                        f"{iso_max_group_size}: skipping VF2, "
+                        f"deduplicating by WL hash",
+                        file=sys.stderr,
+                    )
+                for j in range(1, len(wl_members)):
+                    duplicates.append(
+                        (wl_members[0]["id"], wl_members[j]["id"])
+                    )
                 continue
 
             for i in range(len(wl_members)):
