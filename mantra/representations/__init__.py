@@ -6,7 +6,6 @@ from .simplicial_connectivity import AdjacencySimplicialComplex
 from .simplicial_connectivity import CoadjacencySimplicialComplex
 from .simplicial_connectivity import IncidenceSimplicialComplex
 
-
 __all__ = [
     "AdjacencySimplicialComplex",
     "CoadjacencySimplicialComplex",
