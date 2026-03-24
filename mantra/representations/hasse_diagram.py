@@ -34,12 +34,8 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-<<<<<<< Updated upstream
-        data_ = from_networkx(G, group_node_attrs=[self.feature_propagation])
-=======
         group_node_attrs: List[str] = self.feature_propagation if self.feature_propagation is None else [self.feature_propagation]
         data_ = from_networkx(G, group_node_attrs=group_node_attrs)
->>>>>>> Stashed changes
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
