@@ -1,0 +1,55 @@
+# MANTRA: The Manifold Triangulations Assemblage
+
+[![arXiv](https://img.shields.io/badge/arXiv-2410.02392-b31b1b.svg)](https://arxiv.org/abs/2410.02392)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14103581.svg)](https://doi.org/10.5281/zenodo.14103581) [![Maintainability](https://qlty.sh/badges/88ae05e7-c892-4edf-9dff-38cda745593f/maintainability.svg)](https://qlty.sh/gh/aidos-lab/projects/mantra) [![GitHub contributors](https://img.shields.io/github/contributors/aidos-lab/MANTRA)](https://github.com/aidos-lab/MANTRA/graphs/contributors) [![CHANGELOG](https://img.shields.io/badge/Changelog--default)](https://github.com/aidos-lab/mantra/blob/main/CHANGELOG.md) [![License](https://img.shields.io/github/license/aidos-lab/MANTRA)](license.md)
+
+![image](assets/manifold_triangulation_orbit.gif)
+
+MANTRA is a dataset consisting of *combinatorial triangulations* of
+manifolds. It can be used to create novel algorithms in topological
+deep learning or debug existing ones. See our [ICLR 2025
+paper](https://openreview.net/pdf?id=X6y5CC44HM) for more details and
+our [benchmarks repository](https://github.com/aidos-lab/mantra-benchmarks) for
+additional code to reproduce all experiments.
+
+Please use the following citation for our work:
+
+```bibtex
+@inproceedings{Ballester25a,
+  title         = {{MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage},
+  author        = {Rubén Ballester and Ernst Röell and Daniel Bīn Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
+  year          = 2025,
+  booktitle     = {International Conference on Learning Representations},
+  url           = {https://openreview.net/forum?id=X6y5CC44HM},
+}
+```
+
+
+## More Examples 
+
+Please find more example notebooks:
+
+1. [Adding new tasks to MANTRA](notebooks/adding_new_task.md)
+2. [Training a GNN on MANTRA](notebooks/train_gnn.md)
+3. [Visualizing the MANTRA dataset](notebooks/visualize_data.md)
+
+
+## FAQ
+
+#### Q: Why MANTRA?
+A: MANTRA is one of the first datasets providing prediction tasks that provably depend on the high-order features of the input data, in the case of MANTRA, simplices. MANTRA contributes to the benchmarking ecosystem for high-order neural networks by providing a large set of triangulations with precomputed topological properties that can be easily computed with deterministic algorithms but that are hard to compute for predictive models. The topological properties contained in MANTRA are elementary, meaning that good networks tackling complex topological problems should be able to completely solve this dataset. Currently, there is no model that can solve all the prediction tasks proposed in the dataset's paper. 
+
+#### Q: Why topological features?
+A: Topology forms a fundamental theoretical foundation for natural sciences like physics and biology. Understanding a system's topology often reveals critical insights hardly accessible through other analytical methods. For neural networks to effectively tackle problems in these domains, they must develop capabilities to leverage topological information. This requires network architectures capable of identifying basic topological invariants in data—precisely the invariants that MANTRA provides. By incorporating these topological features, neural networks can capture essential structural and relational properties that traditional approaches might miss, enhancing their ability to model complex natural phenomena.
+
+
+#### Q: Which are the main functions and classes implemented in this dataset?
+A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTriangulations` allows the user to load the MANTRA dataset using a `InMemoryDataset` format from [`torch_geometric`](https://pytorch-geometric.readthedocs.io/en/latest/). The transforms `NodeIndex`, `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot`are also provided in this package. Concretely, `NodeIndex` transforms the original triangulation format in a torch-like tensor, and `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot` assign input feature vectors to vertices in a the `x` attribute of the input `Data` representing a triangulation based either on random features or on the degree of each vertex, respectively.
+
+*Have a question that's not answered here? Please open an issue on our GitHub repository.*
+
+# Acknowledgements
+
+This work is dedicated to [Frank H. Lutz](https://www3.math.tu-berlin.de/IfM/Nachrufe/Frank_Lutz/stellar/),
+who passed away unexpectedly on November 10, 2023. May his memory be
+a blessing.

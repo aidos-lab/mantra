@@ -6,6 +6,12 @@ from .effective_resistance import (
     EffectiveResistanceStatisticsEmbedding,
 )
 from .select_features import SelectFeatures
+from .attribute_transform import (
+    NodeDegreeTransform,
+    NodeRandomTransform,
+    NodeIndex,
+    RandomNodeFeatures,
+)
 
 __all__ = [
     "CreateLabels",
@@ -14,4 +20,8 @@ __all__ = [
     "SelectFeatures",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
+    "NodeRandomTransform",
+    "NodeDegreeTransform",
+    "NodeIndex",
+    "RandomNodeFeatures",
 ]
