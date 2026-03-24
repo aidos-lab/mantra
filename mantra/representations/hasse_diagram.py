@@ -2,17 +2,14 @@ import networkx as nx
 
 from itertools import combinations
 
-from typing import Tuple
+from typing import Tuple, List, Union
 
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
 
-import torch
-
-
 class HasseDiagram(BaseTransform):
-    def __init__(self, feature_propagation: str | None):
+    def __init__(self, feature_propagation: Union[str, None]):
         self.feature_propagation = feature_propagation
 
     def forward(self, data):
@@ -37,7 +34,12 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
+<<<<<<< Updated upstream
         data_ = from_networkx(G, group_node_attrs=[self.feature_propagation])
+=======
+        group_node_attrs: List[str] = self.feature_propagation if self.feature_propagation is None else [self.feature_propagation]
+        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
+>>>>>>> Stashed changes
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
