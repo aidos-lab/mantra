@@ -214,7 +214,7 @@ def are_isomorphic(tri1, tri2):
 
 
 def find_duplicates(
-    triangulations, verbose=False, iso_max_group_size=50
+    triangulations, verbose=False, iso_max_group_size=25
 ):
     """Find duplicate triangulations in a dataset.
 
