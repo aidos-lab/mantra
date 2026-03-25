@@ -343,8 +343,7 @@ def balance_dataset(
         if not duplicates:
             if verbose:
                 print(
-                    f"Dedup round {dedup_round + 1}: no duplicates "
-                    f"found.",
+                    f"Dedup round {dedup_round + 1}: no duplicates " f"found.",
                     file=sys.stderr,
                 )
             break
@@ -386,8 +385,7 @@ def balance_dataset(
                 )
                 aug_counter[name] += 1
                 new_entry["id"] = (
-                    f"{seed_entry['id']}"
-                    f"_aug_{aug_counter[name]}"
+                    f"{seed_entry['id']}" f"_aug_{aug_counter[name]}"
                 )
                 result.append(new_entry)
 

@@ -8,7 +8,6 @@ from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
 
-import torch
 
 
 class HasseDiagram(BaseTransform):
@@ -81,11 +80,11 @@ class HasseDiagram(BaseTransform):
         for i, k_simp in enumerate(k_minus_1_simplices):
 
             k_simp = tuple(k_simp)
-            extra_attr_dict = {
-                "simplex": [sim - 1 for sim in k_simp]
-            }
+            extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
             if self.feature_propagation is not None:
-               extra_attr_dict[self.feature_propagation] = data[self.feature_propagation][len(k_simp)-1][i]
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(k_simp) - 1][i]
             G.add_node(k_simp, **extra_attr_dict)
             new_nodes.append(k_simp)
 
@@ -114,11 +113,11 @@ class HasseDiagram(BaseTransform):
         G = nx.Graph()
 
         for i, top_simp in enumerate(top_simplices):
-            extra_attr_dict = {
-                "simplex": [sim - 1 for sim in top_simp]
-            }
+            extra_attr_dict = {"simplex": [sim - 1 for sim in top_simp]}
             if self.feature_propagation is not None:
-               extra_attr_dict[self.feature_propagation] = data[self.feature_propagation][len(top_simp)-1][i]
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(top_simp) - 1][i]
             G.add_node(top_simp, **extra_attr_dict)
             self._build_connecting_lower_simplices(G, data, top_simp)
 
