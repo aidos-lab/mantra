@@ -35,8 +35,12 @@ class DualGraph(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_dual_graph(data, top_simplices)
-        group_node_attrs: List[str] = self.feature_propagation if self.feature_propagation is None else [self.feature_propagation]
-        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
+        node_attributes_to_keep = []  # ["simplex"]
+
+        if self.feature_propagation is not None:
+            node_attributes_to_keep.append(self.feature_propagation)
+
+        data_ = from_networkx(G, group_node_attrs=node_attributes_to_keep)
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys

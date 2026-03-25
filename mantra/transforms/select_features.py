@@ -3,6 +3,7 @@ from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
 from torch import Tensor
 
+
 Representation: TypeAlias = Literal["graph", "sc"]
 
 
