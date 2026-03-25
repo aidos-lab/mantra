@@ -114,9 +114,7 @@ class ManifoldTriangulations(InMemoryDataset):
         self.balanced = balanced
         self.name = name
         self.version = version
-        self.local_path = (
-            os.path.abspath(local_path) if local_path else None
-        )
+        self.local_path = os.path.abspath(local_path) if local_path else None
         self.url = _get_dataset_url(version, dimension, balanced)
 
         if version == "latest":

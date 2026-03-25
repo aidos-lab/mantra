@@ -11,6 +11,7 @@ from torch_geometric.utils import from_networkx
 class DualGraph(BaseTransform):
     def __init__(self, feature_propagation: str | None = None):
         self.feature_propagation = feature_propagation
+
     def forward(self, data):
         """Creates dual graph for a given triangulation.
 
@@ -26,7 +27,9 @@ class DualGraph(BaseTransform):
             Adjusted data object with all keys maintained and an `edge_index`
             tensor for representing the dual graph being present.
         """
-        top_simplices = list(set([tuple(s) for s in data["triangulation"]])) # Guarantee the ordering
+        top_simplices = list(
+            set([tuple(s) for s in data["triangulation"]])
+        )  # Guarantee the ordering
         # Lexicographical sort
         top_simplices.sort()
         top_simplices.sort(key=len)
@@ -77,11 +80,11 @@ class DualGraph(BaseTransform):
 
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
-            extra_attr_dict = {
-                "simplex": [sim - 1 for sim in s]
-            }
+            extra_attr_dict = {"simplex": [sim - 1 for sim in s]}
             if self.feature_propagation is not None:
-                extra_attr_dict[self.feature_propagation] =  data[self.feature_propagation][len(s)-1][i]
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(s) - 1][i]
             G.add_node(
                 i, **extra_attr_dict
             )  # -1 to convert 1-index to 0-indexed

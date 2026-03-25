@@ -2,7 +2,6 @@ from typing import TypeAlias, Literal, Union, Dict, List
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
 from torch import Tensor
-import torch
 
 Representation: TypeAlias = Literal["graph", "sc"]
 
@@ -73,24 +72,24 @@ class SelectFeatures(BaseTransform):
             data[dst_i] = v
 
     def _select_dst_single(self, src_tensor: Tensor, data: Data):
-            if self.representation == "graph":
-                assert isinstance(
-                    src_tensor, Tensor
-                ), "Attribute `src` is not a `torch.Tensor`"
-                data[self.dst] = src_tensor  # noqa
+        if self.representation == "graph":
+            assert isinstance(
+                src_tensor, Tensor
+            ), "Attribute `src` is not a `torch.Tensor`"
+            data[self.dst] = src_tensor  # noqa
 
-            else:  # The case for `sc`
-                assert isinstance(
-                    src_tensor, Dict
-                ), f"The attribute {self.src} is not of type dict"
+        else:  # The case for `sc`
+            assert isinstance(
+                src_tensor, Dict
+            ), f"The attribute {self.src} is not of type dict"
 
-                # Iterate over each key in the `src` tensor.
-                # NOTE: The keys here should be an integer with the dimension of the
-                # simplices or a str that can be cast to int, that's why we
-                # explicitly cast it to flag possibe miss-alignment errors
-                for k, v in src_tensor.items():
-                    dst_str = self.dst.format(d=int(k))  # noqa
-                    data[dst_str] = v
+            # Iterate over each key in the `src` tensor.
+            # NOTE: The keys here should be an integer with the dimension of the
+            # simplices or a str that can be cast to int, that's why we
+            # explicitly cast it to flag possibe miss-alignment errors
+            for k, v in src_tensor.items():
+                dst_str = self.dst.format(d=int(k))  # noqa
+                data[dst_str] = v
 
     def forward(self, data: Data):
         """Modify `data` object and assign feature tensors.

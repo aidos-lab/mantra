@@ -15,7 +15,6 @@ from mantra.augmentations.balancing import (
     balance_dataset,
     print_statistics,
 )
-from mantra.deduplication import find_duplicates
 
 
 def main():

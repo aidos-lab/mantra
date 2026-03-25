@@ -213,9 +213,7 @@ def are_isomorphic(tri1, tri2):
     return GM.is_isomorphic()
 
 
-def find_duplicates(
-    triangulations, verbose=False, iso_max_group_size=25
-):
+def find_duplicates(triangulations, verbose=False, iso_max_group_size=25):
     """Find duplicate triangulations in a dataset.
 
     Uses a three-level filtering strategy:
@@ -334,7 +332,7 @@ def find_duplicates(
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f"Usage: python -m mantra.deduplication <path_to_json>")
+        print("Usage: python -m mantra.deduplication <path_to_json>")
         sys.exit(1)
 
     path = sys.argv[1]
