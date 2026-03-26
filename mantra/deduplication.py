@@ -213,7 +213,7 @@ def are_isomorphic(tri1, tri2):
     return GM.is_isomorphic()
 
 
-def find_duplicates(triangulations, verbose=False, iso_max_group_size=25):
+def find_duplicates(triangulations, verbose=False, iso_max_group_size=5):
     """Find duplicate triangulations in a dataset.
 
     Uses a three-level filtering strategy:
