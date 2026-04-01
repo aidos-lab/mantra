@@ -59,9 +59,7 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
             List[Simplex]
 
         """
-        return list(
-            sorted(node.simplex for node in simplex_trie.skeleton(rank))
-        )
+        return sorted(node.simplex for node in simplex_trie.skeleton(rank))
 
     @abstractmethod
     def generate_matrix(
@@ -112,6 +110,9 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
                 connectivity_mat = self.generate_matrix(
                     data.simplex_trie, rank_idx, max_rank
                 )
+                # NOTE: This is introduced to return only the boundary matrix
+                # since `generate_matrix` is also used to compute
+                # intermediate matrices for the HodgeLaplacian for example
                 if self.index:
                     connectivity_mat = connectivity_mat[
                         -1
