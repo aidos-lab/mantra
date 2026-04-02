@@ -9,6 +9,7 @@ import os
 import shutil
 
 import requests
+from tqdm import tqdm
 
 from torch_geometric.data import Data
 from torch_geometric.data import InMemoryDataset
@@ -179,9 +180,16 @@ class ManifoldTriangulations(InMemoryDataset):
         data_list = [Data(**el) for el in inputs]
 
         if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
+            data_list = [
+                data
+                for data in tqdm(data_list, desc="Filtering")
+                if self.pre_filter(data)
+            ]
 
         if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
+            data_list = [
+                self.pre_transform(data)
+                for data in tqdm(data_list, desc="Pre-transforming")
+            ]
 
         self.save(data_list, self.processed_paths[0])
