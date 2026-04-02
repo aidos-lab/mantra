@@ -88,9 +88,7 @@ def calculate_er(B_p, W_p_minus_1, L_up_p_minus_1):
 
 class EffectiveResistanceEmbedding(BaseTransform):
 
-    def __init__(
-        self 
-    ):
+    def __init__(self):
         """Create new moment curve embedding transform.
 
         Parameters
@@ -145,7 +143,18 @@ class EffectiveResistanceEmbedding(BaseTransform):
         return data
 
 
-def er_statistics(x: torch.Tensor, statistics_to_compute: list[str]=["mean", "std", "min", "max", "median", "q25", "q75"]) -> torch.Tensor:
+def er_statistics(
+    x: torch.Tensor,
+    statistics_to_compute: list[str] = [
+        "mean",
+        "std",
+        "min",
+        "max",
+        "median",
+        "q25",
+        "q75",
+    ],
+) -> torch.Tensor:
     """
     x: 1D tensor of effective resistances, shape (N,)
     returns: 1D tensor of statistics, shape (7,)
@@ -173,13 +182,25 @@ def er_statistics(x: torch.Tensor, statistics_to_compute: list[str]=["mean", "st
         stats.append(torch.quantile(x, 0.25))
     if "q75" in statistics_to_compute:
         stats.append(torch.quantile(x, 0.75))
-    
+
     return torch.stack(stats)
 
 
 class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
-    def __init__(self, dimensions_to_compute: list[int] = [1],statistics_to_compute: list[str] = ["mean", "std", "min", "max", "median", "q25", "q75"]):
+    def __init__(
+        self,
+        dimensions_to_compute: list[int] = [1],
+        statistics_to_compute: list[str] = [
+            "mean",
+            "std",
+            "min",
+            "max",
+            "median",
+            "q25",
+            "q75",
+        ],
+    ):
         """Create new moment curve embedding transform.
 
         Parameters
@@ -212,7 +233,6 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
         """
         assert "n_vertices" in data and "dimension" in data
 
-
         # X = dict()
         stats = torch.empty(len(self.dimensions_to_compute), 7)
         for idx, dim in enumerate(self.dimensions_to_compute):
@@ -236,7 +256,9 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             R_p_plus_1 = calculate_er(B_p_plus_1, W_p, L_up_p)
 
-            stats[idx] = er_statistics(R_p_plus_1, statistics_to_compute=self.statistics_to_compute)
+            stats[idx] = er_statistics(
+                R_p_plus_1, statistics_to_compute=self.statistics_to_compute
+            )
 
         data.er_stats = stats.flatten().unsqueeze(0)
 
