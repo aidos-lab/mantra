@@ -55,10 +55,11 @@ class CreateLabels(BaseTransform):
         label = data[self.source]
 
         if isinstance(label, bool):
-            data.y = int(label)
-        else:
-            if label not in self.label_to_index:
-                self.label_to_index[label] = len(self.label_to_index)
+            data.y = torch.tensor([int(label)])
+            return data
+
+        if label not in self.label_to_index:
+            self.label_to_index[label] = len(self.label_to_index)
 
         data.y = torch.tensor([self.label_to_index[label]])
 

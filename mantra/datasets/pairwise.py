@@ -97,7 +97,7 @@ class PairwiseSimplicialDS(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        if self.manifold == 2:
+        if self.dimension == 2:
             f_names = [
                 self._data_filename(m_1, m_2)
                 for m_1 in Manifold2Type
@@ -110,7 +110,7 @@ class PairwiseSimplicialDS(InMemoryDataset):
     def process(self):
         print("---> Preprocessing dataset...)")
 
-        if self.manifold == 3:
+        if self.dimension == 3:
             raise NotImplementedError("TODO")
 
         # Convert to strings
