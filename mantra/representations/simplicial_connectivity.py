@@ -319,7 +319,7 @@ class AdjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
         up_lap_transform = UpLaplacianSimplicialComplex(
             self.signed, index=True
         )
-        ind, l_up = up_lap_transform.generate_matrix(
+        ind, _, l_up = up_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
         )
 
@@ -373,7 +373,7 @@ class CoadjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
             self.signed, index=True
         )
 
-        ind, L_down = down_lap_transform.generate_matrix(
+        ind, _, L_down = down_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
         )
         L_down.setdiag(0)
