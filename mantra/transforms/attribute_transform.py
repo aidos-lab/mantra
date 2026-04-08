@@ -13,7 +13,6 @@ from torch_geometric.transforms import OneHotDegree
 from torch_geometric.utils import degree
 import torch_geometric.transforms as T
 
-import torch
 
 
 class NodeIndex:
