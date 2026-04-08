@@ -14,7 +14,6 @@ from torch_geometric.utils import degree
 import torch_geometric.transforms as T
 
 
-
 class NodeIndex:
     """
     This transform ensures the compatibility with `pytorch-geometric` by
