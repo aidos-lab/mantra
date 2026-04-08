@@ -34,12 +34,12 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-<<<<<<< Updated upstream
-        data_ = from_networkx(G, group_node_attrs=[self.feature_propagation])
-=======
-        group_node_attrs: List[str] = self.feature_propagation if self.feature_propagation is None else [self.feature_propagation]
+        group_node_attrs: List[str] = (
+            self.feature_propagation
+            if self.feature_propagation is None
+            else [self.feature_propagation]
+        )
         data_ = from_networkx(G, group_node_attrs=group_node_attrs)
->>>>>>> Stashed changes
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
@@ -83,11 +83,11 @@ class HasseDiagram(BaseTransform):
         for i, k_simp in enumerate(k_minus_1_simplices):
 
             k_simp = tuple(k_simp)
-            extra_attr_dict = {
-                "simplex": [sim - 1 for sim in k_simp]
-            }
+            extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
             if self.feature_propagation is not None:
-               extra_attr_dict[self.feature_propagation] = data[self.feature_propagation][len(k_simp)-1][i]
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(k_simp) - 1][i]
             G.add_node(k_simp, **extra_attr_dict)
             new_nodes.append(k_simp)
 
@@ -116,11 +116,11 @@ class HasseDiagram(BaseTransform):
         G = nx.Graph()
 
         for i, top_simp in enumerate(top_simplices):
-            extra_attr_dict = {
-                "simplex": [sim - 1 for sim in top_simp]
-            }
+            extra_attr_dict = {"simplex": [sim - 1 for sim in top_simp]}
             if self.feature_propagation is not None:
-               extra_attr_dict[self.feature_propagation] = data[self.feature_propagation][len(top_simp)-1][i]
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(top_simp) - 1][i]
             G.add_node(top_simp, **extra_attr_dict)
             self._build_connecting_lower_simplices(G, data, top_simp)
 
