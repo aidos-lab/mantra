@@ -3,7 +3,6 @@
 import json
 import re
 import sys
-
 from contextlib import nullcontext
 
 

@@ -7,7 +7,6 @@ specifying different targets for the possible tasks.
 
 import torch
 import torch_geometric.transforms as T
-
 from torch_geometric.data import Data
 
 NAME_TO_CLASS_2M = {

@@ -6,9 +6,7 @@ to enable the training on different neural-network architectures.
 """
 
 import torch
-
 import torch_geometric.transforms as T
-
 from torch_geometric.utils import degree
 
 

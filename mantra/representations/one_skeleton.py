@@ -1,10 +1,8 @@
 import networkx as nx
-
-
-from mantra.representations.internal import SimplexTrie
-
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
+
+from mantra.representations.internal import SimplexTrie
 
 
 class OneSkeleton(BaseTransform):

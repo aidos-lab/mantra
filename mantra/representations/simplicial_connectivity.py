@@ -1,17 +1,14 @@
-from abc import abstractmethod, ABC
-from typing import List, Dict, Tuple, Optional
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-
-from scipy.sparse import csr_matrix
 import scipy
-
 import torch
-from torch_geometric.transforms import BaseTransform
+from scipy.sparse import csr_matrix
 from torch_geometric.data import Data
+from torch_geometric.transforms import BaseTransform
 
-from mantra.representations.internal import SimplexTrie
-from mantra.representations.internal import Simplex
+from mantra.representations.internal import Simplex, SimplexTrie
 
 
 class AddSimplexTrie(BaseTransform):
