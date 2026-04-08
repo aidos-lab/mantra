@@ -3,6 +3,7 @@ from typing import Dict, List, Literal, TypeAlias, Union
 from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
+from torch import Tensor
 
 Representation: TypeAlias = Literal["graph", "sc"]
 
@@ -116,6 +117,6 @@ class SelectFeatures(BaseTransform):
                 # simplices or a str that can be cast to int, that's why we
                 # explicitly cast it to flag possibe miss-alignment errors
                 for k, v in src_tensor.items():
-                    dst_str = self.dst.format(int(k))  # noqa
+                    dst_str = self.dst.format(d=int(k))  # noqa
                     data[dst_str] = v
         return data

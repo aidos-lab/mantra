@@ -1,6 +1,6 @@
-"""Attribute transforms module
+"""Transforms module
 
-A set of attribute transforms for the MANTRA dataset. We make use of such
+A set of base transforms for the MANTRA dataset. We make use of such
 transformations in `our paper <https://openreview.net/pdf?id=X6y5CC44HM>`__
 to enable the training on different neural-network architectures.
 """

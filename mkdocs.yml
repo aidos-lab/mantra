@@ -1,0 +1,73 @@
+site_name: Mantra
+
+theme:
+  name: material
+  favicon: assets/favico.ico
+  logo: assets/favico.ico
+  features:
+    - navigation.sections
+    - header.autohide
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: blue grey
+      toggle:
+        icon: material/weather-night
+        name: switch to dark mode 🌙
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: blue grey
+      toggle:
+        icon: material/weather-sunny
+        name: switch to light mode 🌞
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [mantra,.]
+          options:
+            docstring_style: google
+            docstring_section_style: list
+  - mkdocs-autoapi:
+      autoapi_dir: mantra
+      autoapi_add_nav_entry: Reference
+      autoapi_ignore: 
+        - "**/lorem.py"
+      autoapi_file_patterns: 
+        - "*.py"
+
+markdown_extensions:
+  - markdown_include.include:
+      base_path: docs
+  - pymdownx.extra
+  - pymdownx.highlight
+  - pymdownx.details
+  - pymdownx.saneheaders
+  - pymdownx.smartsymbols
+  - pymdownx.critic:
+      mode: view
+  - pymdownx.snippets
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
+  - pymdownx.superfences
+  - pymdownx.emoji
+  - admonition
+  - meta
+  - toc:
+      permalink: true
+
+nav:
+  - index.md
+  - installation.md
+  - Tutorials: 
+    - Adding new tasks: notebooks/adding_new_task.md
+    - Train a GNN: notebooks/train_gnn.md
+    - Visualize data: notebooks/visualize_data.md
+  - About: 
+    - License: license.md
+    - Contribute: contribute.md
+    - Website: website.md
+
