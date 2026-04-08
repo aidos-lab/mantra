@@ -8,7 +8,12 @@ import json
 import os
 
 import requests
-from torch_geometric.data import Data, InMemoryDataset, download_url, extract_gz
+from torch_geometric.data import (
+    Data,
+    InMemoryDataset,
+    download_url,
+    extract_gz,
+)
 
 
 def _get_dataset_url(version: str, dimension: int) -> str:
