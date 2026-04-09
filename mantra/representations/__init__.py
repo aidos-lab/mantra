@@ -1,6 +1,7 @@
 from .dual_graph import DualGraph
 from .one_skeleton import OneSkeleton
 from .hasse_diagram import HasseDiagram
+from .reduced_hasse_diagram import ReducedHasseDiagram
 
 from .simplicial_connectivity import AdjacencySimplicialComplex
 from .simplicial_connectivity import CoadjacencySimplicialComplex
@@ -13,4 +14,5 @@ __all__ = [
     "HasseDiagram",
     "IncidenceSimplicialComplex",
     "OneSkeleton",
+    "ReducedHasseDiagram",
 ]
