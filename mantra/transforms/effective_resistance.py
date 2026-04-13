@@ -144,38 +144,6 @@ class EffectiveResistanceEmbedding(BaseTransform):
         return data
 
 
-def er_statistics(x: torch.Tensor) -> torch.Tensor:
-    """
-    x: 1D tensor of effective resistances, shape (N,)
-    returns: 1D tensor of statistics, shape (7,)
-    """
-    # Ensure float tensor
-    x = x.float()
-
-    stats = []
-    if "mean" in self.statistics_to_compute:
-        stats.append(x.mean())
-    if "std" in self.statistics_to_compute:
-        std = x.std(unbiased=False)
-        # Clamp tiny numerical noise
-        eps = torch.finfo(x.dtype).eps
-        tol = 10 * eps  # small multiple of machine precision
-        std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
-        stats.append(std)
-    if "min" in self.statistics_to_compute:
-        stats.append(x.min())
-    if "max" in self.statistics_to_compute:
-        stats.append(x.max())
-    if "median" in self.statistics_to_compute:
-        stats.append(torch.quantile(x, 0.50))
-    if "q25" in self.statistics_to_compute:
-        stats.append(torch.quantile(x, 0.25))
-    if "q75" in self.statistics_to_compute:
-        stats.append(torch.quantile(x, 0.75))
-
-    return torch.stack(stats)
-
-
 class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
     def __init__(
@@ -244,8 +212,39 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             R_p_plus_1 = calculate_er(B_p_plus_1, W_p, L_up_p)
 
-            stats[p] = er_statistics(R_p_plus_1)
+            stats[p] = self.er_statistics(R_p_plus_1)
 
         data.er_stats = stats.flatten().unsqueeze(0)
 
         return data
+
+    def er_statistics(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: 1D tensor of effective resistances, shape (N,)
+        returns: 1D tensor of statistics, shape (7,)
+        """
+        # Ensure float tensor
+        x = x.float()
+
+        stats = []
+        if "mean" in self.statistics_to_compute:
+            stats.append(x.mean())
+        if "std" in self.statistics_to_compute:
+            std = x.std(unbiased=False)
+            # Clamp tiny numerical noise
+            eps = torch.finfo(x.dtype).eps
+            tol = 10 * eps  # small multiple of machine precision
+            std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
+            stats.append(std)
+        if "min" in self.statistics_to_compute:
+            stats.append(x.min())
+        if "max" in self.statistics_to_compute:
+            stats.append(x.max())
+        if "median" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.50))
+        if "q25" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.25))
+        if "q75" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.75))
+
+        return torch.stack(stats)
