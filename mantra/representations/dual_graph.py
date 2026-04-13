@@ -2,14 +2,14 @@ import networkx as nx
 
 from collections import defaultdict
 from itertools import combinations
-from typing import List
+from typing import List, Optional
 
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
 
 class DualGraph(BaseTransform):
-    def __init__(self, feature_propagation: str | None = None):
+    def __init__(self, feature_propagation: Optional[str] = None):
         self.feature_propagation = feature_propagation
 
     def forward(self, data):
@@ -50,7 +50,6 @@ class DualGraph(BaseTransform):
             data[k] = v
 
         data["n_vertices"] = G.number_of_nodes()
-        print(data)
         return data
 
     def _build_dual_graph(self, data, top_simplices):
