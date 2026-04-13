@@ -1,5 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
+from typing import List, Optional
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -7,6 +8,9 @@ from torch_geometric.utils import from_networkx
 
 
 class DualGraph(BaseTransform):
+    def __init__(self, feature_propagation: Optional[str] = None):
+        self.feature_propagation = feature_propagation
+
     def forward(self, data):
         """Creates dual graph for a given triangulation.
 
@@ -22,8 +26,20 @@ class DualGraph(BaseTransform):
             Adjusted data object with all keys maintained and an `edge_index`
             tensor for representing the dual graph being present.
         """
-        G = self._build_dual_graph(data["triangulation"])
-        data_ = from_networkx(G)
+        top_simplices = list(
+            set([tuple(s) for s in data["triangulation"]])
+        )  # Guarantee the ordering
+        # Lexicographical sort
+        top_simplices.sort()
+        top_simplices.sort(key=len)
+
+        G = self._build_dual_graph(data, top_simplices)
+        group_node_attrs: List[str] = (
+            self.feature_propagation
+            if self.feature_propagation is None
+            else [self.feature_propagation]
+        )
+        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
@@ -35,7 +51,7 @@ class DualGraph(BaseTransform):
         data["n_vertices"] = G.number_of_nodes()
         return data
 
-    def _build_dual_graph(self, top_simplices):
+    def _build_dual_graph(self, data, top_simplices):
         """
         Construct the dual graph, i.e., the adjacency graph, of a triangulated
         $d$-manifold. The graph will have a vertex for each top-level simplex,
@@ -66,8 +82,13 @@ class DualGraph(BaseTransform):
 
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
+            extra_attr_dict = {"simplex": [sim - 1 for sim in s]}
+            if self.feature_propagation is not None:
+                extra_attr_dict[self.feature_propagation] = data[
+                    self.feature_propagation
+                ][len(s) - 1][i]
             G.add_node(
-                i, simplex=[sim - 1 for sim in s]
+                i, **extra_attr_dict
             )  # -1 to convert 1-index to 0-indexed
 
         # Add an edge to connect all cofaces. Notice that we implicitly only
