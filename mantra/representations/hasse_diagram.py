@@ -1,6 +1,5 @@
 from itertools import combinations
-
-from typing import Tuple, List, Union
+from typing import List, Tuple, Union
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
