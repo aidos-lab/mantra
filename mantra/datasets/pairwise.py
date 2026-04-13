@@ -1,13 +1,11 @@
 import os
 from typing import Tuple
-from tqdm import tqdm
 
 import torch
+from torch_geometric.data import Data, InMemoryDataset
+from tqdm import tqdm
 
 from mantra.datasets import ManifoldTriangulations
-
-from torch_geometric.data import InMemoryDataset, Data
-
 from mantra.manifold_types import Manifold2Type, Manifold3Type
 from mantra.tasks.task_types import TaskType
 
