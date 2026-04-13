@@ -91,7 +91,7 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
             ), "Your data object does not contain a triangulation or a simplex trie"
             data = AddSimplexTrie()(data)
 
-        max_rank = data.dimension.item()
+        max_rank = int(data.dimension)
         # The shape that empty tensors should take
         shape = list(
             np.pad(
@@ -401,8 +401,10 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
-    values = torch.FloatTensor(coo.data, device=device)
-    indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
+    values = torch.tensor(coo.data, dtype=torch.float32, device=device)
+    indices = torch.tensor(
+        np.vstack((coo.row, coo.col)), dtype=torch.long, device=device
+    )
     sparse_data = torch.sparse_coo_tensor(
         indices, values, coo.shape, device=device
     ).coalesce()
