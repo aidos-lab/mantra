@@ -12,7 +12,7 @@ from torch_geometric.utils import degree
 
 class NodeRandomTransform(T.BaseTransform):
     """
-    Add random node features
+    Add random node features in `random_features`
     """
 
     def __init__(self, dim: int = 8):
@@ -20,7 +20,7 @@ class NodeRandomTransform(T.BaseTransform):
 
     def forward(self, data):
         assert "edge_index" in data, "No edge index in data"
-        data.x = torch.rand(
+        data.random_features = torch.rand(
             size=(int(data.edge_index.max().item() + 1), self.dimension)
         )
         return data
@@ -28,11 +28,11 @@ class NodeRandomTransform(T.BaseTransform):
 
 class NodeDegreeTransform(T.BaseTransform):
     """
-    Add degrees of nodes as features in `x`.
+    Add degrees of nodes as features in `degree`.
     """
 
     def forward(self, data):
         assert "edge_index" in data, "No edge index in data"
         deg = degree(data.edge_index[0], dtype=torch.float)
-        data.x = deg.view(-1, 1)
+        data.degree = deg.view(-1, 1)
         return data
