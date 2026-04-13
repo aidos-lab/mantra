@@ -6,10 +6,10 @@ This script is a work in progress and only tackles *orientable
 
 import itertools
 import json
-import trimesh
 import sys
 
 import numpy as np
+import trimesh
 
 k = 32768
 max_tries = 50000

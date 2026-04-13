@@ -6,63 +6,13 @@ to enable the training on different neural-network architectures.
 """
 
 import torch
-
-from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
-from torch_geometric.transforms import OneHotDegree
-from torch_geometric.utils import degree
 import torch_geometric.transforms as T
-
-
-class NodeIndex:
-    """
-    This transform ensures the compatibility with `pytorch-geometric` by
-    changing the node/vertex indices to be zero-indexed.
-    """
-
-    def __call__(self, data):
-        data.face = torch.tensor(data.triangulation).T - 1
-        return data
-
-
-class RandomNodeFeatures:
-    """
-    Adds random node features to the dataset. The main purpose behind
-    this transformation is to ensure compatibility with architectures
-    that require node features, while also showing their respective
-    shortcomings. In our dataset, unlike many others, node coordinates
-    and the triangulations themselves are fully decoupled.
-    """
-
-    def __init__(self, dimension=8):
-        self.dimension = dimension
-
-    def __call__(self, data):
-        data.x = torch.rand(size=(data.face.max() + 1, self.dimension))
-        return data
-
-
-class DegreeTransform:
-    def __call__(self, data):
-        deg = degree(data.edge_index[0], dtype=torch.float)
-        data.x = deg.view(-1, 1)
-        return data
-
-
-class DegreeTransformOneHot:
-    def __init__(self):
-        self.transform = Compose(
-            [
-                NodeIndex(),
-                FaceToEdge(remove_faces=False),
-                OneHotDegree(max_degree=9, cat=False),
-            ]
-        )
+from torch_geometric.utils import degree
 
 
 class NodeRandomTransform(T.BaseTransform):
     """
-    Add random node features
+    Add random node features in `random_features`
     """
 
     def __init__(self, dim: int = 8):
@@ -70,7 +20,7 @@ class NodeRandomTransform(T.BaseTransform):
 
     def forward(self, data):
         assert "edge_index" in data, "No edge index in data"
-        data.x = torch.rand(
+        data.random_features = torch.rand(
             size=(int(data.edge_index.max().item() + 1), self.dimension)
         )
         return data
@@ -78,11 +28,11 @@ class NodeRandomTransform(T.BaseTransform):
 
 class NodeDegreeTransform(T.BaseTransform):
     """
-    Add degrees of nodes as features in `x`.
+    Add degrees of nodes as features in `degree`.
     """
 
     def forward(self, data):
         assert "edge_index" in data, "No edge index in data"
         deg = degree(data.edge_index[0], dtype=torch.float)
-        data.x = deg.view(-1, 1)
+        data.degree = deg.view(-1, 1)
         return data

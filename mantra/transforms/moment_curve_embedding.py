@@ -1,9 +1,8 @@
-from torch_geometric.transforms import BaseTransform
-
 from itertools import combinations
 
 import numpy as np
 import torch
+from torch_geometric.transforms import BaseTransform
 
 
 def _calculate_moment_curve(n, d):

@@ -1,9 +1,8 @@
-import networkx as nx
-
 from collections import defaultdict
 from itertools import combinations
 from typing import List, Optional
 
+import networkx as nx
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
