@@ -1,11 +1,8 @@
-from torch_geometric.transforms import BaseTransform
-
+from typing import Tuple
 
 import numpy as np
 import torch
-
-
-from typing import Tuple
+from torch_geometric.transforms import BaseTransform
 
 
 def weighted_chain_laplacian(
