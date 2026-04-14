@@ -1,7 +1,8 @@
-from typing import TypeAlias, Literal, Union, Dict, List
+from typing import Dict, List, Literal, TypeAlias, Union
+
+from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
-from torch import Tensor
 
 
 Representation: TypeAlias = Literal["graph", "sc"]

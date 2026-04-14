@@ -1,9 +1,8 @@
-import networkx as nx
-
 from collections import defaultdict
 from itertools import combinations
-from typing import Optional
+from typing import List, Optional
 
+import networkx as nx
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
@@ -35,12 +34,12 @@ class DualGraph(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_dual_graph(data, top_simplices)
-        node_attributes_to_keep = []  # ["simplex"]
-
-        if self.feature_propagation is not None:
-            node_attributes_to_keep.append(self.feature_propagation)
-
-        data_ = from_networkx(G, group_node_attrs=node_attributes_to_keep)
+        group_node_attrs: List[str] = (
+            self.feature_propagation
+            if self.feature_propagation is None
+            else [self.feature_propagation]
+        )
+        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys

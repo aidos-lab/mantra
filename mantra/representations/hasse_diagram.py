@@ -1,9 +1,7 @@
-import networkx as nx
-
 from itertools import combinations
+from typing import List, Tuple, Union
 
-from typing import Tuple, List, Optional
-
+import networkx as nx
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
@@ -34,7 +32,11 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-        group_node_attrs: List[str] = self.feature_propagation if self.feature_propagation is None else [self.feature_propagation]
+        group_node_attrs: List[str] = (
+            self.feature_propagation
+            if self.feature_propagation is None
+            else [self.feature_propagation]
+        )
         data_ = from_networkx(G, group_node_attrs=group_node_attrs)
 
         # Copy information from smaller `data_` object to the original

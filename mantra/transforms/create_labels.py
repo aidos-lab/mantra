@@ -1,5 +1,5 @@
-from torch_geometric.transforms import BaseTransform
 import torch
+from torch_geometric.transforms import BaseTransform
 
 
 class CreateLabels(BaseTransform):

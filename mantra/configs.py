@@ -1,4 +1,4 @@
-from typing import Tuple, TypeAlias, Literal
+from typing import Literal, Tuple, TypeAlias
 
 
 class SplitConfig:

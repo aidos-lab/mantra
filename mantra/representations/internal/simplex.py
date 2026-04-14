@@ -4,7 +4,7 @@ Adapted from https://github.com/pyt-team/TopoNetX/blob/main/toponetx/classes/sim
 
 from collections.abc import Collection, Hashable, Iterable
 from functools import total_ordering
-from typing import Generic, TypeVar, Any
+from typing import Any, Generic, TypeVar
 
 from typing_extensions import Self
 

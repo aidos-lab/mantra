@@ -11,10 +11,13 @@ import shutil
 import requests
 from tqdm import tqdm
 
-from torch_geometric.data import Data
-from torch_geometric.data import InMemoryDataset
-from torch_geometric.data import download_url
-from torch_geometric.data import extract_gz
+import requests
+from torch_geometric.data import (
+    Data,
+    InMemoryDataset,
+    download_url,
+    extract_gz,
+)
 
 
 def _get_dataset_url(

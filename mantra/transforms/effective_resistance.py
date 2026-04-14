@@ -1,10 +1,8 @@
-from torch_geometric.transforms import BaseTransform
+from typing import Tuple
 
 import numpy as np
 import torch
-
-
-from typing import Tuple
+from torch_geometric.transforms import BaseTransform
 
 
 def weighted_chain_laplacian(
@@ -143,55 +141,11 @@ class EffectiveResistanceEmbedding(BaseTransform):
         return data
 
 
-def er_statistics(
-    x: torch.Tensor,
-    statistics_to_compute: list[str] = [
-        "mean",
-        "std",
-        "min",
-        "max",
-        "median",
-        "q25",
-        "q75",
-    ],
-) -> torch.Tensor:
-    """
-    x: 1D tensor of effective resistances, shape (N,)
-    returns: 1D tensor of statistics, shape (7,)
-    """
-    # Ensure float tensor
-    x = x.float()
-
-    stats = []
-    if "mean" in statistics_to_compute:
-        stats.append(x.mean())
-    if "std" in statistics_to_compute:
-        std = x.std(unbiased=False)
-        # Clamp tiny numerical noise
-        eps = torch.finfo(x.dtype).eps
-        tol = 10 * eps  # small multiple of machine precision
-        std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
-        stats.append(std)
-    if "min" in statistics_to_compute:
-        stats.append(x.min())
-    if "max" in statistics_to_compute:
-        stats.append(x.max())
-    if "median" in statistics_to_compute:
-        stats.append(torch.quantile(x, 0.50))
-    if "q25" in statistics_to_compute:
-        stats.append(torch.quantile(x, 0.25))
-    if "q75" in statistics_to_compute:
-        stats.append(torch.quantile(x, 0.75))
-
-    return torch.stack(stats)
-
-
 class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
     def __init__(
         self,
-        dimensions_to_compute: list[int] = [1],
-        statistics_to_compute: list[str] = [
+        statistics: list[str] = [
             "mean",
             "std",
             "min",
@@ -205,14 +159,11 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
         Parameters
         ----------
-        dimensions_to_compute : list of int
-            List of dimensions to compute effective resistance statistics for. Default is [1], i.e. compute statistics for edges only.
-        statistics_to_compute : list of str
+        statistics : list of str
             List of statistics to compute. Default is ["mean", "std", "min", "max", "median", "q25", "q75"].
         """
+        self.statistics_to_compute = statistics
         super().__init__()
-        self.dimensions_to_compute = dimensions_to_compute
-        self.statistics_to_compute = statistics_to_compute
 
     def forward(self, data):
         """Calculate effective resistance statistics for a data object.
@@ -233,10 +184,12 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
         """
         assert "n_vertices" in data and "dimension" in data
 
+        d = data["dimension"]
+
         # X = dict()
-        stats = torch.empty(len(self.dimensions_to_compute), 7)
-        for idx, dim in enumerate(self.dimensions_to_compute):
-            p = dim - 1
+        stats = torch.empty(d, 7)
+
+        for p in range(0, d):
             if p == 0:
                 B_p_plus_1 = getattr(data, f"incidence_{p+1}")  # [n_p, n_p+1]
                 B_p = torch.zeros((1, B_p_plus_1.shape[0]))  # [1, n_p]
@@ -256,10 +209,39 @@ class EffectiveResistanceStatisticsEmbedding(BaseTransform):
 
             R_p_plus_1 = calculate_er(B_p_plus_1, W_p, L_up_p)
 
-            stats[idx] = er_statistics(
-                R_p_plus_1, statistics_to_compute=self.statistics_to_compute
-            )
+            stats[p] = self.er_statistics(R_p_plus_1)
 
         data.er_stats = stats.flatten().unsqueeze(0)
 
         return data
+
+    def er_statistics(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        x: 1D tensor of effective resistances, shape (N,)
+        returns: 1D tensor of statistics, shape (7,)
+        """
+        # Ensure float tensor
+        x = x.float()
+
+        stats = []
+        if "mean" in self.statistics_to_compute:
+            stats.append(x.mean())
+        if "std" in self.statistics_to_compute:
+            std = x.std(unbiased=False)
+            # Clamp tiny numerical noise
+            eps = torch.finfo(x.dtype).eps
+            tol = 10 * eps  # small multiple of machine precision
+            std = torch.where(std.abs() < tol, torch.zeros_like(std), std)
+            stats.append(std)
+        if "min" in self.statistics_to_compute:
+            stats.append(x.min())
+        if "max" in self.statistics_to_compute:
+            stats.append(x.max())
+        if "median" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.50))
+        if "q25" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.25))
+        if "q75" in self.statistics_to_compute:
+            stats.append(torch.quantile(x, 0.75))
+
+        return torch.stack(stats)

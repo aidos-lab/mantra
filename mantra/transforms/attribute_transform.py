@@ -6,53 +6,10 @@ to enable the training on different neural-network architectures.
 """
 
 import torch
-
-from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
-from torch_geometric.transforms import OneHotDegree
-from torch_geometric.utils import degree
 import torch_geometric.transforms as T
+from torch_geometric.utils import degree
 
-import torch
-
-
-class NodeIndex:
-    """
-    This transform ensures the compatibility with `pytorch-geometric` by
-    changing the node/vertex indices to be zero-indexed.
-    """
-
-    def __call__(self, data):
-        data.face = torch.tensor(data.triangulation).T - 1
-        return data
-
-
-class RandomNodeFeatures:
-    """
-    Adds random node features to the dataset. The main purpose behind
-    this transformation is to ensure compatibility with architectures
-    that require node features, while also showing their respective
-    shortcomings. In our dataset, unlike many others, node coordinates
-    and the triangulations themselves are fully decoupled.
-    """
-
-    def __init__(self, dimension=8):
-        self.dimension = dimension
-
-    def __call__(self, data):
-        data.x = torch.rand(size=(data.face.max() + 1, self.dimension))
-        return data
-
-
-class DegreeTransformOneHot:
-    def __init__(self):
-        self.transform = Compose(
-            [
-                NodeIndex(),
-                FaceToEdge(remove_faces=False),
-                OneHotDegree(max_degree=9, cat=False),
-            ]
-        )
+from collections import defaultdict
 
 
 class NodeRandomTransform(T.BaseTransform):
@@ -60,15 +17,57 @@ class NodeRandomTransform(T.BaseTransform):
     Add random node features in `random_features`
     """
 
+    def __init__(self, dim: int = 8, propagate: bool = False):
+        super().__init__()
+        self.dimension = dim
+        self.propagate = propagate
+
+    def forward(self, data):
+        if not self.propagate:
+            assert "edge_index" in data, "No edge index in data"
+            data.random_features = torch.rand(
+                size=(int(data.edge_index.max().item() + 1), self.dimension)
+            )
+        else: # Propagate random features to all simplices
+            # All incidence matrices required
+            incidence_list = [k for k in data.keys() if "incidence" in k]
+
+            assert len(incidence_list) > 0, "No incidence matrices found in data"
+
+            # Sort by rank `r`
+            sorted(incidence_list, key = lambda x: int(x.split('_')[1]))
+
+            random_features = defaultdict(torch.tensor)
+
+            for inc_m in incidence_list:
+                I = getattr(data, inc_m)
+                r_to = int(inc_m.split('_')[1])
+                r_from = r_to - 1
+                # Case for incidence_0
+                if r_from < 0:
+                    continue
+
+                random_features[r_from] = torch.rand(
+                    size=(I.shape[0], self.dimension)
+                )
+
+                random_features[r_to] = torch.rand(
+                    size=(I.shape[1], self.dimension)
+                )
+            data.random_features = random_features
+        return data
+
+
+class SimplexRandomTransform(T.BaseTransform):
+    """
+    Add `random_features` to simplices based on incidence matrices
+    """
+
     def __init__(self, dim: int = 8):
+        super().__init__()
         self.dimension = dim
 
     def forward(self, data):
-        assert "edge_index" in data, "No edge index in data"
-        data.random_features = torch.rand(
-            size=(int(data.edge_index.max().item() + 1), self.dimension)
-        )
-        return data
 
 
 class NodeDegreeTransform(T.BaseTransform):

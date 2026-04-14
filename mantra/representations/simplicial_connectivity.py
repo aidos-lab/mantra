@@ -1,17 +1,14 @@
-from abc import abstractmethod, ABC
-from typing import List, Dict, Tuple, Optional
+from abc import ABC, abstractmethod
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
-
-from scipy.sparse import csr_matrix
 import scipy
-
 import torch
-from torch_geometric.transforms import BaseTransform
+from scipy.sparse import csr_matrix
 from torch_geometric.data import Data
+from torch_geometric.transforms import BaseTransform
 
-from mantra.representations.internal import SimplexTrie
-from mantra.representations.internal import Simplex
+from mantra.representations.internal import Simplex, SimplexTrie
 
 
 class AddSimplexTrie(BaseTransform):
@@ -112,6 +109,9 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
                 connectivity_mat = self.generate_matrix(
                     data.simplex_trie, rank_idx, max_rank
                 )
+                # NOTE: This is introduced to return only the boundary matrix
+                # since `generate_matrix` is also used to compute
+                # intermediate matrices for the HodgeLaplacian for example
                 if self.index:
                     connectivity_mat = connectivity_mat[
                         -1
@@ -321,7 +321,7 @@ class AdjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
         up_lap_transform = UpLaplacianSimplicialComplex(
             self.signed, index=True
         )
-        ind, l_up = up_lap_transform.generate_matrix(
+        ind, _, l_up = up_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
         )
 
@@ -375,7 +375,7 @@ class CoadjacencySimplicialComplex(AbstractSimplicialComplexConnectivity):
             self.signed, index=True
         )
 
-        ind, L_down = down_lap_transform.generate_matrix(
+        ind, _, L_down = down_lap_transform.generate_matrix(
             simplex_trie, rank, max_rank
         )
         L_down.setdiag(0)
@@ -403,8 +403,6 @@ def _from_sparse(data: scipy.sparse.csc_matrix, device=None) -> torch.Tensor:
     # cast from csc_matrix to coo format for compatibility
     coo = data.tocoo()
 
-    # values = torch.FloatTensor(coo.data, device=device)
-    # indices = torch.LongTensor(np.vstack((coo.row, coo.col)), device=device)
     values = torch.tensor(coo.data, dtype=torch.float32, device=device)
     indices = torch.tensor(
         np.vstack((coo.row, coo.col)), dtype=torch.long, device=device
