@@ -33,7 +33,7 @@ class HasseDiagram(BaseTransform):
 
         G = self._build_hasse_diagram(top_simplices, data)
         group_node_attrs: List[str] = (
-            self.feature_propagation
+            []
             if self.feature_propagation is None
             else [self.feature_propagation]
         )

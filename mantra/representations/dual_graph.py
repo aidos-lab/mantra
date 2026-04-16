@@ -35,7 +35,7 @@ class DualGraph(BaseTransform):
 
         G = self._build_dual_graph(data, top_simplices)
         group_node_attrs: List[str] = (
-            self.feature_propagation
+            []
             if self.feature_propagation is None
             else [self.feature_propagation]
         )
