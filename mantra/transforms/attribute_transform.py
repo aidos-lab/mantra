@@ -57,19 +57,6 @@ class NodeRandomTransform(T.BaseTransform):
             data.random_features = random_features
         return data
 
-
-class SimplexRandomTransform(T.BaseTransform):
-    """
-    Add `random_features` to simplices based on incidence matrices
-    """
-
-    def __init__(self, dim: int = 8):
-        super().__init__()
-        self.dimension = dim
-
-    def forward(self, data):
-
-
 class NodeDegreeTransform(T.BaseTransform):
     """
     Add degrees of nodes as features in `degree`.
