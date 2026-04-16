@@ -34,8 +34,8 @@ class DualGraph(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_dual_graph(data, top_simplices)
-        group_node_attrs: List[str] = (
-            []
+        group_node_attrs: Optional[List[str]] = (
+            None
             if self.feature_propagation is None
             else [self.feature_propagation]
         )

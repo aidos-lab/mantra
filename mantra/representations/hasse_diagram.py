@@ -32,8 +32,8 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-        group_node_attrs: List[str] = (
-            []
+        group_node_attrs: Optional[List[str]] = (
+            None
             if self.feature_propagation is None
             else [self.feature_propagation]
         )
