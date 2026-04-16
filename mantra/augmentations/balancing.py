@@ -227,6 +227,7 @@ def balance_dataset(
     seed=42,
     use_topology_changes=True,
     dedup_max_rounds=10,
+    max_vertices=None,
     verbose=False,
 ):
     """Generate a balanced dataset via Pachner move augmentation.
@@ -255,6 +256,10 @@ def balance_dataset(
     dedup_max_rounds : int
         Maximum number of dedup-regenerate rounds. Set to 0 to
         skip deduplication entirely.
+    max_vertices : int or None
+        If set, discard all entries (original and augmented) with
+        more than this many vertices. Applied both before balancing
+        and as a final filter after augmentation and deduplication.
     verbose : bool
         If True, print progress to stderr.
 
@@ -264,6 +269,12 @@ def balance_dataset(
         Balanced dataset.
     """
     rng = random.Random(seed)
+
+    # filter by max_vertices before balancing
+    if max_vertices is not None:
+        dataset = [
+            e for e in dataset if e["n_vertices"] <= max_vertices
+        ]
 
     # group by class
     class_entries = defaultdict(list)
@@ -333,28 +344,50 @@ def balance_dataset(
                 augmented["id"] = new_entry["id"]
                 result.append(augmented)
 
-    # Post-augmentation deduplication: remove isomorphic duplicates
-    # and regenerate replacements until clean. On the final round,
-    # only remove duplicates without regenerating — prioritising a
-    # duplicate-free dataset over hitting the exact target count.
+    # Post-augmentation cleanup: remove isomorphic duplicates and
+    # entries exceeding max_vertices, then regenerate replacements.
+    # On the final round, only remove without regenerating —
+    # prioritising a clean dataset over hitting the exact target
+    # count.
     for dedup_round in range(dedup_max_rounds):
         is_last_round = dedup_round == dedup_max_rounds - 1
+
+        # find duplicates
         duplicates = find_duplicates(result, verbose=verbose)
-        if not duplicates:
+        dup_ids = {pair[1] for pair in duplicates}
+
+        # find entries exceeding vertex limit
+        over_limit_ids = set()
+        if max_vertices is not None:
+            over_limit_ids = {
+                e["id"]
+                for e in result
+                if e["n_vertices"] > max_vertices
+            }
+
+        to_remove = dup_ids | over_limit_ids
+        if not to_remove:
             if verbose:
                 print(
-                    f"Dedup round {dedup_round + 1}: no duplicates " f"found.",
+                    f"Dedup round {dedup_round + 1}: no duplicates "
+                    f"or vertex violations found.",
                     file=sys.stderr,
                 )
             break
 
-        # remove second entry of each duplicate pair
-        to_remove = {pair[1] for pair in duplicates}
         if verbose:
             action = "removing only" if is_last_round else "removing"
+            parts = []
+            if dup_ids:
+                parts.append(f"{len(dup_ids)} duplicates")
+            if over_limit_ids:
+                parts.append(
+                    f"{len(over_limit_ids)} entries exceeding "
+                    f"max_vertices={max_vertices}"
+                )
             print(
                 f"Dedup round {dedup_round + 1}: {action} "
-                f"{len(to_remove)} duplicates.",
+                f"{' and '.join(parts)}.",
                 file=sys.stderr,
             )
 
@@ -388,6 +421,13 @@ def balance_dataset(
                     f"{seed_entry['id']}" f"_aug_{aug_counter[name]}"
                 )
                 result.append(new_entry)
+
+    # Safety net: if dedup_max_rounds is 0 (loop skipped entirely),
+    # still enforce the vertex limit.
+    if max_vertices is not None and dedup_max_rounds == 0:
+        result = [
+            e for e in result if e["n_vertices"] <= max_vertices
+        ]
 
     return result
 

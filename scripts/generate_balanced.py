@@ -54,6 +54,14 @@ def main():
         help="Disable topology-changing operations for 2D.",
     )
     parser.add_argument(
+        "--max-vertices",
+        type=int,
+        default=None,
+        help="Maximum number of vertices per triangulation. "
+        "Entries exceeding this are discarded before and after "
+        "augmentation.",
+    )
+    parser.add_argument(
         "--no-dedup",
         action="store_true",
         help="Skip post-augmentation deduplication.",
@@ -82,6 +90,7 @@ def main():
         seed=args.seed,
         use_topology_changes=not args.no_topology_changes,
         dedup_max_rounds=0 if args.no_dedup else args.dedup_max_rounds,
+        max_vertices=args.max_vertices,
         verbose=True,
     )
 
