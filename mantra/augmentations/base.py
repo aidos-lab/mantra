@@ -47,8 +47,19 @@ class Triangulation:
         return v
 
     def to_list(self):
-        """Export triangulation as sorted list of sorted lists."""
-        return sorted(sorted(s) for s in self._simplices)
+        """Export triangulation as sorted list of sorted lists.
+
+        Vertex labels are remapped to a contiguous ``1..n_vertices``
+        range. Pachner moves that remove vertices (e.g. the 4-1 move
+        in 3D) can leave gaps in the label space, and the allocator
+        for new labels never reuses them. Compacting on export gives
+        callers the canonical invariant ``max(label) == n_vertices``.
+        """
+        used = sorted({v for s in self._simplices for v in s})
+        remap = {old: new for new, old in enumerate(used, start=1)}
+        return sorted(
+            sorted(remap[v] for v in s) for s in self._simplices
+        )
 
     def face_to_cofaces(self, face_dim):
         """Map faces of given dimension to their containing top-simplices.
