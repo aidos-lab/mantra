@@ -11,11 +11,12 @@ from torch_geometric.data import Data
 
 NAME_TO_CLASS_2M = {
     "Klein bottle": 0,
+    # "#^2 RP^2" is the Klein bottle; alias it to the same index
+    "#^2 RP^2": 0,
     "RP^2": 1,
     "T^2": 2,
     "S^2": 3,
     "": 4,
-    "#^2 RP^2": 5,
     "#^3 RP^2": 6,
     "#^4 RP^2": 7,
     "#^5 RP^2": 8,

@@ -11,6 +11,17 @@ from mantra.augmentations.triangulation_2d import Triangulation2D
 from mantra.augmentations.triangulation_3d import Triangulation3D
 from mantra.deduplication import find_duplicates
 
+# Name normalisation for 2-manifold classes. #^2 RP^2 and the Klein
+# bottle are the same manifold
+_LABEL_ALIASES = {
+    "#^2 RP^2": "Klein bottle",
+}
+
+
+def _normalize_name(name):
+    return _LABEL_ALIASES.get(name, name)
+
+
 # Mapping from 2D manifold names to the name after gluing a torus.
 # Based on the classification of closed surfaces:
 # - Orientable genus g -> genus g+1
@@ -25,7 +36,7 @@ _TORUS_GLUE_MAP = {
     "#^6 T^2": "#^7 T^2",
     # Non-orientable: torus + k crosscaps = k+2 crosscaps
     "RP^2": "#^3 RP^2",
-    "#^2 RP^2": "#^4 RP^2",
+    "Klein bottle": "#^4 RP^2",
     "#^3 RP^2": "#^5 RP^2",
     "#^4 RP^2": "#^6 RP^2",
     "#^5 RP^2": "#^7 RP^2",
@@ -38,8 +49,8 @@ _TORUS_GLUE_MAP = {
 _CROSSCAP_GLUE_MAP = {
     "S^2": "RP^2",
     "T^2": "#^3 RP^2",
-    "RP^2": "#^2 RP^2",
-    "#^2 RP^2": "#^3 RP^2",
+    "RP^2": "Klein bottle",
+    "Klein bottle": "#^3 RP^2",
     "#^2 T^2": "#^5 RP^2",
     "#^3 RP^2": "#^4 RP^2",
     "#^4 RP^2": "#^5 RP^2",
@@ -61,7 +72,7 @@ _BETTI_NUMBERS = {
     "#^6 T^2": [1, 12, 1],
     "#^7 T^2": [1, 14, 1],
     "RP^2": [1, 0, 0],
-    "#^2 RP^2": [1, 1, 0],
+    "Klein bottle": [1, 1, 0],
     "#^3 RP^2": [1, 2, 0],
     "#^4 RP^2": [1, 3, 0],
     "#^5 RP^2": [1, 4, 0],
@@ -124,7 +135,7 @@ def _augment_with_topology_change(entry, target_name, rng=None):
     dict or None
         New entry with changed topology, or None if not possible.
     """
-    source_name = entry["name"]
+    source_name = _normalize_name(entry["name"])
 
     # try torus gluing
     if _TORUS_GLUE_MAP.get(source_name) == target_name:
@@ -166,9 +177,10 @@ def _find_topology_sources(target_name, class_entries):
     for name, entries in class_entries.items():
         if not entries:
             continue
-        if _TORUS_GLUE_MAP.get(name) == target_name:
+        norm = _normalize_name(name)
+        if _TORUS_GLUE_MAP.get(norm) == target_name:
             sources.append(name)
-        if _CROSSCAP_GLUE_MAP.get(name) == target_name:
+        if _CROSSCAP_GLUE_MAP.get(norm) == target_name:
             sources.append(name)
     return sources
 
@@ -275,6 +287,9 @@ def balance_dataset(
         dataset = [
             e for e in dataset if e["n_vertices"] <= max_vertices
         ]
+
+    for entry in dataset:
+        entry["name"] = _normalize_name(entry["name"])
 
     # group by class
     class_entries = defaultdict(list)
