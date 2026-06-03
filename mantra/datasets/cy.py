@@ -1,22 +1,22 @@
-"""Datasets module
-
-This module contains datasets describing triangulations of manifolds,
-following the API of `pytorch-geometric`.
-"""
-
-import json
-import abc
 import os
+import shutil
+import pandas as pd
+import numpy as np
+import torch
+
+import pyarrow.parquet as pq
 
 from tqdm import tqdm
 
 from torch_geometric.data import (
-    Data,
-    InMemoryDataset,
+    Data
 )
 
-class ManifoldTriangulations(InMemoryDataset, abc.ABC):
-    """Base class for storing manifold triangulations."""
+
+from mantra.datasets.base import ManifoldTriangulations
+
+class CY(ManifoldTriangulations):
+    """Base class for MANTRA."""
 
     def __init__(
         self,
@@ -28,9 +28,10 @@ class ManifoldTriangulations(InMemoryDataset, abc.ABC):
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
+        debug=False
     ):
         """
-        Create a new dataset of manifold triangulations.
+        Create a new CY-Manifolds dataset.
 
         Parameters
         ----------
@@ -61,33 +62,64 @@ class ManifoldTriangulations(InMemoryDataset, abc.ABC):
 
             As a suggestion the name should not include any spaces, thus
             making it easier to parse for the OS.
+        debug : bool
+            Only load 1k triangulations for debug purpouses.
         """
-        self.name = name
-        self.version = version
+
         self.local_path = os.path.abspath(local_path) if local_path else None
+        self.debug = debug
 
-        root += self._add_version_to_root()
+        super().__init__(root, version, name,
+                        local_path, transform,
+                        pre_transform, pre_filter, force_reload)
 
-        super().__init__(
-            root=root,
-            transform=transform,
-            pre_transform=pre_transform,
-            pre_filter=pre_filter,
-            force_reload=force_reload,
-        )
 
-        self.load(self.processed_paths[0])
+    def _add_version_to_root(self):
+        if self.version == "latest":
+            return f"/cy/"
+        else:
+            return f"/cy/{self.version}/"
+    @property
+    def raw_file_names(self):
+        """Return raw file names.
 
-    @abc.abstractmethod
-    def _add_version_to_root():
-        pass
+        Stores the raw file names that need to be present in the raw folder
+        for downloading to be skipped. To reference raw file names, use the
+        property `self.raw_paths`.
+        """
+        return [f"manifolds.parquet"]
+
+    def download(self):
+        if self.local_path is None:
+            raise NotADirectoryError("Downoading not implemented yet")
+        dst = os.path.join(self.raw_dir, self.raw_file_names[0])
+        shutil.copy2(self.local_path, dst)
 
     def process(self):
         """Processes dataset."""
-        with open(self.raw_paths[0]) as f:
-            inputs = json.load(f)
+        
+        parquet_file = pq.ParquetFile(self.raw_paths[0])
 
-        data_list = [Data(**el) for el in inputs]
+        data_list = []
+
+        for pq_file in parquet_file.iter_batches(batch_size=1000):
+            parquet_df = pq_file.to_pandas()
+            for i, row in parquet_df.iterrows():
+                row_dict = row.to_dict()
+
+                # Renaming of the column to match processing
+                row_dict['triangulation'] = row_dict['simplices']
+
+                # Convert to tensors
+                row_dict['vertices'] = np.vstack(row_dict['vertices'])
+                row_dict['vertices'] = torch.as_tensor(row_dict['vertices'])
+
+                del row_dict['simplices']
+
+                data_list.append(Data(**row_dict, **{"dimension": len(row_dict['triangulation'][0])}))
+
+            if self.debug:
+                break
 
         if self.pre_filter is not None:
             data_list = [
@@ -103,12 +135,12 @@ class ManifoldTriangulations(InMemoryDataset, abc.ABC):
             ]
 
         self.save(data_list, self.processed_paths[0])
+
     @property
-    def processed_dir(self):
-        """Return directory for storing processed data."""
-        if self.name is not None:
-            return os.path.join(self.root, "processed", self.name)
-        else:
-            return super().processed_dir
+    def processed_file_names(self):
+        """Return process file names.
 
-
+        Stores the processed data in a file. If this file is present in the
+        `processed` folder, processing will typically be skipped.
+        """
+        return [f"data.pt"]
