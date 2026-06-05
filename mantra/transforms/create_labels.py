@@ -1,6 +1,7 @@
 import torch
 from torch_geometric.transforms import BaseTransform
 
+import copy
 
 class CreateLabels(BaseTransform):
     """Create labels based on attributes.
@@ -24,6 +25,28 @@ class CreateLabels(BaseTransform):
 
         self.source = source
         self.label_to_index = {}
+        self.index_remap = {}
+
+    def _assing_precompute(self, data):
+        assert (
+            self.source in data
+        ), f"Source attribute '{self.source}' is not present in data"
+
+        label = data[self.source]
+
+        if isinstance(label, bool):
+            data.y = int(label)
+        else:
+            if isinstance(label, torch.Tensor):
+                label = label.item()
+            if label not in self.label_to_index:
+                self.label_to_index[label] = self.index_remap[label] = len(self.label_to_index)
+
+        data.y = torch.tensor([self.label_to_index[label]])
+        data.label = label
+
+        return data
+
 
     def forward(self, data):
         """Assign label for a given `data` object.
@@ -48,18 +71,17 @@ class CreateLabels(BaseTransform):
             Data object with a label attached to it, stored in the `y`
             attribute of the tensor.
         """
-        assert (
-            self.source in data
-        ), f"Source attribute '{self.source}' is not present in data"
+        # In this case, we are performing a remapping in either
+        # 1) Dataset was already preprocessed but we filtered,
+        # or, 2) we are loading the dataset
+        if 'label' in data:
+            remap = copy.copy(data.y.item())
 
-        label = data[self.source]
+            if remap not in self.index_remap:
+                self.index_remap[remap] = len(self.index_remap)
 
-        if isinstance(label, bool):
-            data.y = int(label)
+            data.y = torch.tensor([self.index_remap[remap]])
         else:
-            if label not in self.label_to_index:
-                self.label_to_index[label] = len(self.label_to_index)
-
-        data.y = torch.tensor([self.label_to_index[label]])
+            data = self._assing_precompute(data)
 
         return data

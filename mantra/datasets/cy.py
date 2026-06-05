@@ -76,9 +76,9 @@ class CY(ManifoldTriangulations):
 
     def _add_version_to_root(self):
         if self.version == "latest":
-            return f"/cy/"
+            return f"/cy/" if not self.debug else f"/cy/debug/"
         else:
-            return f"/cy/{self.version}/"
+            return f"/cy/{self.version}/" if not self.debug else f"/cy/{self.version}/debug/"
     @property
     def raw_file_names(self):
         """Return raw file names.
@@ -112,7 +112,7 @@ class CY(ManifoldTriangulations):
 
                 # Convert to tensors
                 row_dict['vertices'] = np.vstack(row_dict['vertices'])
-                row_dict['vertices'] = torch.as_tensor(row_dict['vertices'])
+                row_dict['vertices'] = torch.as_tensor(row_dict['vertices'], dtype=torch.float32)
 
                 del row_dict['simplices']
 

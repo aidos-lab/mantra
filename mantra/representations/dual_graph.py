@@ -49,7 +49,6 @@ class DualGraph(BaseTransform):
             data[k] = v
 
         data["n_vertices"] = G.number_of_nodes()
-        print(data)
         return data
 
     def _build_dual_graph(self, data, top_simplices):
