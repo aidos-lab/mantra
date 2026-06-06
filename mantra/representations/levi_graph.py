@@ -2,8 +2,6 @@ import networkx as nx
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
-from mantra.representations.internal import SimplexTrie
-
 
 class LeviGraph(BaseTransform):
     def forward(self, data):
