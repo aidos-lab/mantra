@@ -56,7 +56,9 @@ class AbstractSimplicialComplexConnectivity(BaseTransform, ABC):
             List[Simplex]
 
         """
-        return sorted(node.simplex for node in simplex_trie.skeleton(rank))
+        return list(
+            sorted(node.simplex for node in simplex_trie.skeleton(rank))
+        )
 
     @abstractmethod
     def generate_matrix(

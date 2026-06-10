@@ -4,7 +4,9 @@ data/
 bu/
 *.json
 
-test_*
+# Only ignore scratch test_* files at the repo root, not the tracked
+# test suite under test/.
+/test_*
 **/__pycache__
 **/*.egg-info
 

@@ -77,6 +77,92 @@ dataset = ManifoldTriangulations(
 )
 ```
 
+## Dataset variants and model bundles
+
+### Subdivided variants
+
+In addition to the original triangulations, MANTRA can be loaded at increasing
+levels of **barycentric subdivision**. Each subdivision refines every
+top-dimensional simplex, raising the vertex/simplex counts while preserving the
+homeomorphism type (and hence the label). This yields a controlled "resolution"
+axis that is useful for studying how higher-order models scale with complex
+size.
+
+`ManifoldTriangulations` understands a `subdivision_level` argument and the
+release-artifact naming `{dim}_manifolds{_balanced}_bary{L}.json[.gz]`:
+
+```python
+from mantra.datasets import ManifoldTriangulations
+
+ds = ManifoldTriangulations(
+    root="./data", dimension=2, balanced=True,
+    subdivision_level=2,        # loads 2_manifolds_balanced_bary2.json(.gz)
+)
+```
+
+Subdivided files are produced with the bundled generator. Integer levels of
+`full_barycentric`/`stellar` are written under the exact canonical name above,
+so they are release-ready (upload as `.json.gz` next to the base release and
+the loader will auto-download them):
+
+```console
+python -m mantra.generate_subdivided_datasets \
+    --input 2_manifolds.json --output-dir ./subdivided \
+    --dimension 2 --n-levels 2 --mode full_barycentric \
+    --min-class-count 0 --n-smallest 0
+# -> ./subdivided/2_manifolds_bary1.json, 2_manifolds_bary2.json
+```
+
+| Flag | Meaning |
+| --- | --- |
+| `--input` / `--output-dir` | Source raw JSON / output directory. |
+| `--dimension` / `--balanced` | Build the canonical output filename. |
+| `--mode` | `full_barycentric`, `stellar`, or `graded`. |
+| `--n-levels` | Integer #levels; a fraction in `(0,1)` for partial `stellar`; the target vertex count for `graded`. |
+| `--min-vertices` | Drop subdivided entries below this vertex count. |
+| `--min-class-count` | Pre-filter: drop classes with `<=` this many entries (`0` disables). |
+| `--n-smallest` | Keep only the N smallest valid samples per class (`0` disables). |
+| `--prefix` | Descriptive name for fractional/`graded` outputs (consumed via `local_path`). |
+
+Fractional (partial `stellar`) and `graded` outputs cannot be expressed by an
+integer `subdivision_level`; they use a descriptive `{prefix}` name and are
+loaded via the `local_path` argument instead.
+
+### Model bundles
+
+`make_dataset` produces a dataset whose `pre_transform` is **ready to train** a
+given model. Graph models pick a single `representation`; the higher-order
+simplicial-complex models use a `bundle`, which stacks the exact ordered
+connectivity transforms each one expects and lands per-rank features on
+`x_0..x_d`:
+
+```python
+from mantra.datasets import make_dataset
+
+# Higher-order (simplicial complex) — features on x_0..x_d:
+ds = make_dataset(root="./data", dimension=2, bundle="cwn", featurization="random")
+
+# Graph models — features on x:
+ds = make_dataset(root="./data", dimension=2, representation="one_skeleton",
+                  featurization="degree")
+```
+
+Pass **exactly one** of `representation` or `bundle`.
+
+| Bundle | Connectivity stack (all `signed`, `propagate=True`) | `select` |
+| --- | --- | --- |
+| `cwn` | `incidence`, `adjacency` | `sc` |
+| `sccnn` | `incidence`, `up_laplacian`, `down_laplacian`, `hodge_laplacian` | `sc` |
+| `san` | `incidence`, `up_laplacian`, `down_laplacian` | `sc` |
+
+Graph models such as **gcn** are not bundles — use
+`representation=` (`one_skeleton`, `dual`, `hasse`, `triangulation`).
+
+**Featurization compatibility.** Graph `representation` paths accept
+`random`, `node_degree`, `mc`, and `rw`. Model `bundle`s accept only `random`
+and `mc` (the two embeddings that propagate to every rank); `node_degree`/`rw`
+read `edge_index` and are graph-only.
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)

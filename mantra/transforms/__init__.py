@@ -10,14 +10,38 @@ from .effective_resistance import (
 from .moment_curve_embedding import MomentCurveEmbedding
 from .select_attributes import SelectAttributes
 from .select_features import SelectFeatures
+from .structural_transforms import (
+    SetNumNodesTransform,
+    TriangulationToFaceTransform,
+)
+from .task_transforms import (
+    NAME_TO_CLASS_2M,
+    NAME_TO_CLASS_3M,
+    BettiToClassTransform,
+    NameToClass2MTransform,
+    NameToClass3MTransform,
+    OrientableToClassTransform,
+    canonical_dict_for,
+    make_label_transform,
+)
 
 __all__ = [
     "CreateLabels",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",
-    "NodeRandomTransform",
-    "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
+    "NodeRandomTransform",
+    "NodeDegreeTransform",
+    "SetNumNodesTransform",
+    "TriangulationToFaceTransform",
+    "NAME_TO_CLASS_2M",
+    "NAME_TO_CLASS_3M",
+    "BettiToClassTransform",
+    "NameToClass2MTransform",
+    "NameToClass3MTransform",
+    "OrientableToClassTransform",
+    "canonical_dict_for",
+    "make_label_transform",
 ]
