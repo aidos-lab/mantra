@@ -30,7 +30,9 @@ class NodeRandomTransform(T.BaseTransform):
             # All incidence matrices required
             incidence_list = [k for k in data.keys() if "incidence" in k]
 
-            assert len(incidence_list) > 0, "No incidence matrices found in data"
+            assert (
+                len(incidence_list) > 0
+            ), "No incidence matrices found in data"
 
             # Sort by rank `r`
             incidence_list = sorted(
@@ -41,7 +43,7 @@ class NodeRandomTransform(T.BaseTransform):
 
             for inc_m in incidence_list:
                 incidence_matrix = getattr(data, inc_m)
-                r_to = int(inc_m.split('_')[1])
+                r_to = int(inc_m.split("_")[1])
                 r_from = r_to - 1
                 # Case for incidence_0
                 if r_from < 0:
@@ -56,6 +58,7 @@ class NodeRandomTransform(T.BaseTransform):
                 )
             data.random_features = random_features
         return data
+
 
 class NodeDegreeTransform(T.BaseTransform):
     """
