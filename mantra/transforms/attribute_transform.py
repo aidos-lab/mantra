@@ -5,8 +5,6 @@ transformations in `our paper <https://openreview.net/pdf?id=X6y5CC44HM>`__
 to enable the training on different neural-network architectures.
 """
 
-from collections import defaultdict
-
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.utils import degree
@@ -35,9 +33,11 @@ class NodeRandomTransform(T.BaseTransform):
             assert len(incidence_list) > 0, "No incidence matrices found in data"
 
             # Sort by rank `r`
-            sorted(incidence_list, key = lambda x: int(x.split('_')[1]))
+            incidence_list = sorted(
+                incidence_list, key=lambda x: int(x.split("_")[1])
+            )
 
-            random_features = defaultdict(torch.tensor)
+            random_features = {}
 
             for inc_m in incidence_list:
                 incidence_matrix = getattr(data, inc_m)
