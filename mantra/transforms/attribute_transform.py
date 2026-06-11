@@ -26,7 +26,7 @@ class NodeRandomTransform(T.BaseTransform):
             data.random_features = torch.rand(
                 size=(int(data.edge_index.max().item() + 1), self.dimension)
             )
-        else: # Propagate random features to all simplices
+        else:  # Propagate random features to all simplices
             # All incidence matrices required
             incidence_list = [k for k in data.keys() if "incidence" in k]
 
