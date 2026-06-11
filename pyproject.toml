@@ -14,6 +14,12 @@ dependencies = [
   "numpy",
   "torch",
   "torch_geometric",
+  "scipy",
+  "networkx",
+  "requests",
+  "tqdm",
+  "trimesh",
+  "typing_extensions",
 ]
 requires-python = ">=3.10"
 authors = [
@@ -54,6 +60,8 @@ dev = [
     "torchvision>=0.25.0",
     "pandas>=2.3.3",
     "seaborn>=0.13.2",
+    "pytest>=8.0",
+    "coverage>=7.0",
 ]
 
 
@@ -144,6 +152,14 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.coverage.run]
+branch = true
+source = ["mantra"]
+omit = ["test/*"]
+
+[tool.coverage.report]
+show_missing = true
 
 [tool.black]
 line-length = 79

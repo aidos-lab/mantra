@@ -1,7 +1,11 @@
-.PHONY: tests notebooks
+.PHONY: tests coverage notebooks
 
 tests:
 	uv run pytest
+
+coverage:
+	uv run coverage run -m pytest
+	uv run coverage report
 
 release: 
 	uv build --wheel
