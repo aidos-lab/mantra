@@ -5,11 +5,11 @@ transformations in `our paper <https://openreview.net/pdf?id=X6y5CC44HM>`__
 to enable the training on different neural-network architectures.
 """
 
+from collections import defaultdict
+
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.utils import degree
-
-from collections import defaultdict
 
 
 class NodeRandomTransform(T.BaseTransform):
@@ -40,7 +40,7 @@ class NodeRandomTransform(T.BaseTransform):
             random_features = defaultdict(torch.tensor)
 
             for inc_m in incidence_list:
-                I = getattr(data, inc_m)
+                incidence_matrix = getattr(data, inc_m)
                 r_to = int(inc_m.split('_')[1])
                 r_from = r_to - 1
                 # Case for incidence_0
@@ -48,11 +48,11 @@ class NodeRandomTransform(T.BaseTransform):
                     continue
 
                 random_features[r_from] = torch.rand(
-                    size=(I.shape[0], self.dimension)
+                    size=(incidence_matrix.shape[0], self.dimension)
                 )
 
                 random_features[r_to] = torch.rand(
-                    size=(I.shape[1], self.dimension)
+                    size=(incidence_matrix.shape[1], self.dimension)
                 )
             data.random_features = random_features
         return data
