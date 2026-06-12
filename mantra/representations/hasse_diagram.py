@@ -7,7 +7,7 @@ from torch_geometric.utils import from_networkx
 
 
 class HasseDiagram(BaseTransform):
-    def __init__(self, feature_propagation: Optional[str]):
+    def __init__(self, feature_propagation: Optional[str] = None):
         self.feature_propagation = feature_propagation
 
     def forward(self, data):
@@ -32,8 +32,8 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-        group_node_attrs: List[str] = (
-            self.feature_propagation
+        group_node_attrs: Optional[List[str]] = (
+            None
             if self.feature_propagation is None
             else [self.feature_propagation]
         )
