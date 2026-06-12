@@ -1,9 +1,4 @@
 """Tests for ``mantra.transforms.task_transforms``.
-
-Focus of this PR: the ``#^2 RP^2`` triangulation is the Klein bottle and
-must map to the same class index (0) as ``"Klein bottle"`` in
-``NAME_TO_CLASS_2M``. The remaining transforms are covered here too so the
-module reaches full coverage.
 """
 
 import pytest
