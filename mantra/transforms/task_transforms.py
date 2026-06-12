@@ -10,6 +10,7 @@ import torch_geometric.transforms as T
 from torch_geometric.data import Data
 
 from mantra.manifold_types import Manifold2Type
+
 NAME_TO_CLASS_2M = {
     manifold.value: index for index, manifold in enumerate(Manifold2Type)
 }
