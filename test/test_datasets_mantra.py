@@ -1,0 +1,106 @@
+"""Tests for ``mantra.datasets.mantra`` (and the abstract base)."""
+
+import json
+import os
+
+import pytest
+
+import mantra.datasets.mantra as mantra_mod
+from mantra.datasets import MANTRA
+from mantra.datasets.base import ManifoldTriangulations
+
+
+def test_local_path_loads_dataset(
+    make_manifolds_json, balanced_entries, tmp_path
+):
+    path = make_manifolds_json(balanced_entries)
+    ds = MANTRA(str(tmp_path / "root"), dimension=2, local_path=path)
+    assert len(ds) == len(balanced_entries)
+    assert ds[0].name == "S^2"
+    assert ds.raw_file_names == ["2_manifolds.json"]
+    assert ds.processed_file_names == ["data_2.pt"]
+
+
+def test_balanced_suffix(make_manifolds_json, balanced_entries, tmp_path):
+    path = make_manifolds_json(balanced_entries)
+    ds = MANTRA(
+        str(tmp_path / "root"), dimension=2, balanced=True, local_path=path
+    )
+    assert ds.raw_file_names == ["2_manifolds_balanced.json"]
+    assert ds.processed_file_names == ["data_2_balanced.pt"]
+
+
+def test_invalid_dimension_raises(tmp_path):
+    with pytest.raises(AssertionError):
+        MANTRA(str(tmp_path / "root"), dimension=5)
+
+
+def test_name_changes_processed_dir(
+    make_manifolds_json, balanced_entries, tmp_path
+):
+    path = make_manifolds_json(balanced_entries)
+    ds = MANTRA(
+        str(tmp_path / "root"), dimension=2, name="custom", local_path=path
+    )
+    assert os.path.join("processed", "custom") in ds.processed_dir
+
+
+def test_pre_filter_and_pre_transform_applied(
+    make_manifolds_json, balanced_entries, tmp_path
+):
+    path = make_manifolds_json(balanced_entries)
+
+    def pre_filter(d):
+        return d.orientable
+
+    def pre_transform(d):
+        d.tagged = True
+        return d
+
+    ds = MANTRA(
+        str(tmp_path / "root"),
+        dimension=2,
+        local_path=path,
+        pre_filter=pre_filter,
+        pre_transform=pre_transform,
+    )
+    assert len(ds) == 5
+    assert all(d.tagged for d in ds)
+
+
+def test_url_download_branch(
+    make_manifolds_json, balanced_entries, tmp_path, monkeypatch
+):
+    content = json.dumps(balanced_entries)
+
+    def fake_download_url(url, raw_dir):
+        gz = os.path.join(raw_dir, "2_manifolds.json.gz")
+        with open(gz, "w") as f:
+            f.write("dummy gz payload")
+        fake_download_url.url = url
+        return gz
+
+    def fake_extract_gz(path, raw_dir):
+        with open(os.path.join(raw_dir, "2_manifolds.json"), "w") as f:
+            f.write(content)
+
+    monkeypatch.setattr(mantra_mod, "download_url", fake_download_url)
+    monkeypatch.setattr(mantra_mod, "extract_gz", fake_extract_gz)
+
+    ds = MANTRA(str(tmp_path / "root"), dimension=2, version="latest")
+    assert len(ds) == len(balanced_entries)
+    assert fake_download_url.url.endswith("2_manifolds.json.gz")
+
+
+def test_base_class_is_abstract():
+    with pytest.raises(TypeError):
+        ManifoldTriangulations("x")
+
+
+def test_add_version_to_root_branches():
+    obj = MANTRA.__new__(MANTRA)
+    obj.dimension = 2
+    obj.version = "v1.0.0"
+    assert obj._add_version_to_root() == "/mantra/v1.0.0/2D"
+    obj.version = "latest"
+    assert obj._add_version_to_root() == "/mantra/2D"
