@@ -21,7 +21,7 @@ class Triangulation3D(Triangulation):
         """Perform a 1-4 Pachner move (stellar subdivision).
 
         Replace one tetrahedron with four by inserting a new vertex.
-        Always valid.
+        Thin alias for :meth:`Triangulation.stellar_subdivide`.
 
         Parameters
         ----------
@@ -33,16 +33,7 @@ class Triangulation3D(Triangulation):
         bool
             Always True.
         """
-        if tet is None:
-            tet = self._rng.choice(list(self._simplices))
-
-        self._simplices.discard(tet)
-        v = self._new_vertex()
-
-        for face in combinations(tet, 3):
-            self._simplices.add(frozenset(face) | {v})
-
-        return True
+        return self.stellar_subdivide(tet)
 
     def move_2_3(self, face=None):
         """Perform a 2-3 Pachner move.

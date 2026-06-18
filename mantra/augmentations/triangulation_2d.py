@@ -1,7 +1,5 @@
 """2D triangulation with Pachner moves and topology-changing operations."""
 
-from itertools import combinations
-
 from mantra.augmentations.base import Triangulation
 
 # Minimal triangulation of the torus (7 vertices, 14 triangles).
@@ -103,6 +101,8 @@ class Triangulation2D(Triangulation):
     def subdivide(self, triangle=None):
         """Perform a 1-3 Pachner move (stellar subdivision).
 
+        Thin alias for :meth:`Triangulation.stellar_subdivide`.
+
         Parameters
         ----------
         triangle : frozenset of int or None
@@ -114,16 +114,7 @@ class Triangulation2D(Triangulation):
         bool
             Always True.
         """
-        if triangle is None:
-            triangle = self._rng.choice(list(self._simplices))
-
-        self._simplices.discard(triangle)
-        v = self._new_vertex()
-
-        for edge in combinations(triangle, 2):
-            self._simplices.add(frozenset(edge) | {v})
-
-        return True
+        return self.stellar_subdivide(triangle)
 
     def glue_torus(self, triangle=None):
         """Connected sum with a torus (increases genus by 1).
