@@ -4,54 +4,26 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
+import abc
 import json
 import os
 
-import requests
 from torch_geometric.data import (
     Data,
     InMemoryDataset,
-    download_url,
-    extract_gz,
 )
+from tqdm import tqdm
 
 
-def _get_dataset_url(version: str, dimension: int) -> str:
-    """Get URL to download dataset from."""
-    if version == "latest":
-        return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{dimension}_manifolds.json.gz"  # noqa
-
-    headers = {
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
-
-    response = requests.get(
-        "https://api.github.com/repos/aidos-lab/mantra/releases",
-        headers=headers,
-    )
-
-    all_available_versions = [item["name"] for item in response.json()]
-
-    if version not in all_available_versions:
-        raise ValueError(
-            f"Version {version} not available, please choose one of the following versions: {all_available_versions}."  # noqa
-        )
-
-    # Note that the URL order is different and thus inconsistent for a
-    # specific release.
-    return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{dimension}_manifolds.json.gz"  # noqa
-
-
-class ManifoldTriangulations(InMemoryDataset):
+class ManifoldTriangulations(InMemoryDataset, abc.ABC):
     """Base class for storing manifold triangulations."""
 
     def __init__(
         self,
         root,
-        dimension=2,
         version="latest",
         name=None,
+        local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
@@ -62,11 +34,6 @@ class ManifoldTriangulations(InMemoryDataset):
 
         Parameters
         ----------
-        dimension : int
-            Dimension of manifold triangulations to load. Currently, only
-            2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
-            and 3-manifolds, respectively.
-
         version : str
             Version of the dataset to use. The version should correspond to a
             released version of the dataset, all of which can be found
@@ -89,18 +56,17 @@ class ManifoldTriangulations(InMemoryDataset):
 
             As a suggestion the name should not include any spaces, thus
             making it easier to parse for the OS.
-        """
-        assert dimension in [2, 3]
 
-        self.dimension = dimension
+        local_path : str or None
+            If set, use a local JSON file instead of downloading from
+            GitHub. The file will be copied into the raw directory.
+            Useful for testing locally generated datasets.
+        """
         self.name = name
         self.version = version
-        self.url = _get_dataset_url(version, dimension)
+        self.local_path = os.path.abspath(local_path) if local_path else None
 
-        if version == "latest":
-            root += f"/mantra/{self.dimension}D"
-        else:
-            root += f"/mantra/{version}/{self.dimension}D"
+        root += self._add_version_to_root()
 
         super().__init__(
             root=root,
@@ -112,15 +78,9 @@ class ManifoldTriangulations(InMemoryDataset):
 
         self.load(self.processed_paths[0])
 
-    @property
-    def raw_file_names(self):
-        """Return raw file names.
-
-        Stores the raw file names that need to be present in the raw folder
-        for downloading to be skipped. To reference raw file names, use the
-        property `self.raw_paths`.
-        """
-        return [f"{self.dimension}_manifolds.json"]
+    @abc.abstractmethod
+    def _add_version_to_root(self):
+        """Return the dataset-specific suffix appended to the root path."""
 
     @property
     def processed_dir(self):
@@ -130,21 +90,6 @@ class ManifoldTriangulations(InMemoryDataset):
         else:
             return super().processed_dir
 
-    @property
-    def processed_file_names(self):
-        """Return process file names.
-
-        Stores the processed data in a file. If this file is present in the
-        `processed` folder, processing will typically be skipped.
-        """
-        return [f"data_{self.dimension}.pt"]
-
-    def download(self):
-        """Download dataset depending on specified version."""
-        path = download_url(self.url, self.raw_dir)
-        extract_gz(path, self.raw_dir)
-        os.unlink(path)
-
     def process(self):
         """Processes dataset."""
         with open(self.raw_paths[0]) as f:
@@ -153,9 +98,16 @@ class ManifoldTriangulations(InMemoryDataset):
         data_list = [Data(**el) for el in inputs]
 
         if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
+            data_list = [
+                data
+                for data in tqdm(data_list, desc="Filtering")
+                if self.pre_filter(data)
+            ]
 
         if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
+            data_list = [
+                self.pre_transform(data)
+                for data in tqdm(data_list, desc="Pre-transforming")
+            ]
 
         self.save(data_list, self.processed_paths[0])
