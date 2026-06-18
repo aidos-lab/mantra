@@ -1,5 +1,4 @@
-"""Tests for ``mantra.transforms.task_transforms``.
-"""
+"""Tests for ``mantra.transforms.task_transforms``."""
 
 import pytest
 import torch
