@@ -5,6 +5,7 @@ bu/
 *.json
 
 test_*
+!test/test_*.py
 **/__pycache__
 **/*.egg-info
 

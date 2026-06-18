@@ -9,16 +9,10 @@ import torch
 import torch_geometric.transforms as T
 from torch_geometric.data import Data
 
+from mantra.manifold_types import Manifold2Type
+
 NAME_TO_CLASS_2M = {
-    "Klein bottle": 0,
-    "RP^2": 1,
-    "T^2": 2,
-    "S^2": 3,
-    "": 4,
-    "#^2 RP^2": 5,
-    "#^3 RP^2": 6,
-    "#^4 RP^2": 7,
-    "#^5 RP^2": 8,
+    manifold.value: index for index, manifold in enumerate(Manifold2Type)
 }
 
 
@@ -44,6 +38,11 @@ class NameToClass2MTransform:
 
     def forward(self, data: Data):
         assert "name" in data
+        if data.name not in self.class_dict:
+            raise KeyError(
+                f"Unknown 2-manifold name {data.name!r}; expected one of "
+                f"{sorted(self.class_dict)}."
+            )
         data.y = torch.tensor(self.class_dict[data.name])
         return data
 
@@ -72,9 +71,6 @@ class BinaryHomeomorphicTransform(T.BaseTransform):
     Encode as a binary label if two triangulations are homeomorphic
     to the same manifold.
     """
-
-    def __int__(self):
-        pass
 
     def forward(self, data: Data):
         assert "triangulation" in data, "No triangulation in this object"
