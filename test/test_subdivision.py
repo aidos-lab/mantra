@@ -237,12 +237,12 @@ class TestBarycentricStellarGraded:
 
     def test_graded_3d(self):
         tri = [[1, 2, 3, 4]]
-        new_tri, n_v = barycentric_stellar_graded(tri, 6)
+        new_tri, n_v = barycentric_stellar_graded(tri, 6, rng=random.Random(0))
         assert n_v == 6
         assert len(new_tri) == 7
 
         # 1,2,3 are the original corners, 5 is is the first barycenter, 6 is the second one within the [1,2,3,5] tetrahedron
-        assert new_tri == [[1, 2, 3, 6], [1, 2, 4, 5], [1, 2, 5, 6], [1, 3, 4, 5], [1, 3, 5, 6], [2, 3, 4, 5], [2, 3, 5, 6]]
+        assert new_tri == [[1, 2, 3, 5], [1, 2, 4, 5], [1, 3, 4, 5], [2, 3, 4, 6], [2, 3, 5, 6], [2, 4, 5, 6], [3, 4, 5, 6]]
 
     def test_graded_3d_2(self):
         tri = [[1, 2, 3, 4], [1, 2, 3, 5]]
