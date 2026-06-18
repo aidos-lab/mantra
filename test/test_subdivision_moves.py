@@ -150,4 +150,9 @@ class TestPachnerAliasesUnchanged:
         assert t.n_vertices == 5
         assert len(t.to_list()) == 4
         # 5 is the new center vertex
-        assert t.to_list() == [[1,2,3,5], [1,2,4,5], [1,3,4,5], [2,3,4,5]]
+        assert t.to_list() == [
+            [1, 2, 3, 5],
+            [1, 2, 4, 5],
+            [1, 3, 4, 5],
+            [2, 3, 4, 5],
+        ]

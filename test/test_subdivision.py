@@ -24,7 +24,14 @@ class TestBarycentricSubdivisionRaw:
         # 3! = 6 new triangles
         assert len(new_tri) == 6
         # 1,2,3 corners; 4,5,6 edge midpoints; 7 face barycenter
-        assert new_tri == [[1, 4, 7], [1, 5, 7], [2, 4, 7], [2, 6, 7], [3, 5, 7], [3, 6, 7]]
+        assert new_tri == [
+            [1, 4, 7],
+            [1, 5, 7],
+            [2, 4, 7],
+            [2, 6, 7],
+            [3, 5, 7],
+            [3, 6, 7],
+        ]
 
     def test_single_tetrahedron(self):
         """A single tetrahedron [1,2,3,4] -> 24 tetrahedra, 15 vertices."""
@@ -48,8 +55,21 @@ class TestBarycentricSubdivisionRaw:
         # 2 triangles * 6 = 12 new triangles
         assert len(new_tri) == 12
 
-        #1,2,3,8 are the original vertices, 6 is barycenter of the original shared edge and 1,11 are the barycenters of the original triangles
-        assert new_tri == [[1, 4, 7], [1, 5, 7], [2, 4, 7], [2, 6, 7], [2, 6, 11], [2, 9, 11], [3, 5, 7], [3, 6, 7], [3, 6, 11], [3, 10, 11], [8, 9, 11], [8, 10, 11]]
+        # 1,2,3,8 are the original vertices, 6 is barycenter of the original shared edge and 1,11 are the barycenters of the original triangles
+        assert new_tri == [
+            [1, 4, 7],
+            [1, 5, 7],
+            [2, 4, 7],
+            [2, 6, 7],
+            [2, 6, 11],
+            [2, 9, 11],
+            [3, 5, 7],
+            [3, 6, 7],
+            [3, 6, 11],
+            [3, 10, 11],
+            [8, 9, 11],
+            [8, 10, 11],
+        ]
 
     def test_vertices_are_one_indexed(self):
         """All vertex indices should be >= 1."""
@@ -226,14 +246,29 @@ class TestBarycentricStellarGraded:
 
         # 1,2,3 are the original vertices, 4 is the barycenter of the original
         # triangle, and 5 is the barycenter of the new triangle on 1,3,4.
-        assert new_tri == [[1, 2, 4], [1, 3, 5], [1, 4, 5], [2, 3, 4], [3, 4, 5]]
+        assert new_tri == [
+            [1, 2, 4],
+            [1, 3, 5],
+            [1, 4, 5],
+            [2, 3, 4],
+            [3, 4, 5],
+        ]
 
     def test_graded_2(self):
         tri = [[1, 2, 3], [1, 2, 4]]
         new_tri, n_v = barycentric_stellar_graded(tri, 7, rng=random.Random(0))
         assert n_v == 7
         assert len(new_tri) == 8
-        assert new_tri == [[1, 2, 6], [1, 2, 7], [1, 3, 6], [1, 4, 5], [1, 5, 7], [2, 3, 6], [2, 4, 5], [2, 5, 7]]
+        assert new_tri == [
+            [1, 2, 6],
+            [1, 2, 7],
+            [1, 3, 6],
+            [1, 4, 5],
+            [1, 5, 7],
+            [2, 3, 6],
+            [2, 4, 5],
+            [2, 5, 7],
+        ]
 
     def test_graded_3d(self):
         tri = [[1, 2, 3, 4]]
@@ -242,7 +277,15 @@ class TestBarycentricStellarGraded:
         assert len(new_tri) == 7
 
         # 1,2,3 are the original corners, 5 is is the first barycenter, 6 is the second one within the [1,2,3,5] tetrahedron
-        assert new_tri == [[1, 2, 3, 5], [1, 2, 4, 5], [1, 3, 4, 5], [2, 3, 4, 6], [2, 3, 5, 6], [2, 4, 5, 6], [3, 4, 5, 6]]
+        assert new_tri == [
+            [1, 2, 3, 5],
+            [1, 2, 4, 5],
+            [1, 3, 4, 5],
+            [2, 3, 4, 6],
+            [2, 3, 5, 6],
+            [2, 4, 5, 6],
+            [3, 4, 5, 6],
+        ]
 
     def test_graded_3d_2(self):
         tri = [[1, 2, 3, 4], [1, 2, 3, 5]]
