@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -7,7 +7,7 @@ from torch_geometric.utils import from_networkx
 
 
 class HasseDiagram(BaseTransform):
-    def __init__(self, feature_propagation: Union[str, None]):
+    def __init__(self, feature_propagation: Optional[str]):
         self.feature_propagation = feature_propagation
 
     def forward(self, data):

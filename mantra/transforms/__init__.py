@@ -1,6 +1,7 @@
 from .attribute_transform import (
     NodeDegreeTransform,
     NodeRandomTransform,
+    SimplexRandomTransform,
 )
 from .create_labels import CreateLabels
 from .effective_resistance import (
@@ -17,6 +18,7 @@ __all__ = [
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",
+    "SimplexRandomTransform",
     "NodeRandomTransform",
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
