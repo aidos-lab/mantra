@@ -6,6 +6,7 @@ to enable the training on different neural-network architectures.
 """
 
 from itertools import combinations
+
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.utils import degree
@@ -33,16 +34,17 @@ class SimplexRandomTransform(T.BaseTransform):
         # For each top-simplex we count the simplices that need to exists
         # due to the closure property, we just count for each
         for top_simp in top_simps:
-            assert self.k <= len(top_simp), f"There's simplex_dim={self.k} exceeds the size of a triangulation"
+            assert self.k <= len(
+                top_simp
+            ), f"There's simplex_dim={self.k} exceeds the size of a triangulation"
             # Here we do self.k + 1 since we selected simplex dimension k, which
             # mean simplices composed of k+1  elements
-            k_dim_simps.update(
-                s for s in combinations(top_simp, r=self.k+1)
-            )
+            k_dim_simps.update(s for s in combinations(top_simp, r=self.k + 1))
 
         # Create tensor on float32
         feat_tensor = torch.rand(
-            size=(len(list(k_dim_simps)), self.feature_dim), dtype=torch.float32
+            size=(len(list(k_dim_simps)), self.feature_dim),
+            dtype=torch.float32,
         )
 
         # Set tensor

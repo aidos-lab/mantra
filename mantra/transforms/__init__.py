@@ -1,7 +1,7 @@
 from .attribute_transform import (
-    SimplexRandomTransform,
     NodeDegreeTransform,
     NodeRandomTransform,
+    SimplexRandomTransform,
 )
 from .create_labels import CreateLabels
 from .effective_resistance import (
