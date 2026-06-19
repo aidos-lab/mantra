@@ -11,7 +11,9 @@ from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 
 from mantra.representations.hasse_diagram import HasseDiagram
-from mantra.transforms.attribute_transform import NodeRandomTransform, SimplexRandomTransform
+from mantra.transforms.attribute_transform import (
+    SimplexRandomTransform,
+)
 
 # Boundary of a tetrahedron: 4 vertices, 6 edges, 4 faces -> 14 nodes.
 TETRAHEDRON_TRI = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -36,10 +38,12 @@ def test_forward_propagates_per_rank_features_onto_nodes():
     # mapped onto every node of the Hasse diagram via ``feature_propagation``.
     feature_dim = 5
     data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
-    random_all_simp_trf = Compose([
-        SimplexRandomTransform(simplex_dim=i, feature_dim=feature_dim)
-        for i in range(len(TETRAHEDRON_TRI[0]))
-    ])
+    random_all_simp_trf = Compose(
+        [
+            SimplexRandomTransform(simplex_dim=i, feature_dim=feature_dim)
+            for i in range(len(TETRAHEDRON_TRI[0]))
+        ]
+    )
     data = random_all_simp_trf(data)
     out = HasseDiagram(feature_propagation="random_features")(data)
 

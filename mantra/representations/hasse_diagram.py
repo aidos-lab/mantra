@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -35,7 +35,9 @@ class HasseDiagram(BaseTransform):
 
         print(nx.get_node_attributes(G, self.feature_propagation))
         if self.feature_propagation:
-            data_ = from_networkx(G, group_node_attrs=[self.feature_propagation])
+            data_ = from_networkx(
+                G, group_node_attrs=[self.feature_propagation]
+            )
         else:
             data_ = from_networkx(G)
 
@@ -83,12 +85,12 @@ class HasseDiagram(BaseTransform):
             k_simp = tuple(k_simp)
             extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
 
-            #NOTE: A bit of an ugly patch, could come up with a better solutin
+            # NOTE: A bit of an ugly patch, could come up with a better solutin
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(k_simp)-1}"
                 feat_vtx_tensor = getattr(data, vtx_feat_str)
-                # Get's the i-th tensor from the feature tensor 
-                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i] 
+                # Get's the i-th tensor from the feature tensor
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
 
             G.add_node(k_simp, **extra_attr_dict)
             new_nodes.append(k_simp)
@@ -124,8 +126,8 @@ class HasseDiagram(BaseTransform):
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(top_simp)-1}"
                 feat_vtx_tensor = getattr(data, vtx_feat_str)
-                # Get's the i-th tensor from the feature tensor 
-                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i] 
+                # Get's the i-th tensor from the feature tensor
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
             G.add_node(top_simp, **extra_attr_dict)
             self._build_connecting_lower_simplices(G, data, top_simp)
 

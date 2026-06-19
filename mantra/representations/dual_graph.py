@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
-from typing import List, Optional
+from typing import Optional
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -38,8 +38,11 @@ class DualGraph(BaseTransform):
 
         # Here we assign the same name to nodes and edges
         if self.feature_propagation:
-            data_ = from_networkx(G, group_node_attrs=[self.feature_propagation],
-                                   group_edge_attrs=[self.feature_propagation])
+            data_ = from_networkx(
+                G,
+                group_node_attrs=[self.feature_propagation],
+                group_edge_attrs=[self.feature_propagation],
+            )
         else:
             data_ = from_networkx(G)
 
@@ -82,7 +85,6 @@ class DualGraph(BaseTransform):
             for face in combinations(s, m - 1):
                 face_to_cofaces[face].append(i)
 
-
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
             extra_attr_dict = {"simplex": [sim - 1 for sim in s]}
@@ -99,7 +101,7 @@ class DualGraph(BaseTransform):
         for face, cofaces in face_to_cofaces.items():
             for a, b in combinations(sorted(cofaces), 2):
                 G.add_edge(a, b)
-                edge_tuples.append((a,b))
+                edge_tuples.append((a, b))
 
         # Here we do an extra step to assign features to the simplices
         if self.feature_propagation:
@@ -111,18 +113,20 @@ class DualGraph(BaseTransform):
             edge_feat_tensor = getattr(data, feat_edge_str)
 
             vtx_feat_dict = {
-                i: vtx_feat_tensor[i]
-                for i in range(vtx_feat_tensor.shape[0])
+                i: vtx_feat_tensor[i] for i in range(vtx_feat_tensor.shape[0])
             }
 
             # For edges this is a bit more complicated since we need the edge tuples
             # here we assume that they are oredered lexicographically
             edge_feat_dict = {
-                t: edge_feat_tensor[i]
-                for i, t in enumerate(edge_tuples)
+                t: edge_feat_tensor[i] for i, t in enumerate(edge_tuples)
             }
 
             # Here we just set it
-            nx.set_node_attributes(G, values=vtx_feat_dict, name=self.feature_propagation)
-            nx.set_edge_attributes(G, values=edge_feat_dict, name=self.feature_propagation)
+            nx.set_node_attributes(
+                G, values=vtx_feat_dict, name=self.feature_propagation
+            )
+            nx.set_edge_attributes(
+                G, values=edge_feat_dict, name=self.feature_propagation
+            )
         return G

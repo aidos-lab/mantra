@@ -9,7 +9,9 @@ from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 
 from mantra.representations import DualGraph
-from mantra.transforms import NodeRandomTransform, PropagateConvexComb, SimplexRandomTransform
+from mantra.transforms import (
+    SimplexRandomTransform,
+)
 
 # Boundary of a tetrahedron: 4 triangles, each adjacent to the other 3.
 TETRAHEDRON_TRI = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -43,10 +45,12 @@ class TestDualGraphFeaturePropagation:
     def test_propagates_named_attribute_onto_dual_nodes(self):
         feature_dim = 5
         data = _data(TETRAHEDRON_TRI)
-        random_all_simp_trf = Compose([
-            SimplexRandomTransform(simplex_dim=i, feature_dim=feature_dim)
-            for i in range(len(TETRAHEDRON_TRI[0]))
-        ])
+        random_all_simp_trf = Compose(
+            [
+                SimplexRandomTransform(simplex_dim=i, feature_dim=feature_dim)
+                for i in range(len(TETRAHEDRON_TRI[0]))
+            ]
+        )
         data = random_all_simp_trf(data)
 
         out = DualGraph(feature_propagation="random_features")(data)

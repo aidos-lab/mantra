@@ -57,6 +57,7 @@ class NodeRandomTransform(T.BaseTransform):
     """
     Add random node features in `random_features`
     """
+
     def __init__(self, dim: int = 8):
         super().__init__()
         self.dimension = dim
