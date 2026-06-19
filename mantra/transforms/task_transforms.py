@@ -28,12 +28,13 @@ class OrientableToClassTransform(T.BaseTransform):
         return data
 
 
-class NameToClass2MTransform:
+class NameToClass2MTransform(T.BaseTransform):
     """
     Encode the homemorphism type (`name`) as a nominal target for 2-manifolds.
     """
 
     def __init__(self):
+        super().__init__()
         self.class_dict = NAME_TO_CLASS_2M
 
     def forward(self, data: Data):
