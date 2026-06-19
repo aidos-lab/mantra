@@ -1,4 +1,5 @@
 from .attribute_transform import (
+    SimplexRandomTransform,
     NodeDegreeTransform,
     NodeRandomTransform,
 )
@@ -17,6 +18,7 @@ __all__ = [
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",
+    "SimplexRandomTransform",
     "NodeRandomTransform",
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",

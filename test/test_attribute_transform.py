@@ -1,8 +1,8 @@
 """Tests for ``mantra.transforms.attribute_transform``.
 
-These cover :class:`NodeRandomTransform` (both the plain edge-index mode
-and the ``propagate`` mode that distributes random features across all
-simplex ranks) and :class:`NodeDegreeTransform`.
+These cover :class:`NodeRandomTransform` (plain edge-index mode) and :class:`SimplexRandomTransform`
+that assigns random features to fixed simplices
+and :class:`NodeDegreeTransform`.
 """
 
 import pytest
@@ -14,6 +14,7 @@ from mantra.representations.simplicial_connectivity import (
     IncidenceSimplicialComplex,
 )
 from mantra.transforms.attribute_transform import (
+    SimplexRandomTransform,
     NodeDegreeTransform,
     NodeRandomTransform,
 )
@@ -31,17 +32,7 @@ def _edge_data():
     data.num_nodes = 4
     return FaceToEdge(remove_faces=False)(data)
 
-
-def _incidence_data():
-    """A ``Data`` object carrying ``incidence_*`` matrices."""
-    data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
-    return IncidenceSimplicialComplex(signed=True)(data)
-
-
 class TestNodeRandomTransformPlain:
-    def test_default_is_not_propagate(self):
-        assert NodeRandomTransform().propagate is False
-
     def test_creates_random_features(self):
         data = _edge_data()
         result = NodeRandomTransform(dim=5)(data)
@@ -55,30 +46,30 @@ class TestNodeRandomTransformPlain:
             NodeRandomTransform()(data)
 
 
-class TestNodeRandomTransformPropagate:
-    def test_features_per_rank(self):
-        data = _incidence_data()
-        result = NodeRandomTransform(dim=5, propagate=True)(data)
-        rf = result.random_features
-        # One entry per simplex rank present (vertices, edges, faces).
-        assert set(rf.keys()) == {0, 1, 2}
-        assert rf[0].shape == (4, 5)  # 4 vertices
-        assert rf[1].shape == (6, 5)  # 6 edges
-        assert rf[2].shape == (4, 5)  # 4 faces
+class TestSimplexRandomTransform:
+    def test_features_exist_1(self):
+        data = _edge_data()
+        transform = SimplexRandomTransform(simplex_dim=1, feature_dim=5)
+        result = transform(data)
 
-    def test_is_a_plain_dict(self):
-        # Regression: previously a ``defaultdict(torch.tensor)`` whose
-        # factory would raise if a missing key were accessed.
-        rf = NodeRandomTransform(propagate=True)(_incidence_data())
-        rf = rf.random_features
-        assert type(rf) is dict
-        with pytest.raises(KeyError):
-            _ = rf[99]
+        assert "random_features_1" in result
+    def test_features_exists_2(self):
+        data = _edge_data()
+        transform_1 = SimplexRandomTransform(simplex_dim=1, feature_dim=5)
+        transform_2 = SimplexRandomTransform(simplex_dim=2, feature_dim=5)
+        result = transform_2(transform_1(data))
 
-    def test_requires_incidence_matrices(self):
-        data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
-        with pytest.raises(AssertionError, match="No incidence matrices"):
-            NodeRandomTransform(propagate=True)(data)
+        assert "random_features_1" in result
+        assert "random_features_2" in result
+
+    def test_features_size(self):
+        data = _edge_data()
+        transform_1 = SimplexRandomTransform(simplex_dim=1, feature_dim=4)
+        transform_2 = SimplexRandomTransform(simplex_dim=2, feature_dim=5)
+        result = transform_2(transform_1(data))
+
+        assert result.random_features_1.shape == (6, 4)  # 6 edges
+        assert result.random_features_2.shape == (4, 5)  # 4 faces
 
 
 class TestNodeDegreeTransform:
