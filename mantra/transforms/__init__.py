@@ -21,5 +21,5 @@ __all__ = [
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
-    "PropagateConvexComb"
+    "PropagateConvexComb",
 ]

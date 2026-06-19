@@ -1,16 +1,17 @@
-from torch_geometric.transforms import BaseTransform
-import torch
-import numpy as np
-from collections import defaultdict
 from itertools import combinations
+
+import numpy as np
+import torch
+from torch_geometric.transforms import BaseTransform
 
 
 class PropagateConvexComb(BaseTransform):
-    """ Propagates the features of a tensor `source` describing
-        0-simplices to higher-simplices based on the barycenter
-        of the feature.
+    """Propagates the features of a tensor `source` describing
+    0-simplices to higher-simplices based on the barycenter
+    of the feature.
     """
-    def __init__(self, source: str  = 'x'):
+
+    def __init__(self, source: str = "x"):
         """
         Parameters
         ----------
@@ -22,11 +23,15 @@ class PropagateConvexComb(BaseTransform):
 
     def forward(self, data):
 
-        assert "triangulation" in data, "Data object is missing `triangulation`"
-        assert self.source in data, f"Data object is missing source tensor `{self.source}`"
+        assert (
+            "triangulation" in data
+        ), "Data object is missing `triangulation`"
+        assert (
+            self.source in data
+        ), f"Data object is missing source tensor `{self.source}`"
 
         x = getattr(data, self.source)
-        triangulation = getattr(data, 'triangulation')
+        triangulation = getattr(data, "triangulation")
 
         simplices = set([tuple(s) for s in triangulation])
         max_dim = len(next(iter(simplices)))
@@ -42,9 +47,7 @@ class PropagateConvexComb(BaseTransform):
         simplices.sort(key=len)
 
         # Dictionary containing the new attribute keys
-        values = {
-            "x_0": x
-        }
+        values = {"x_0": x}
 
         for dim in range(1, max_dim):
             simplices_ = [s for s in simplices if len(s) == dim + 1]
@@ -65,4 +68,4 @@ class PropagateConvexComb(BaseTransform):
 
         for k, v in values.items():
             data[k] = v
-        return data 
+        return data
