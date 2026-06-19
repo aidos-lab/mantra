@@ -54,6 +54,13 @@ class TestNameToClass2M:
         with pytest.raises(AssertionError):
             NameToClass2MTransform().forward(Data())
 
+    def test_callable_like_a_basetransform(self):
+        # Regression: the transform must be usable as a callable (e.g. inside
+        # a ``Compose`` / dataset pipeline), not only via ``.forward``. It
+        # subclasses ``BaseTransform`` which supplies ``__call__``.
+        result = NameToClass2MTransform()(Data(name="S^2"))
+        assert result.y.item() == 0
+
 
 class TestOrientableToClassTransform:
     def test_orientable_last_betti_one(self):
