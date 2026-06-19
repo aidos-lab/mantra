@@ -53,9 +53,6 @@ class LeviGraph(BaseTransform):
         G = nx.Graph()
         nodes = set()
 
-        # Number of maximal simplices
-        m = len(top_simplices)
-
         # Collect all the nodes
         # composing the simplices
         for top_simp in top_simplices:
