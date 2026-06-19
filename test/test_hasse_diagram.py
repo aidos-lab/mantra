@@ -8,12 +8,10 @@ definition time, so the failure happened on import.
 """
 
 from torch_geometric.data import Data
+from torch_geometric.transforms import Compose
 
 from mantra.representations.hasse_diagram import HasseDiagram
-from mantra.representations.simplicial_connectivity import (
-    IncidenceSimplicialComplex,
-)
-from mantra.transforms.attribute_transform import NodeRandomTransform
+from mantra.transforms.attribute_transform import NodeRandomTransform, SimplexRandomTransform
 
 # Boundary of a tetrahedron: 4 vertices, 6 edges, 4 faces -> 14 nodes.
 TETRAHEDRON_TRI = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -36,13 +34,15 @@ def test_forward_builds_full_hasse_diagram():
 def test_forward_propagates_per_rank_features_onto_nodes():
     # End-to-end: per-rank random features (the feature this PR adds) are
     # mapped onto every node of the Hasse diagram via ``feature_propagation``.
-    dim = 5
+    feature_dim = 5
     data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
-    data = IncidenceSimplicialComplex(signed=False)(data)
-    data = NodeRandomTransform(dim=dim, propagate=True)(data)
-
+    random_all_simp_trf = Compose([
+        SimplexRandomTransform(simplex_dim=i, feature_dim=feature_dim)
+        for i in range(len(TETRAHEDRON_TRI[0]))
+    ])
+    data = random_all_simp_trf(data)
     out = HasseDiagram(feature_propagation="random_features")(data)
 
     # ``from_networkx`` groups the named node attribute into ``x``:
     # one row per Hasse node (14), ``dim`` columns.
-    assert out.x.shape == (14, dim)
+    assert out.x.shape == (14, feature_dim)
