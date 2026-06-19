@@ -10,6 +10,7 @@ from .effective_resistance import (
 from .moment_curve_embedding import MomentCurveEmbedding
 from .select_attributes import SelectAttributes
 from .select_features import SelectFeatures
+from .util_transforms import PropagateConvexComb
 
 __all__ = [
     "CreateLabels",
@@ -20,4 +21,5 @@ __all__ = [
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
+    "PropagateConvexComb"
 ]

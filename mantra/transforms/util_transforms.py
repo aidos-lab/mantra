@@ -62,4 +62,7 @@ class PropagateConvexComb(BaseTransform):
 
             M = np.asarray(M)
             values[f"x_{dim}"] = torch.from_numpy(M).to(torch.float32)
-        return values
+
+        for k, v in values.items():
+            data[k] = v
+        return data 
