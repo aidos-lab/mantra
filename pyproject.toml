@@ -9,11 +9,18 @@ mantra = { path = "mantra" }
 version = "0.0.19"
 name = "mantra-dataset"
 dependencies = [
-  "black>=22.0",
-  "ruff>=0.14.06",
   "numpy",
+  "pandas>=2.3.3",
+  "pyarrow>=24.0.0",
+  "scikit-learn",
   "torch",
   "torch_geometric",
+  "scipy",
+  "networkx",
+  "requests",
+  "tqdm",
+  "trimesh",
+  "typing_extensions",
 ]
 requires-python = ">=3.10"
 authors = [
@@ -52,8 +59,11 @@ dev = [
     "mkdocs-nbconvert>=0.4",
     "markdown-include>=0.8.1",
     "torchvision>=0.25.0",
-    "pandas>=2.3.3",
     "seaborn>=0.13.2",
+    "black>=22.0",
+    "ruff>=0.14.06",
+    "pytest>=8.0",
+    "coverage>=7.0",
 ]
 
 
@@ -144,6 +154,17 @@ docstring-code-format = false
 # This only has an effect when the `docstring-code-format` setting is
 # enabled.
 docstring-code-line-length = "dynamic"
+
+[tool.coverage.run]
+branch = true
+source = ["mantra"]
+omit = ["test/*"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_also = [
+    "if __name__ == .__main__.:",
+]
 
 [tool.black]
 line-length = 79
