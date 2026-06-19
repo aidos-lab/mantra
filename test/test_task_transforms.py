@@ -24,22 +24,14 @@ class TestNameToClass2M:
         assert "#^2 RP^2" not in NAME_TO_CLASS_2M
 
     def test_indices_are_contiguous_from_zero(self):
-        # 21 enum classes -> indices 0..20 with no gaps.
-        assert set(NAME_TO_CLASS_2M.values()) == set(range(21))
+        # One index per enum class, contiguous from zero with no gaps.
+        assert set(NAME_TO_CLASS_2M.values()) == set(range(len(Manifold2Type)))
 
-    @pytest.mark.parametrize(
-        "name,expected",
-        [
-            ("S^2", 0),
-            ("T^2", 1),
-            ("RP^2", 8),
-            ("Klein bottle", 9),
-            ("#^17 RP^2", 20),
-        ],
-    )
-    def test_transform_maps_name_to_class(self, name, expected):
-        transform = NameToClass2MTransform()
-        result = transform.forward(Data(name=name))
+    @pytest.mark.parametrize("name", [m.value for m in Manifold2Type])
+    def test_transform_matches_enum_order(self, name):
+        # The class assigned to a name is its position in ``Manifold2Type``.
+        expected = [m.value for m in Manifold2Type].index(name)
+        result = NameToClass2MTransform().forward(Data(name=name))
         assert result.y.item() == expected
 
     def test_unknown_name_raises(self):
