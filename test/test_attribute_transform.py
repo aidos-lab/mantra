@@ -10,13 +10,10 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import FaceToEdge
 
-from mantra.representations.simplicial_connectivity import (
-    IncidenceSimplicialComplex,
-)
 from mantra.transforms.attribute_transform import (
-    SimplexRandomTransform,
     NodeDegreeTransform,
     NodeRandomTransform,
+    SimplexRandomTransform,
 )
 
 # Boundary of a tetrahedron: a triangulated 2-sphere with
@@ -31,6 +28,7 @@ def _edge_data():
     data.face = (torch.tensor(TETRAHEDRON_TRI).t().contiguous() - 1).long()
     data.num_nodes = 4
     return FaceToEdge(remove_faces=False)(data)
+
 
 class TestNodeRandomTransformPlain:
     def test_creates_random_features(self):
@@ -53,6 +51,7 @@ class TestSimplexRandomTransform:
         result = transform(data)
 
         assert "random_features_1" in result
+
     def test_features_exists_2(self):
         data = _edge_data()
         transform_1 = SimplexRandomTransform(simplex_dim=1, feature_dim=5)
