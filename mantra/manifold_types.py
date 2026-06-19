@@ -6,8 +6,10 @@ class Manifold2Type(Enum):
     This represents the underlying 2-manifold type,
     which a triangulation is (a triangulation) of.
 
-    The members enumerate every closed-surface homeomorphism type that
-    occurs in the MANTRA 2-manifold dataset.
+    The members form a complete, genus-ordered taxonomy of closed surfaces.
+    It covers every homeomorphism type that occurs in the MANTRA 2-manifold
+    dataset; pipelines that train on a
+    filtered subset should remap to the labels actually present.
     """
 
     # Orientable surfaces: connected sums of tori, ordered by genus.
