@@ -4,7 +4,7 @@ import random
 
 import pytest
 
-from mantra.augmentations.base import Triangulation
+from mantra.augmentations.triangulation import Triangulation
 
 
 def make(top_simplices, dimension=2, rng=None):

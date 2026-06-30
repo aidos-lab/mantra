@@ -16,20 +16,48 @@ from mantra.augmentations.balancing import (
     _augment_triangulation,
     _augment_with_topology_change,
 )
-from mantra.augmentations.triangulation_2d import (
-    _RP2_TRIANGULATION_MINUS_FACE,
-    _TORUS_TRIANGULATION_MINUS_FACE,
-    Triangulation2D,
-)
-from mantra.augmentations.triangulation_3d import Triangulation3D
+from mantra.augmentations.triangulation import Triangulation
 
+# Minimal triangulation of the torus (7 vertices, 14 triangles).
+# Removing triangle {1, 2, 3} leaves 13 triangles with boundary {1,2,3}.
+TORUS_TRIANGULATION_MINUS_FACE = [
+    [1, 2, 4],
+    [1, 3, 5],
+    [1, 4, 6],
+    [1, 5, 7],
+    [1, 6, 7],
+    [2, 3, 6],
+    [2, 4, 7],
+    [2, 5, 6],
+    [2, 5, 7],
+    [3, 4, 5],
+    [3, 4, 7],
+    [3, 6, 7],
+    [4, 5, 6],
+]
+
+# Minimal triangulation of RP^2 (6 vertices, 10 triangles).
+# This is the hemicosahedron. Removing triangle {1, 2, 3} leaves
+# 9 triangles with boundary vertices {1, 2, 3} and interior
+# vertices {4, 5, 6}.
+RP2_TRIANGULATION_MINUS_FACE = [
+    [1, 2, 4],
+    [1, 3, 6],
+    [1, 4, 5],
+    [1, 5, 6],
+    [2, 3, 5],
+    [2, 4, 6],
+    [2, 5, 6],
+    [3, 4, 5],
+    [3, 4, 6],
+]
 # Boundary of a tetrahedron: the minimal 2-sphere (chi = 2).
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
 # Completing the surface-minus-face pieces with the missing triangle
 # {1, 2, 3} yields closed surfaces: the 7-vertex torus (chi = 0) and
 # the 6-vertex real projective plane (chi = 1).
-TORUS = _TORUS_TRIANGULATION_MINUS_FACE + [[1, 2, 3]]
-RP2 = _RP2_TRIANGULATION_MINUS_FACE + [[1, 2, 3]]
+TORUS = TORUS_TRIANGULATION_MINUS_FACE + [[1, 2, 3]]
+RP2 = RP2_TRIANGULATION_MINUS_FACE + [[1, 2, 3]]
 # Boundary of the 4-simplex: the minimal 3-sphere (chi = 0).
 S3 = [list(c) for c in combinations(range(1, 6), 4)]
 
@@ -106,7 +134,7 @@ class Test2DPachnerInvariants:
         # The minimal torus has a complete 1-skeleton, so subdivide
         # once to create a flippable edge. A 2-2 move then leaves the
         # whole f-vector unchanged.
-        t = Triangulation2D(TORUS, rng=random.Random(0))
+        t = Triangulation.from_list(TORUS, rng=random.Random(42))
         t.subdivide(frozenset({1, 2, 4}))
         f_before = t.f_vector()
         assert t.flip_edge() is True
@@ -117,7 +145,7 @@ class Test2DPachnerInvariants:
     def test_flip_is_an_involution(self):
         # Flipping {1, 2} creates {3, 8}; flipping that edge restores
         # the original triangulation exactly.
-        t = Triangulation2D(TORUS)
+        t = Triangulation.from_list(TORUS)
         t.subdivide(frozenset({1, 2, 4}))
         before = set(t._simplices)
         assert t.flip_edge(frozenset({1, 2})) is True
@@ -125,7 +153,7 @@ class Test2DPachnerInvariants:
         assert t._simplices == before
 
     def test_random_moves_preserve_torus_invariants(self):
-        t = Triangulation2D(TORUS, rng=random.Random(42))
+        t = Triangulation.from_list(TORUS, rng=random.Random(42))
         for _ in range(15):
             t.random_pachner_move()
             assert t.euler_characteristic() == 0
@@ -133,7 +161,7 @@ class Test2DPachnerInvariants:
         assert is_orientable(t.to_list()) is True
 
     def test_random_moves_preserve_rp2_invariants(self):
-        t = Triangulation2D(RP2, rng=random.Random(42))
+        t = Triangulation.from_list(RP2, rng=random.Random(42))
         for _ in range(15):
             t.random_pachner_move()
             assert t.euler_characteristic() == 1
@@ -143,7 +171,7 @@ class Test2DPachnerInvariants:
 
 class TestGlueInvariants:
     def test_glue_torus_drops_chi_by_two(self):
-        t = Triangulation2D(SPHERE, rng=random.Random(0))
+        t = Triangulation.from_list(SPHERE, rng=random.Random(42))
         assert t.euler_characteristic() == 2
         t.glue_torus()
         assert t.euler_characteristic() == 0
@@ -151,7 +179,7 @@ class TestGlueInvariants:
         t.validate()
 
     def test_glue_crosscap_drops_chi_by_one_and_orientability(self):
-        t = Triangulation2D(SPHERE, rng=random.Random(0))
+        t = Triangulation.from_list(SPHERE, rng=random.Random(42))
         t.glue_crosscap()
         assert t.euler_characteristic() == 1
         assert is_orientable(t.to_list()) is False
@@ -160,9 +188,9 @@ class TestGlueInvariants:
     def test_torus_and_klein_bottle_differ_only_in_orientability(self):
         # S^2 + torus and S^2 + 2 crosscaps both have chi = 0, but
         # only the former is orientable.
-        t1 = Triangulation2D(SPHERE, rng=random.Random(0))
+        t1 = Triangulation.from_list(SPHERE, rng=random.Random(42))
         t1.glue_torus()
-        t2 = Triangulation2D(SPHERE, rng=random.Random(0))
+        t2 = Triangulation.from_list(SPHERE, rng=random.Random(42))
         t2.glue_crosscap()
         t2.glue_crosscap()
         assert t1.euler_characteristic() == 0
@@ -174,7 +202,7 @@ class TestGlueInvariants:
     def test_genus_chi_relation_orientable(self):
         # chi(orientable genus g) = 2 - 2g.
         for g in (1, 2, 3):
-            t = Triangulation2D(SPHERE, rng=random.Random(g))
+            t = Triangulation.from_list(SPHERE, rng=random.Random(42))
             for _ in range(g):
                 t.glue_torus()
             assert t.euler_characteristic() == 2 - 2 * g
@@ -184,7 +212,7 @@ class TestGlueInvariants:
     def test_genus_chi_relation_nonorientable(self):
         # chi(non-orientable genus k) = 2 - k.
         for k in (1, 2, 3):
-            t = Triangulation2D(SPHERE, rng=random.Random(k))
+            t = Triangulation.from_list(SPHERE, rng=random.Random(k))
             for _ in range(k):
                 t.glue_crosscap()
             assert t.euler_characteristic() == 2 - k
@@ -194,7 +222,7 @@ class TestGlueInvariants:
     def test_glue_torus_on_nonorientable_adds_two_crosscaps(self):
         # RP^2 + torus = #^3 RP^2: chi = 1 - 2 = -1 = 2 - 3, and the
         # surface stays non-orientable.
-        t = Triangulation2D(RP2, rng=random.Random(0))
+        t = Triangulation.from_list(RP2, rng=random.Random(42))
         t.glue_torus()
         assert t.euler_characteristic() == -1
         assert is_orientable(t.to_list()) is False
@@ -203,7 +231,7 @@ class TestGlueInvariants:
     def test_glue_then_pachner_moves_keep_invariants(self):
         # The balancing pipeline applies Pachner moves on top of a
         # topology change; the homeomorphism type must survive both.
-        t = Triangulation2D(SPHERE, rng=random.Random(7))
+        t = Triangulation.from_list(SPHERE, rng=random.Random(42))
         t.glue_torus()
         for _ in range(10):
             t.random_pachner_move()
@@ -218,7 +246,7 @@ class TestTopologyChangeMetadataConsistency:
 
     @staticmethod
     def assert_consistent(out):
-        chi = Triangulation2D(out["triangulation"]).euler_characteristic()
+        chi = Triangulation.from_list(out["triangulation"]).euler_characteristic()
         b0, b1, b2 = out["betti_numbers"]
         assert chi == b0 - b1 + b2
         orientable = is_orientable(out["triangulation"])
@@ -238,7 +266,7 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": True,
             "genus": 0,
         }
-        out = _augment_with_topology_change(entry, "T^2", rng=random.Random(0))
+        out = _augment_with_topology_change(entry, "T^2", rng=random.Random(42))
         self.assert_consistent(out)
 
     def test_rp2_to_klein_bottle(self):
@@ -252,7 +280,7 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, "Klein bottle", rng=random.Random(0)
+            entry, "Klein bottle", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -267,12 +295,12 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, "#^3 RP^2", rng=random.Random(0)
+            entry, "#^3 RP^2", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
     def test_klein_bottle_to_4_crosscaps(self):
-        builder = Triangulation2D(RP2, rng=random.Random(0))
+        builder = Triangulation.from_list(RP2, rng=random.Random(42))
         builder.glue_crosscap()
         klein = builder.to_list()
         entry = {
@@ -285,14 +313,14 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 2,
         }
         out = _augment_with_topology_change(
-            entry, "#^4 RP^2", rng=random.Random(0)
+            entry, "#^4 RP^2", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
 
 class Test3DPachnerInvariants:
     def test_move_f_vector_deltas(self):
-        t = Triangulation3D(S3)
+        t = Triangulation.from_list(S3, rng=random.Random(42))
         assert t.f_vector() == (5, 10, 10, 5)
         assert t.euler_characteristic() == 0
 
@@ -311,7 +339,7 @@ class Test3DPachnerInvariants:
     def test_inverse_moves_restore_the_sphere(self):
         # 1-4 / 2-3 followed by their inverses 3-2 / 4-1 give back the
         # boundary of the 4-simplex exactly.
-        t = Triangulation3D(S3)
+        t = Triangulation.from_list(S3, rng=random.Random(42))
         original = set(t._simplices)
 
         assert t.move_1_4(frozenset({1, 2, 3, 4})) is True
@@ -325,7 +353,7 @@ class Test3DPachnerInvariants:
         assert set(t._simplices) == original
 
     def test_random_walk_preserves_invariants(self):
-        t = Triangulation3D(S3, rng=random.Random(42))
+        t = Triangulation.from_list(S3, rng=random.Random(42))
         for _ in range(20):
             assert t.random_pachner_move() is True
             assert t.euler_characteristic() == 0
@@ -347,7 +375,7 @@ def assert_canonical_labels(tri_list, expected_n_vertices):
 
 class TestVertexLabeling:
     def test_to_list_canonical_after_random_2d_moves(self):
-        t = Triangulation2D(TORUS, rng=random.Random(3))
+        t = Triangulation.from_list(TORUS, rng=random.Random(42))
         for _ in range(15):
             t.random_pachner_move()
         assert_canonical_labels(t.to_list(), t.n_vertices)
@@ -356,7 +384,7 @@ class TestVertexLabeling:
         # Subdivide twice (vertices 6 and 7), then collapse vertex 6:
         # the internal label space now has a gap at 6, which to_list
         # must compact back to 1..6 without altering the complex.
-        t = Triangulation3D(S3)
+        t = Triangulation.from_list(S3, rng=random.Random(42))
         assert t.move_1_4(frozenset({1, 2, 3, 4})) is True
         assert t.move_1_4(frozenset({1, 2, 3, 5})) is True
         assert t.move_4_1(6) is True
@@ -384,6 +412,6 @@ class TestVertexLabeling:
             "triangulation": [list(s) for s in SPHERE],
         }
         out = _augment_triangulation(
-            entry, dimension=2, n_moves=8, rng=random.Random(0)
+            entry, dimension=2, n_moves=8, rng=random.Random(42)
         )
         assert_canonical_labels(out["triangulation"], out["n_vertices"])
