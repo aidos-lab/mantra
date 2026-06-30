@@ -7,79 +7,9 @@ from collections import defaultdict
 
 import numpy as np
 
-from mantra.augmentations.triangulation_2d import Triangulation2D
-from mantra.augmentations.triangulation_3d import Triangulation3D
 from mantra.deduplication import find_duplicates
-
-# Name normalisation for 2-manifold classes. #^2 RP^2 and the Klein
-# bottle are the same manifold
-_LABEL_ALIASES = {
-    "#^2 RP^2": "Klein bottle",
-}
-
-
-def _normalize_name(name):
-    return _LABEL_ALIASES.get(name, name)
-
-
-# Mapping from 2D manifold names to the name after gluing a torus.
-# Based on the classification of closed surfaces:
-# - Orientable genus g -> genus g+1
-# - Non-orientable with k crosscaps + torus = k+2 crosscaps
-_TORUS_GLUE_MAP = {
-    "S^2": "T^2",
-    "T^2": "#^2 T^2",
-    "#^2 T^2": "#^3 T^2",
-    "#^3 T^2": "#^4 T^2",
-    "#^4 T^2": "#^5 T^2",
-    "#^5 T^2": "#^6 T^2",
-    "#^6 T^2": "#^7 T^2",
-    # Non-orientable: torus + k crosscaps = k+2 crosscaps
-    "RP^2": "#^3 RP^2",
-    "Klein bottle": "#^4 RP^2",
-    "#^3 RP^2": "#^5 RP^2",
-    "#^4 RP^2": "#^6 RP^2",
-    "#^5 RP^2": "#^7 RP^2",
-    "#^6 RP^2": "#^8 RP^2",
-}
-
-# Mapping after gluing a crosscap (connected sum with RP^2).
-# Orientable genus g + crosscap = 2g+1 crosscaps (non-orientable).
-# Non-orientable k crosscaps + 1 = k+1 crosscaps.
-_CROSSCAP_GLUE_MAP = {
-    "S^2": "RP^2",
-    "T^2": "#^3 RP^2",
-    "RP^2": "Klein bottle",
-    "Klein bottle": "#^3 RP^2",
-    "#^2 T^2": "#^5 RP^2",
-    "#^3 RP^2": "#^4 RP^2",
-    "#^4 RP^2": "#^5 RP^2",
-    "#^3 T^2": "#^7 RP^2",
-    "#^5 RP^2": "#^6 RP^2",
-    "#^6 RP^2": "#^7 RP^2",
-}
-
-# Betti numbers (over Z) for all 2-manifold classes.
-# Orientable genus g: [1, 2g, 1]
-# Non-orientable k crosscaps: [1, k-1, 0]
-_BETTI_NUMBERS = {
-    "S^2": [1, 0, 1],
-    "T^2": [1, 2, 1],
-    "#^2 T^2": [1, 4, 1],
-    "#^3 T^2": [1, 6, 1],
-    "#^4 T^2": [1, 8, 1],
-    "#^5 T^2": [1, 10, 1],
-    "#^6 T^2": [1, 12, 1],
-    "#^7 T^2": [1, 14, 1],
-    "RP^2": [1, 0, 0],
-    "Klein bottle": [1, 1, 0],
-    "#^3 RP^2": [1, 2, 0],
-    "#^4 RP^2": [1, 3, 0],
-    "#^5 RP^2": [1, 4, 0],
-    "#^6 RP^2": [1, 5, 0],
-    "#^7 RP^2": [1, 6, 0],
-    "#^8 RP^2": [1, 7, 0],
-}
+from mantra.augmentations.constants import BETTI_NUMBERS, CROSSCAP_GLUE_MAP, TORUS_GLUE_MAP
+from mantra.augmentations.triangulation import Triangulation
 
 
 def _genus_from_name(name):
@@ -88,21 +18,19 @@ def _genus_from_name(name):
     Orientable genus g has b_1 = 2g; non-orientable genus k (number
     of crosscaps) has b_1 = k - 1.
     """
-    betti = _BETTI_NUMBERS[name]
+    betti = BETTI_NUMBERS[name]
     if betti[2] == 1:
         return betti[1] // 2
     return betti[1] + 1
 
 
-def _augment_triangulation(entry, dimension, n_moves=5, rng=None):
+def _augment_triangulation(entry, n_moves=5, rng=None):
     """Create a new triangulation by applying random Pachner moves.
 
     Parameters
     ----------
     entry : dict
         Dataset entry with 'triangulation' key.
-    dimension : int
-        2 or 3.
     n_moves : int
         Number of random Pachner moves to apply.
     rng : random.Random or None
@@ -116,14 +44,10 @@ def _augment_triangulation(entry, dimension, n_moves=5, rng=None):
     new_entry = copy.deepcopy(entry)
     simplices = new_entry["triangulation"]
 
-    if dimension == 2:
-        t = Triangulation2D(simplices, rng=rng)
-        for _ in range(n_moves):
-            t.random_pachner_move()
-    else:
-        t = Triangulation3D(simplices, rng=rng)
-        for _ in range(n_moves):
-            t.random_pachner_move()
+    t = Triangulation.from_list(simplices, rng=rng)
+
+    for _ in range(n_moves):
+        t.random_pachner_move()
 
     new_entry["triangulation"] = t.to_list()
     new_entry["n_vertices"] = t.n_vertices
@@ -147,30 +71,30 @@ def _augment_with_topology_change(entry, target_name, rng=None):
     dict or None
         New entry with changed topology, or None if not possible.
     """
-    source_name = _normalize_name(entry["name"])
+    source_name = entry["name"]
 
     # try torus gluing
-    if _TORUS_GLUE_MAP.get(source_name) == target_name:
+    if TORUS_GLUE_MAP.get(source_name) == target_name:
         new_entry = copy.deepcopy(entry)
-        t = Triangulation2D(new_entry["triangulation"], rng=rng)
+        t = Triangulation.from_list(new_entry["triangulation"], rng=rng)
         t.glue_torus()
         new_entry["triangulation"] = t.to_list()
         new_entry["n_vertices"] = t.n_vertices
         new_entry["name"] = target_name
-        new_entry["betti_numbers"] = list(_BETTI_NUMBERS[target_name])
+        new_entry["betti_numbers"] = list(BETTI_NUMBERS[target_name])
         if "genus" in new_entry:
             new_entry["genus"] = _genus_from_name(target_name)
         return new_entry
 
     # try crosscap gluing
-    if _CROSSCAP_GLUE_MAP.get(source_name) == target_name:
+    if CROSSCAP_GLUE_MAP.get(source_name) == target_name:
         new_entry = copy.deepcopy(entry)
-        t = Triangulation2D(new_entry["triangulation"], rng=rng)
+        t = Triangulation.from_list(new_entry["triangulation"], rng=rng)
         t.glue_crosscap()
         new_entry["triangulation"] = t.to_list()
         new_entry["n_vertices"] = t.n_vertices
         new_entry["name"] = target_name
-        new_entry["betti_numbers"] = list(_BETTI_NUMBERS[target_name])
+        new_entry["betti_numbers"] = list(BETTI_NUMBERS[target_name])
         new_entry["orientable"] = False
         if "genus" in new_entry:
             new_entry["genus"] = _genus_from_name(target_name)
@@ -191,10 +115,10 @@ def _find_topology_sources(target_name, class_entries):
     for name, entries in class_entries.items():
         if not entries:
             continue
-        norm = _normalize_name(name)
-        if _TORUS_GLUE_MAP.get(norm) == target_name:
+        norm = name
+        if TORUS_GLUE_MAP.get(norm) == target_name:
             sources.append(name)
-        if _CROSSCAP_GLUE_MAP.get(norm) == target_name:
+        if CROSSCAP_GLUE_MAP.get(norm) == target_name:
             sources.append(name)
     return sources
 
@@ -247,7 +171,6 @@ def _downsample(entries, target_count, rng):
 
 def balance_dataset(
     dataset,
-    dimension,
     target_count=1000,
     n_moves=5,
     seed=42,
@@ -298,13 +221,11 @@ def balance_dataset(
         Balanced dataset.
     """
     rng = random.Random(seed)
+    dimension = len(dataset[0]['triangulation'][0]) - 1
 
     # filter by max_vertices before balancing
     if max_vertices is not None:
         dataset = [e for e in dataset if e["n_vertices"] <= max_vertices]
-
-    for entry in dataset:
-        entry["name"] = _normalize_name(entry["name"])
 
     # group by class
     class_entries = defaultdict(list)
@@ -326,7 +247,7 @@ def balance_dataset(
             for _ in range(deficit):
                 seed_entry = rng.choice(entries)
                 new_entry = _augment_triangulation(
-                    seed_entry, dimension, n_moves, rng=rng
+                    seed_entry, n_moves, rng=rng
                 )
                 aug_counter[name] += 1
                 new_entry["id"] = (
@@ -342,8 +263,8 @@ def balance_dataset(
 
         # find all names that could exist via topology changes
         all_possible_names = set(current_counts.keys())
-        all_possible_names |= set(_TORUS_GLUE_MAP.values())
-        all_possible_names |= set(_CROSSCAP_GLUE_MAP.values())
+        all_possible_names |= set(TORUS_GLUE_MAP.values())
+        all_possible_names |= set(CROSSCAP_GLUE_MAP.values())
 
         for target_name in all_possible_names:
             current = current_counts.get(target_name, 0)
@@ -372,7 +293,7 @@ def balance_dataset(
                 )
                 # also apply some Pachner moves for diversity
                 augmented = _augment_triangulation(
-                    new_entry, dimension, n_moves, rng=rng
+                    new_entry, n_moves, rng=rng
                 )
                 augmented["id"] = new_entry["id"]
                 result.append(augmented)
@@ -445,7 +366,7 @@ def balance_dataset(
             for _ in range(n_removed):
                 seed_entry = rng.choice(originals)
                 new_entry = _augment_triangulation(
-                    seed_entry, dimension, n_moves, rng=rng
+                    seed_entry, n_moves, rng=rng
                 )
                 aug_counter[name] += 1
                 new_entry["id"] = (
@@ -460,28 +381,3 @@ def balance_dataset(
 
     return result
 
-
-def print_statistics(dataset):
-    """Print per-class statistics of a dataset.
-
-    Parameters
-    ----------
-    dataset : list of dict
-        Dataset entries.
-    """
-    class_entries = defaultdict(list)
-    for entry in dataset:
-        class_entries[entry["name"]].append(entry)
-
-    print(
-        f"{'Class':<30} {'Count':>8} {'Min V':>8} {'Mean V':>8} {'Max V':>8}"
-    )
-    print("-" * 56)
-    for name in sorted(class_entries.keys()):
-        entries = class_entries[name]
-        nverts = [e["n_vertices"] for e in entries]
-        print(
-            f"{name:<30} {len(entries):>8} "
-            f"{min(nverts):>8} {round(np.mean(nverts),2):>8} {max(nverts):>8}"
-        )
-    print(f"\nTotal: {len(dataset)}")
