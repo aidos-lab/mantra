@@ -1,5 +1,5 @@
 from itertools import combinations
-from typing import List, Optional, Tuple
+from typing import Optional, Tuple
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -32,12 +32,14 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_hasse_diagram(top_simplices, data)
-        group_node_attrs: Optional[List[str]] = (
-            None
-            if self.feature_propagation is None
-            else [self.feature_propagation]
-        )
-        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
+
+        print(nx.get_node_attributes(G, self.feature_propagation))
+        if self.feature_propagation:
+            data_ = from_networkx(
+                G, group_node_attrs=[self.feature_propagation]
+            )
+        else:
+            data_ = from_networkx(G)
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
@@ -65,7 +67,7 @@ class HasseDiagram(BaseTransform):
             The `Graph` object used to construct the Hasse diagram.
         k_simplex : Tuple[Int]
             The tuple of vertices representing a k-simplex.
-        Returuns
+        Returns
         --------
         None
 
@@ -78,19 +80,24 @@ class HasseDiagram(BaseTransform):
         k_minus_1_simplices.sort()
         k_minus_1_simplices.sort(key=len)
 
+        # For each k-1 simplex
         for i, k_simp in enumerate(k_minus_1_simplices):
-
             k_simp = tuple(k_simp)
             extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
-            if self.feature_propagation is not None:
-                extra_attr_dict[self.feature_propagation] = data[
-                    self.feature_propagation
-                ][len(k_simp) - 1][i]
+
+            # NOTE: A bit of an ugly patch, could come up with a better solutin
+            if self.feature_propagation:
+                vtx_feat_str = f"{self.feature_propagation}_{len(k_simp)-1}"
+                feat_vtx_tensor = getattr(data, vtx_feat_str)
+                # Get's the i-th tensor from the feature tensor
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
+
             G.add_node(k_simp, **extra_attr_dict)
             new_nodes.append(k_simp)
 
             self._build_connecting_lower_simplices(G, data, k_simp)
 
+        # TODO: What does edge_features look like in this case ?
         for new_node in new_nodes:
             G.add_edge(k_simplex, new_node)
 
@@ -115,10 +122,12 @@ class HasseDiagram(BaseTransform):
 
         for i, top_simp in enumerate(top_simplices):
             extra_attr_dict = {"simplex": [sim - 1 for sim in top_simp]}
-            if self.feature_propagation is not None:
-                extra_attr_dict[self.feature_propagation] = data[
-                    self.feature_propagation
-                ][len(top_simp) - 1][i]
+
+            if self.feature_propagation:
+                vtx_feat_str = f"{self.feature_propagation}_{len(top_simp)-1}"
+                feat_vtx_tensor = getattr(data, vtx_feat_str)
+                # Get's the i-th tensor from the feature tensor
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
             G.add_node(top_simp, **extra_attr_dict)
             self._build_connecting_lower_simplices(G, data, top_simp)
 
