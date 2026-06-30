@@ -242,21 +242,8 @@ class MomentCurveEmbedding(BaseTransform):
             Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
-        # NOTE:: This fixes the case where we already performed a mapping from a
-        # simplicial complex to a graph and want to get an embedding for
-        # whatever the nodes are, however this leaves open
-        # the case where we might want to embedding the simplicial complex
-        # and then map the embedding through the conversion
-        if self.propagate:
-            assert (
-                "triangulation" in data
-            ), "Data object must contain `triangulation` to perform propagation"
-            data["moment_curve_embedding"] = _propagate_values(
-                X, data["triangulation"]
-            )
-        else:
-            data["moment_curve_embedding"] = torch.from_numpy(X).to(
-                torch.float32
-            )
+        data["moment_curve_embedding"] = torch.from_numpy(X).to(
+            torch.float32
+        )
 
         return data
