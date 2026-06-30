@@ -344,8 +344,11 @@ def guess_name(triangulation):
     else:
         expected_betti_numbers = [1, g - 1, 0]
         expected_torsion_coefficients = ["", "Z_2", ""]
-
-        name = f"#^{g:d} RP^2"
+        # The Klein bottle is homeomorphic to the connected sum of two RP^2
+        if g == 2:
+            name = "Klein bottle"
+        else:
+            name = f"#^{g:d} RP^2"
 
     # We always check Betti numbers because every triangulation is
     # guaranteed to have it.
