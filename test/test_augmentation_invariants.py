@@ -217,7 +217,9 @@ class TestTopologyChangeMetadataConsistency:
 
     @staticmethod
     def assert_consistent(out):
-        chi = Triangulation.from_list(out["triangulation"]).euler_characteristic()
+        chi = Triangulation.from_list(
+            out["triangulation"]
+        ).euler_characteristic()
         b0, b1, b2 = out["betti_numbers"]
         assert chi == b0 - b1 + b2
         orientable = is_orientable(out["triangulation"])
@@ -237,7 +239,9 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": True,
             "genus": 0,
         }
-        out = _augment_with_topology_change(entry, glue_type='torus', rng=random.Random(42))
+        out = _augment_with_topology_change(
+            entry, glue_type="torus", rng=random.Random(42)
+        )
         self.assert_consistent(out)
 
     def test_rp2_to_klein_bottle(self):
@@ -251,7 +255,7 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, glue_type='crosscap', rng=random.Random(42)
+            entry, glue_type="crosscap", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -266,7 +270,7 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, glue_type='torus', rng=random.Random(42)
+            entry, glue_type="torus", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -284,7 +288,7 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 2,
         }
         out = _augment_with_topology_change(
-            entry, glue_type='crosscap', rng=random.Random(42)
+            entry, glue_type="crosscap", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -382,7 +386,5 @@ class TestVertexLabeling:
             "n_vertices": 4,
             "triangulation": [list(s) for s in SPHERE],
         }
-        out = _augment_triangulation(
-            entry, n_moves=8, rng=random.Random(42)
-        )
+        out = _augment_triangulation(entry, n_moves=8, rng=random.Random(42))
         assert_canonical_labels(out["triangulation"], out["n_vertices"])

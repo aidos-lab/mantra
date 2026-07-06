@@ -76,7 +76,9 @@ class TestMove32:
         assert t._simplices == fsets(TWO_TETS_SHARED_FACE)
 
     def test_random_success(self):
-        t = Triangulation.from_list(THREE_TETS_SHARED_EDGE, rng=random.Random(0))
+        t = Triangulation.from_list(
+            THREE_TETS_SHARED_EDGE, rng=random.Random(0)
+        )
         assert t.move_3_2() is True
 
     def test_random_no_candidate_single_tet(self):
@@ -110,7 +112,9 @@ class TestMove41:
         assert t._simplices == {frozenset({1, 2, 3, 4})}
 
     def test_random_success(self):
-        t = Triangulation.from_list(FOUR_TETS_SHARED_VERTEX, rng=random.Random(0))
+        t = Triangulation.from_list(
+            FOUR_TETS_SHARED_VERTEX, rng=random.Random(0)
+        )
         assert t.move_4_1() is True
 
     def test_random_no_candidate_single_tet(self):

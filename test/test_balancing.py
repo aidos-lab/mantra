@@ -11,7 +11,6 @@ from mantra.augmentations.balancing import (
     balance_dataset,
 )
 
-
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
 # A closed-ish 3D seed: two tetrahedra sharing a face.
 TET_PAIR = [[1, 2, 3, 4], [1, 2, 3, 5]]
@@ -30,13 +29,10 @@ def sphere_entry(id="s0", name="S^2", nv=4, **extra):
     return e
 
 
-
 class TestAugmentTriangulation:
     def test_2d_returns_new_entry(self):
         entry = sphere_entry()
-        out = _augment_triangulation(
-            entry, n_moves=3, rng=random.Random(0)
-        )
+        out = _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
         assert isinstance(out["triangulation"], list)
         assert out["n_vertices"] == len(
             {v for s in out["triangulation"] for v in s}
@@ -45,9 +41,7 @@ class TestAugmentTriangulation:
     def test_does_not_mutate_input(self):
         entry = sphere_entry()
         before = [list(s) for s in entry["triangulation"]]
-        _augment_triangulation(
-            entry, n_moves=3, rng=random.Random(0)
-        )
+        _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
         assert entry["triangulation"] == before
 
     def test_3d_path(self):
@@ -57,16 +51,16 @@ class TestAugmentTriangulation:
             "n_vertices": 5,
             "triangulation": [list(s) for s in TET_PAIR],
         }
-        out = _augment_triangulation(
-            entry, n_moves=3, rng=random.Random(0)
-        )
+        out = _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
         assert isinstance(out["triangulation"], list)
 
 
 class TestAugmentWithTopologyChange:
     def test_torus_glue_with_genus(self):
         entry = sphere_entry(name="S^2", genus=0)
-        out = _augment_with_topology_change(entry, "torus", rng=random.Random(0))
+        out = _augment_with_topology_change(
+            entry, "torus", rng=random.Random(0)
+        )
         assert out["name"] == "T^2"
         assert out["genus"] == 1
         assert out["betti_numbers"] == [1, 2, 1]
@@ -74,7 +68,9 @@ class TestAugmentWithTopologyChange:
     def test_torus_glue_without_genus_key(self):
         entry = sphere_entry(name="S^2")
         entry.pop("genus", None)
-        out = _augment_with_topology_change(entry, "torus", rng=random.Random(0))
+        out = _augment_with_topology_change(
+            entry, "torus", rng=random.Random(0)
+        )
         assert "genus" not in out
 
     def test_torus_glue_nonorientable_genus(self):
@@ -120,6 +116,7 @@ class TestAugmentWithTopologyChange:
         )
         assert "genus" not in out
 
+
 class TestFindTopologySources:
     def test_torus_and_empty_and_nonmatching(self):
         class_entries = {
@@ -134,6 +131,7 @@ class TestFindTopologySources:
         class_entries = {"S^2": [sphere_entry(name="S^2")]}
         # S^2 + crosscap -> RP^2.
         assert _find_topology_sources("RP^2", class_entries)[0][0] == "S^2"
+
 
 class TestBalanceDatasetCore:
     def test_oversamples_small_class(self):
