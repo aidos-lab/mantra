@@ -5,8 +5,8 @@ from collections import defaultdict
 from itertools import combinations
 from abc import ABC, abstractmethod
 
-from constants import _RP2_TRIANGULATION_MINUS_FACE, _TORUS_TRIANGULATION_MINUS_FACE
 
+from mantra.augmentations.constants import TORUS_TRIANGULATION_MINUS_FACE, RP2_TRIANGULATION_MINUS_FACE
 
 class Triangulation(ABC):
     """Mutable triangulation stored as a set of frozensets.
@@ -237,7 +237,7 @@ class Triangulation2D(Triangulation):
 
         return True
 
-    def glue_torus(self, triangle=None):
+    def _glue_torus(self, triangle=None):
         """Connected sum with a torus (increases genus by 1).
 
         Removes a triangle and glues in a torus with one triangle
@@ -260,11 +260,11 @@ class Triangulation2D(Triangulation):
 
         return self._glue_surface(
             triangle,
-            _TORUS_TRIANGULATION_MINUS_FACE,
+            TORUS_TRIANGULATION_MINUS_FACE,
             n_new_vertices=4,
         )
 
-    def glue_crosscap(self, triangle=None):
+    def _glue_crosscap(self, triangle=None):
         """Connected sum with RP^2 (adds one crosscap).
 
         Removes a triangle and glues in an RP^2 with one triangle
@@ -286,9 +286,32 @@ class Triangulation2D(Triangulation):
 
         return self._glue_surface(
             triangle,
-            _RP2_TRIANGULATION_MINUS_FACE,
+            RP2_TRIANGULATION_MINUS_FACE,
             n_new_vertices=3,
         )
+    def glue(self, glue_with, triangle=None):
+        """Glue a surface to this triangulation.
+
+        Parameters
+        ----------
+        glue_with : str
+            Name of the surface to glue.
+        triangle : frozenset of int or None
+            Triangle to remove for gluing. If None, a random triangle
+            is chosen.
+
+        Returns
+        -------
+        dict
+            Metadata updates.
+        """
+
+        assert glue_with in ["torus", "crosscap"], "Can only glue with 'torus' or 'crosscap'."
+
+        if glue_with == "torus":
+            return self._glue_torus(triangle)
+        else:
+            return self._glue_crosscap(triangle)
 
     def _glue_surface(self, triangle, surface_triangles, n_new_vertices):
         """Glue a surface-minus-face to this triangulation.
