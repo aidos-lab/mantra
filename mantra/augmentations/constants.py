@@ -59,3 +59,38 @@ BETTI_NUMBERS = {
     "#^7 RP^2": [1, 6, 0],
     "#^8 RP^2": [1, 7, 0],
 }
+
+#TODO:  Make a formula for this
+# Minimal triangulation of the torus (7 vertices, 14 triangles).
+# Removing triangle {1, 2, 3} leaves 13 triangles with boundary {1,2,3}.
+TORUS_TRIANGULATION_MINUS_FACE = [
+    [1, 2, 4],
+    [1, 3, 5],
+    [1, 4, 6],
+    [1, 5, 7],
+    [1, 6, 7],
+    [2, 3, 6],
+    [2, 4, 7],
+    [2, 5, 6],
+    [2, 5, 7],
+    [3, 4, 5],
+    [3, 4, 7],
+    [3, 6, 7],
+    [4, 5, 6],
+]
+
+# Minimal triangulation of RP^2 (6 vertices, 10 triangles).
+# This is the hemicosahedron. Removing triangle {1, 2, 3} leaves
+# 9 triangles with boundary vertices {1, 2, 3} and interior
+# vertices {4, 5, 6}.
+RP2_TRIANGULATION_MINUS_FACE = [
+    [1, 2, 4],
+    [1, 3, 6],
+    [1, 4, 5],
+    [1, 5, 6],
+    [2, 3, 5],
+    [2, 4, 6],
+    [2, 5, 6],
+    [3, 4, 5],
+    [3, 4, 6],
+]
