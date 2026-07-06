@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Manifold2Type(Enum):
     """
     This represents the underlying 2-manifold type,
@@ -8,6 +9,7 @@ class Manifold2Type(Enum):
     The members enumerate every closed-surface homeomorphism type that
     occurs in the MANTRA 2-manifold dataset.
     """
+
     # Orientable surfaces: connected sums of tori, ordered by genus.
     S_2 = "S^2"
     T_2 = "T^2"
@@ -34,6 +36,7 @@ class Manifold2Type(Enum):
     P15_RP_2 = "#^15 RP^2"
     P16_RP_2 = "#^16 RP^2"
     P17_RP_2 = "#^17 RP^2"
+
 
 class Manifold3Type(Enum):
     """

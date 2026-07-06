@@ -1,12 +1,15 @@
 """Base class for mutable triangulation data structures."""
 
 import random
+from abc import ABC
 from collections import defaultdict
 from itertools import combinations
-from abc import ABC, abstractmethod
 
+from mantra.augmentations.constants import (
+    RP2_TRIANGULATION_MINUS_FACE,
+    TORUS_TRIANGULATION_MINUS_FACE,
+)
 
-from mantra.augmentations.constants import TORUS_TRIANGULATION_MINUS_FACE, RP2_TRIANGULATION_MINUS_FACE
 
 class Triangulation(ABC):
     """Mutable triangulation stored as a set of frozensets.
@@ -29,7 +32,7 @@ class Triangulation(ABC):
         self._rng = rng if rng is not None else random
 
     @staticmethod
-    def from_list(triangulation, rng=None) -> 'Triangulation':
+    def from_list(triangulation, rng=None) -> "Triangulation":
         """Construct a triangulation from a list of lists.
 
         Parameters
@@ -52,6 +55,7 @@ class Triangulation(ABC):
             return Triangulation3D(triangulation, rng=rng)
         else:
             raise ValueError(f"Unsupported dimension: {dim}")
+
     @property
     def n_vertices(self):
         """Return the number of distinct vertices."""
@@ -150,6 +154,7 @@ class Triangulation(ABC):
                     f"Face {set(face)} has {len(cofaces)} cofaces, "
                     f"expected 2 for a closed manifold."
                 )
+
 
 class Triangulation2D(Triangulation):
     """Mutable 2D triangulation supporting Pachner moves.
@@ -289,6 +294,7 @@ class Triangulation2D(Triangulation):
             RP2_TRIANGULATION_MINUS_FACE,
             n_new_vertices=3,
         )
+
     def glue(self, glue_with, triangle=None):
         """Glue a surface to this triangulation.
 
@@ -306,7 +312,10 @@ class Triangulation2D(Triangulation):
             Metadata updates.
         """
 
-        assert glue_with in ["torus", "crosscap"], "Can only glue with 'torus' or 'crosscap'."
+        assert glue_with in [
+            "torus",
+            "crosscap",
+        ], "Can only glue with 'torus' or 'crosscap'."
 
         if glue_with == "torus":
             return self._glue_torus(triangle)
@@ -365,6 +374,7 @@ class Triangulation2D(Triangulation):
         moves = [self.flip_edge, self.subdivide]
         move = self._rng.choices(moves, weights=weights, k=1)[0]
         return move()
+
 
 class Triangulation3D(Triangulation):
     """Mutable 3D triangulation supporting Pachner moves.

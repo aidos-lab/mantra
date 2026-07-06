@@ -1,4 +1,3 @@
-
 # Mapping from 2D manifold names to the name after gluing a torus.
 # Based on the classification of closed surfaces:
 # - Orientable genus g -> genus g+1
@@ -11,7 +10,6 @@ TORUS_GLUE_MAP = {
     "#^4 T^2": "#^5 T^2",
     "#^5 T^2": "#^6 T^2",
     "#^6 T^2": "#^7 T^2",
-
     # Non-orientable: torus + k crosscaps = k+2 crosscaps
     "RP^2": "#^3 RP^2",
     "Klein bottle": "#^4 RP^2",
@@ -60,7 +58,7 @@ BETTI_NUMBERS = {
     "#^8 RP^2": [1, 7, 0],
 }
 
-#TODO:  Make a formula for this
+# TODO:  Make a formula for this
 # Minimal triangulation of the torus (7 vertices, 14 triangles).
 # Removing triangle {1, 2, 3} leaves 13 triangles with boundary {1,2,3}.
 TORUS_TRIANGULATION_MINUS_FACE = [
