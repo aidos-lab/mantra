@@ -7,7 +7,8 @@ import seaborn as sns
 import numpy as np
 from collections import defaultdict
 
-#TODO: Looka at what this does
+
+# TODO: Looka at what this does
 def print_statistics(dataset):
     """Print per-class statistics of a dataset.
 
@@ -32,6 +33,7 @@ def print_statistics(dataset):
             f"{min(nverts):>8} {round(np.mean(nverts),2):>8} {max(nverts):>8}"
         )
     print(f"\nTotal: {len(dataset)}")
+
 
 if __name__ == "__main__":
     with open(sys.argv[1]) as f:
