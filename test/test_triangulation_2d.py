@@ -2,12 +2,12 @@
 
 import random
 
-from mantra.augmentations.triangulation import (
-    Triangulation,
-)
 from mantra.augmentations.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
+)
+from mantra.augmentations.triangulation import (
+    Triangulation,
 )
 
 # Two triangles sharing edge {2, 3}; the only flippable edge.
