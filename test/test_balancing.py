@@ -1,6 +1,7 @@
 """Tests for ``mantra.augmentations.balancing``."""
 
 import random
+
 import pytest
 
 from mantra.augmentations import balancing

@@ -69,6 +69,7 @@ class NodeRandomTransform(T.BaseTransform):
         )
         return data
 
+
 class NodeDegreeTransform(T.BaseTransform):
     """
     Add degrees of nodes as features in `degree`.
