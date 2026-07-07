@@ -37,26 +37,25 @@ import argparse
 import json
 import os
 import random
+from mantra.augmentations import Triangulation
 from collections import Counter, defaultdict
 
-from mantra.subdivision import (
-    barycentric_stellar_graded,
-    barycentric_subdivision_raw,
-    stellar_subdivision_raw,
-)
 
-_SUBDIVISION_FUNCTIONS = {
-    "stellar": stellar_subdivision_raw,
-    "full_barycentric": barycentric_subdivision_raw,
-    "graded": barycentric_stellar_graded,
-}
+SUBDIVISION_FUNCTIONS = [
+    "stellar",
+    "barycentric",
+    "graded", 
+]
 
 
 def _subdivide_entry(entry, mode, fraction=1.0, rng=None):
     """Subdivide a single dataset entry, returning a new entry."""
-    fn = _SUBDIVISION_FUNCTIONS[mode]
+    fn_str = f"{SUBDIVISION_FUNCTIONS[mode]}_subdivision"
+    triangle = Triangulation.from_list(entry["triangulation"], rng=rng)
+    # Subdivision function
+    fn = getattr(triangle, fn_str)
     if mode == "stellar":
-        tri, n_v = fn(entry["triangulation"], fraction=fraction, rng=rng)
+        tri, n_v = fn(fraction=fraction, rng=rng)
     elif mode == "graded":
         tri, n_v = fn(entry["triangulation"], over_vrtx_cnt=fraction, rng=rng)
     else:
@@ -72,43 +71,6 @@ def subdivide_once(entries, mode, fraction=1.0, rng=None):
     return [
         _subdivide_entry(e, mode, fraction=fraction, rng=rng) for e in entries
     ]
-
-
-def _level_tag(level):
-    """Format a level for the output key: integers as '1', fractions as '0.5'."""
-    return f"{level:g}"
-
-
-def filter_by_class_count(entries, label_source, min_count):
-    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times."""
-    if min_count <= 0:
-        return entries, Counter()
-    counts = Counter(e[label_source] for e in entries)
-    kept_labels = {lbl for lbl, c in counts.items() if c > min_count}
-    filtered = [e for e in entries if e[label_source] in kept_labels]
-    return filtered, counts
-
-
-def print_statistics(dataset, label_source="name"):
-    """Print per-class n_vertices statistics for a list of entries."""
-    class_entries = defaultdict(list)
-    for entry in dataset:
-        class_entries[entry[label_source]].append(entry)
-
-    print(
-        f"{'Class':<30} {'Count':>8} {'Min V':>8} {'Mean V':>8} {'Max V':>8}"
-    )
-    print("-" * 64)
-    for name in sorted(class_entries.keys()):
-        entries = class_entries[name]
-        nverts = [e["n_vertices"] for e in entries]
-        mean_v = sum(nverts) / len(nverts)
-        print(
-            f"{str(name):<30} {len(entries):>8} "
-            f"{min(nverts):>8} {mean_v:>8.2f} {max(nverts):>8}"
-        )
-    print(f"\nTotal: {len(dataset)}")
-
 
 def _resolve_levels(mode, n_levels):
     """Validate ``n_levels`` for ``mode`` and resolve the level parameters.
@@ -177,10 +139,10 @@ def generate_levels(
         Mapping from an output key (e.g. ``"bary_1"`` or ``"graded_n12"``) to
         the list of subdivided entries for that level, in generation order.
     """
-    if mode not in _SUBDIVISION_FUNCTIONS:
+    if mode not in SUBDIVISION_FUNCTIONS:
         raise ValueError(
             f"Unknown subdivision mode {mode!r}; expected one of "
-            f"{sorted(_SUBDIVISION_FUNCTIONS)}"
+            f"{sorted(SUBDIVISION_FUNCTIONS)}"
         )
 
     fractional, n_full_levels, fraction = _resolve_levels(mode, n_levels)
@@ -294,7 +256,7 @@ def main(argv=None):
     parser.add_argument(
         "--mode",
         default="full_barycentric",
-        choices=sorted(_SUBDIVISION_FUNCTIONS),
+        choices=sorted(SUBDIVISION_FUNCTIONS),
     )
     parser.add_argument(
         "--n-levels",

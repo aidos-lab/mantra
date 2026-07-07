@@ -1,4 +1,5 @@
 import requests
+from collections import Counter
 
 
 def _get_mantra_dataset_url(
@@ -31,3 +32,12 @@ def _get_mantra_dataset_url(
     # Note that the URL order is different and thus inconsistent for a
     # specific release.
     return f"https://github.com/aidos-lab/MANTRA/releases/download/{version}/{filename}"  # noqa
+
+def filter_by_class_count(entries, label_source, min_count):
+    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times."""
+    if min_count <= 0:
+        return entries, Counter()
+    counts = Counter(e[label_source] for e in entries)
+    kept_labels = {lbl for lbl, c in counts.items() if c > min_count}
+    filtered = [e for e in entries if e[label_source] in kept_labels]
+    return filtered, counts
