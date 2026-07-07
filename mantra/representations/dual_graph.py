@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
-from typing import List, Optional
+from typing import Optional
 
 import networkx as nx
 from torch_geometric.transforms import BaseTransform
@@ -26,6 +26,7 @@ class DualGraph(BaseTransform):
             Adjusted data object with all keys maintained and an `edge_index`
             tensor for representing the dual graph being present.
         """
+        assert "dimension" in data
         top_simplices = list(
             set([tuple(s) for s in data["triangulation"]])
         )  # Guarantee the ordering
@@ -34,12 +35,16 @@ class DualGraph(BaseTransform):
         top_simplices.sort(key=len)
 
         G = self._build_dual_graph(data, top_simplices)
-        group_node_attrs: Optional[List[str]] = (
-            None
-            if self.feature_propagation is None
-            else [self.feature_propagation]
-        )
-        data_ = from_networkx(G, group_node_attrs=group_node_attrs)
+
+        # Here we assign the same name to nodes and edges
+        if self.feature_propagation:
+            data_ = from_networkx(
+                G,
+                group_node_attrs=[self.feature_propagation],
+                group_edge_attrs=[self.feature_propagation],
+            )
+        else:
+            data_ = from_networkx(G)
 
         # Copy information from smaller `data_` object to the original
         # `data` tensor. This operates under the assumption that keys
@@ -83,18 +88,45 @@ class DualGraph(BaseTransform):
         # Every node in the graph corresponds to a top-level simplex.
         for i, s in enumerate(top_simplices):
             extra_attr_dict = {"simplex": [sim - 1 for sim in s]}
-            if self.feature_propagation is not None:
-                extra_attr_dict[self.feature_propagation] = data[
-                    self.feature_propagation
-                ][len(s) - 1][i]
             G.add_node(
                 i, **extra_attr_dict
             )  # -1 to convert 1-index to 0-indexed
+
+        # This is a helper in case we need it later for
+        # feature propagation
+        edge_tuples = []
 
         # Add an edge to connect all cofaces. Notice that we implicitly only
         # ever consider valid cofaces, i.e., list of length at least two.
         for face, cofaces in face_to_cofaces.items():
             for a, b in combinations(sorted(cofaces), 2):
                 G.add_edge(a, b)
+                edge_tuples.append((a, b))
 
+        # Here we do an extra step to assign features to the simplices
+        if self.feature_propagation:
+            # Extract the correct strings for feature propagation
+            feat_vtx_str = f"{self.feature_propagation}_{m-1}"
+            feat_edge_str = f"{self.feature_propagation}_{m-2}"
+
+            vtx_feat_tensor = getattr(data, feat_vtx_str)
+            edge_feat_tensor = getattr(data, feat_edge_str)
+
+            vtx_feat_dict = {
+                i: vtx_feat_tensor[i] for i in range(vtx_feat_tensor.shape[0])
+            }
+
+            # For edges this is a bit more complicated since we need the edge tuples
+            # here we assume that they are oredered lexicographically
+            edge_feat_dict = {
+                t: edge_feat_tensor[i] for i, t in enumerate(edge_tuples)
+            }
+
+            # Here we just set it
+            nx.set_node_attributes(
+                G, values=vtx_feat_dict, name=self.feature_propagation
+            )
+            nx.set_edge_attributes(
+                G, values=edge_feat_dict, name=self.feature_propagation
+            )
         return G
