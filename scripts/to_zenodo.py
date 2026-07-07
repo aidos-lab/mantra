@@ -1,7 +1,8 @@
-import requests
-from typing import Optional
-import json
 import argparse
+import json
+from typing import Optional
+
+import requests
 
 ZENODO_BASE_URL = "https://zenodo.org/api"
 
