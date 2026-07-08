@@ -20,7 +20,7 @@ from mantra.augmentations.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
 )
-from mantra.augmentations.triangulation import Triangulation
+from mantra.augmentations.triangulation import Triangulation, Triangulation2D
 
 # Boundary of a tetrahedron: the minimal 2-sphere (chi = 2).
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -202,8 +202,6 @@ class TestGlueInvariants:
     def test_glue_then_pachner_moves_keep_invariants(self):
         # The balancing pipeline applies Pachner moves on top of a
         # topology change; the homeomorphism type must survive both.
-        t = Triangulation2D(SPHERE, rng=random.Random(7))
-        t.glue_torus()
         t = Triangulation.from_list(SPHERE, rng=random.Random(42))
         t.glue("torus")
         for _ in range(10):
@@ -242,7 +240,6 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": True,
             "genus": 0,
         }
-        out = _augment_with_topology_change(entry, "T^2", rng=random.Random(0))
         out = _augment_with_topology_change(
             entry, glue_type="torus", rng=random.Random(42)
         )
@@ -259,7 +256,6 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, "Klein bottle", rng=random.Random(0)
             entry, glue_type="crosscap", rng=random.Random(42)
         )
         self.assert_consistent(out)
@@ -275,14 +271,11 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 1,
         }
         out = _augment_with_topology_change(
-            entry, "#^3 RP^2", rng=random.Random(0)
             entry, glue_type="torus", rng=random.Random(42)
         )
         self.assert_consistent(out)
 
     def test_klein_bottle_to_4_crosscaps(self):
-        builder = Triangulation2D(RP2, rng=random.Random(0))
-        builder.glue_crosscap()
         builder = Triangulation.from_list(RP2, rng=random.Random(42))
         builder.glue("crosscap")
         klein = builder.to_list()
@@ -296,7 +289,6 @@ class TestTopologyChangeMetadataConsistency:
             "genus": 2,
         }
         out = _augment_with_topology_change(
-            entry, "#^4 RP^2", rng=random.Random(0)
             entry, glue_type="crosscap", rng=random.Random(42)
         )
         self.assert_consistent(out)
@@ -304,7 +296,6 @@ class TestTopologyChangeMetadataConsistency:
 
 class Test3DPachnerInvariants:
     def test_move_f_vector_deltas(self):
-        t = Triangulation3D(S3)
         t = Triangulation.from_list(S3, rng=random.Random(42))
         assert t.f_vector() == (5, 10, 10, 5)
         assert t.euler_characteristic() == 0
@@ -324,7 +315,6 @@ class Test3DPachnerInvariants:
     def test_inverse_moves_restore_the_sphere(self):
         # 1-4 / 2-3 followed by their inverses 3-2 / 4-1 give back the
         # boundary of the 4-simplex exactly.
-        t = Triangulation3D(S3)
         t = Triangulation.from_list(S3, rng=random.Random(42))
         original = set(t._simplices)
 
@@ -339,7 +329,6 @@ class Test3DPachnerInvariants:
         assert set(t._simplices) == original
 
     def test_random_walk_preserves_invariants(self):
-        t = Triangulation3D(S3, rng=random.Random(42))
         t = Triangulation.from_list(S3, rng=random.Random(42))
         for _ in range(20):
             assert t.random_pachner_move() is True
@@ -362,7 +351,6 @@ def assert_canonical_labels(tri_list, expected_n_vertices):
 
 class TestVertexLabeling:
     def test_to_list_canonical_after_random_2d_moves(self):
-        t = Triangulation2D(TORUS, rng=random.Random(3))
         t = Triangulation.from_list(TORUS, rng=random.Random(42))
         for _ in range(15):
             t.random_pachner_move()
@@ -372,7 +360,6 @@ class TestVertexLabeling:
         # Subdivide twice (vertices 6 and 7), then collapse vertex 6:
         # the internal label space now has a gap at 6, which to_list
         # must compact back to 1..6 without altering the complex.
-        t = Triangulation3D(S3)
         t = Triangulation.from_list(S3, rng=random.Random(42))
         assert t.move_1_4(frozenset({1, 2, 3, 4})) is True
         assert t.move_1_4(frozenset({1, 2, 3, 5})) is True
@@ -381,10 +368,10 @@ class TestVertexLabeling:
         exported = t.to_list()
         assert_canonical_labels(exported, 6)
         # relabeling must not change the combinatorial structure
-        assert Triangulation3D(exported).f_vector() == t.f_vector()
+        assert Triangulation.from_list(exported).f_vector() == t.f_vector()
 
     def test_glue_allocates_fresh_vertex_labels(self):
-        t = Triangulation2D(SPHERE)
+        t = Triangulation.from_list(SPHERE)
         t.glue_torus(frozenset({1, 2, 3}))
         assert Triangulation.from_list(exported).f_vector() == t.f_vector()
 
@@ -405,8 +392,5 @@ class TestVertexLabeling:
             "n_vertices": 4,
             "triangulation": [list(s) for s in SPHERE],
         }
-        out = _augment_triangulation(
-            entry, dimension=2, n_moves=8, rng=random.Random(0)
-        )
         out = _augment_triangulation(entry, n_moves=8, rng=random.Random(42))
         assert_canonical_labels(out["triangulation"], out["n_vertices"])
