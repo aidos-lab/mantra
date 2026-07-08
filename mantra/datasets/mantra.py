@@ -1,41 +1,52 @@
+"""Datasets module
+This module contains datasets describing triangulations of manifolds,
+following the API of `pytorch-geometric`.
+"""
+
+import abc
+import json
 import os
 import shutil
 
 from torch_geometric.data import (
-    download_url,
-    extract_gz,
+    Data,
+    InMemoryDataset,
 )
+from tqdm import tqdm
 
-from mantra.datasets.base import ManifoldTriangulations
+<<<<<<<< HEAD:mantra/datasets/base.py
+
+class ManifoldTriangulations(InMemoryDataset, abc.ABC):
+========
 from mantra.datasets.utils import _get_mantra_dataset_url
 
 
-class MANTRA(ManifoldTriangulations):
-    """Dataset of manifold triangulations from the MANTRA benchmark."""
+class ManifoldTriangulations(InMemoryDataset):
+>>>>>>>> main:mantra/datasets/mantra.py
+    """Base class for storing manifold triangulations."""
 
     def __init__(
         self,
         root,
-        dimension=2,
         version="latest",
-        balanced=False,
+        dimension=2,
         name=None,
+<<<<<<<< HEAD:mantra/datasets/base.py
+========
+        balanced=False,
+>>>>>>>> main:mantra/datasets/mantra.py
         local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
+        seed=42,
     ):
         """
         Create a new dataset of manifold triangulations.
 
         Parameters
         ----------
-        dimension : int
-            Dimension of manifold triangulations to load. Currently, only
-            2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
-            and 3-manifolds, respectively.
-
         version : str
             Version of the dataset to use. The version should correspond to a
             released version of the dataset, all of which can be found
@@ -43,13 +54,15 @@ class MANTRA(ManifoldTriangulations):
             By default, the latest version will be downloaded. Unless
             specific reproducibility requirements are to be met, using
             `latest` is recommended.
-
+        dimension : int
+            Dimension of manifold triangulations to load. Currently, only
+            2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
+            and 3-manifolds, respectively.
         balanced : bool
             If True, download the balanced variant of the dataset.
             Balanced datasets have been augmented via Pachner moves
             so that all manifold classes have roughly equal
             representation and vertex count distributions.
-
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -64,32 +77,51 @@ class MANTRA(ManifoldTriangulations):
 
             As a suggestion the name should not include any spaces, thus
             making it easier to parse for the OS.
+<<<<<<<< HEAD:mantra/datasets/base.py
 
+========
+>>>>>>>> main:mantra/datasets/mantra.py
         local_path : str or None
             If set, use a local JSON file instead of downloading from
             GitHub. The file will be copied into the raw directory.
             Useful for testing locally generated datasets.
+<<<<<<<< HEAD:mantra/datasets/base.py
         """
-        assert dimension in [2, 3]
-
-        self.dimension = dimension
-        self.balanced = balanced
+        self.name = name
         self.version = version
-
+        self.local_path = os.path.abspath(local_path) if local_path else None
+========
+        seed : int
+            Seed for generating additional triangulations or augmentations.
+        """
+        assert dimension in [2, 3], "Dimension can only be 2 or 3"
+        self.version = version
+        self.seed = seed
+        self.balanced = balanced
+        self.name = name
+        self.dimension = dimension
+        self.version = version
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.url = _get_mantra_dataset_url(version, dimension, balanced)
+>>>>>>>> main:mantra/datasets/mantra.py
+
+        root += self._add_version_to_root()
 
         super().__init__(
-            root,
-            version,
-            name,
-            local_path,
-            transform,
-            pre_transform,
-            pre_filter,
-            force_reload,
+            root=root,
+            transform=transform,
+            pre_transform=pre_transform,
+            pre_filter=pre_filter,
+            force_reload=force_reload,
         )
 
+        self.load(self.processed_paths[0])
+
+<<<<<<<< HEAD:mantra/datasets/base.py
+    @abc.abstractmethod
+    def _add_version_to_root(self):
+        """Return the dataset-specific suffix appended to the root path."""
+========
     def _add_version_to_root(self):
         if self.version == "latest":
             return f"/mantra/{self.dimension}D"
@@ -104,9 +136,25 @@ class MANTRA(ManifoldTriangulations):
         for downloading to be skipped. To reference raw file names, use the
         property `self.raw_paths`.
         """
-        suffix = "_balanced" if self.balanced else ""
-        return [f"{self.dimension}_manifolds{suffix}.json"]
+        return [f"{self.dimension}_manifolds.json"]
+>>>>>>>> main:mantra/datasets/mantra.py
 
+    @property
+    def processed_dir(self):
+        """Return directory for storing processed data."""
+        base_path = os.path.join(self.root, "processed")
+        balanced_suffix = "balanced" if self.balanced else "unbalanced"
+        balanced_suffix = f"{balanced_suffix}_{self.seed}"
+
+        if self.name is not None:
+            base_path = os.path.join(base_path, self.name)
+
+        base_path = os.path.join(base_path, balanced_suffix)
+
+        return base_path
+
+<<<<<<<< HEAD:mantra/datasets/base.py
+========
     @property
     def processed_file_names(self):
         """Return process file names.
@@ -114,8 +162,7 @@ class MANTRA(ManifoldTriangulations):
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        suffix = "_balanced" if self.balanced else ""
-        return [f"data_{self.dimension}{suffix}.pt"]
+        return ["full.pt"]
 
     def download(self):
         """Download dataset depending on specified version."""
@@ -126,3 +173,26 @@ class MANTRA(ManifoldTriangulations):
             path = download_url(self.url, self.raw_dir)
             extract_gz(path, self.raw_dir)
             os.unlink(path)
+
+>>>>>>>> main:mantra/datasets/mantra.py
+    def process(self):
+        """Processes dataset."""
+        with open(self.raw_paths[0]) as f:
+            inputs = json.load(f)
+
+        data_list = [Data(**el) for el in inputs]
+
+        if self.pre_filter is not None:
+            data_list = [
+                data
+                for data in tqdm(data_list, desc="Filtering")
+                if self.pre_filter(data)
+            ]
+
+        if self.pre_transform is not None:
+            data_list = [
+                self.pre_transform(data)
+                for data in tqdm(data_list, desc="Pre-transforming")
+            ]
+
+        self.save(data_list, self.processed_paths[0])

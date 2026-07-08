@@ -1,6 +1,6 @@
 """Tests for ``mantra.deduplication``."""
 
-from mantra.deduplication import (
+from mantra.utils.deduplication import (
     are_isomorphic,
     compute_degree_sequence,
     compute_edge_simplex_count_sequence,

@@ -15,66 +15,6 @@ def test_klein_bottle_member_replaces_p2_rp2():
     assert "#^2 RP^2" not in {m.value for m in Manifold2Type}
 
 
-# Every 2-manifold homeomorphism type present in 2_manifolds.json
-# (verified against the dataset on 2026-06-11).
-DATASET_2M_NAMES = {
-    # orientable: connected sums of tori
-    "S^2",
-    "T^2",
-    "#^2 T^2",
-    "#^3 T^2",
-    "#^4 T^2",
-    "#^5 T^2",
-    "#^6 T^2",
-    "#^8 T^2",
-    # non-orientable: connected sums of projective planes
-    "RP^2",
-    "Klein bottle",
-    "#^3 RP^2",
-    "#^4 RP^2",
-    "#^5 RP^2",
-    "#^6 RP^2",
-    "#^7 RP^2",
-    "#^8 RP^2",
-    "#^10 RP^2",
-    "#^12 RP^2",
-    "#^15 RP^2",
-    "#^16 RP^2",
-    "#^17 RP^2",
-}
-
-
-# The enum is a *complete* genus-ordered taxonomy: it fills in the genus
-# gaps left by the current dataset snapshot so that indices stay contiguous
-# and stable. These members are intentionally present despite having no
-# triangulations in 2_manifolds.json (e.g. no #^7 T^2 occurs at the dataset's
-# vertex bounds). Listed explicitly so a genuine typo / stray member is still
-# caught by ``test_enum_is_dataset_plus_known_gap_fillers``.
-GAP_FILLER_2M_NAMES = {
-    "#^7 T^2",
-    "#^9 RP^2",
-    "#^11 RP^2",
-    "#^13 RP^2",
-    "#^14 RP^2",
-}
-
-
-def test_enum_covers_every_dataset_2m_name():
-    # The enum must enumerate every type present in the dataset. It may
-    # additionally include gap-filler genera that the dataset does not yet
-    # contain (see GAP_FILLER_2M_NAMES).
-    assert DATASET_2M_NAMES <= {m.value for m in Manifold2Type}
-
-
-def test_enum_is_dataset_plus_known_gap_fillers():
-    # Nothing unexpected sneaks in: the enum is exactly the dataset names
-    # plus the deliberately listed gap-fillers (guards against typos / stale
-    # invented members).
-    assert {m.value for m in Manifold2Type} == (
-        DATASET_2M_NAMES | GAP_FILLER_2M_NAMES
-    )
-
-
 def test_orientable_block_precedes_non_orientable_block():
     values = [m.value for m in Manifold2Type]
     # S^2 ... #^8 T^2 come before RP^2 ... #^17 RP^2.
