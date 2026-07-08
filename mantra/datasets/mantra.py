@@ -10,9 +10,10 @@ import shutil
 from torch_geometric.data import (
     Data,
     InMemoryDataset,
+    download_url,
+    extract_gz
 )
 from tqdm import tqdm
-
 
 from mantra.datasets.utils import _get_mantra_dataset_url
 
