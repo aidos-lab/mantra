@@ -11,7 +11,7 @@ from torch_geometric.data import (
     Data,
     InMemoryDataset,
     download_url,
-    extract_gz
+    extract_gz,
 )
 from tqdm import tqdm
 
