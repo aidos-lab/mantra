@@ -4,13 +4,13 @@ import shutil
 import numpy as np
 import pyarrow.parquet as pq
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
 
-from mantra.datasets.base import ManifoldTriangulations
+from mantra.datasets import ManifoldTriangulations
 
 
-class CY(ManifoldTriangulations):
+class CY(InMemoryDataset):
     """Dataset of Calabi-Yau manifold triangulations."""
 
     def __init__(
@@ -61,14 +61,13 @@ class CY(ManifoldTriangulations):
         debug : bool
             Only load 1k triangulations for debug purposes.
         """
+        self.version = version
+        self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.debug = debug
 
         super().__init__(
             root,
-            version,
-            name,
-            local_path,
             transform,
             pre_transform,
             pre_filter,
