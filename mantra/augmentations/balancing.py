@@ -13,7 +13,7 @@ from mantra.augmentations.constants import (
     TORUS_GLUE_MAP,
 )
 from mantra.augmentations.triangulation import Triangulation
-from mantra.deduplication import find_duplicates
+from mantra.utils.deduplication import find_duplicates
 from mantra.manifold_types import Manifold2Type
 
 

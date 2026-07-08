@@ -48,6 +48,8 @@ class Triangulation(ABC):
         Triangulation
             New triangulation object.
         """
+        if not len(triangulation):
+            raise AttributeError("Cannot create empty Triangulations")
         dim = len(triangulation[0]) - 1
         if dim == 2:
             return Triangulation2D(triangulation, rng=rng)
