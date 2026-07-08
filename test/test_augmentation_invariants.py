@@ -20,7 +20,7 @@ from mantra.augmentations.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
 )
-from mantra.augmentations.triangulation import Triangulation
+from mantra.augmentations.triangulation import Triangulation, Triangulation2D
 
 # Boundary of a tetrahedron: the minimal 2-sphere (chi = 2).
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -217,6 +217,7 @@ class TestTopologyChangeMetadataConsistency:
 
     @staticmethod
     def assert_consistent(out):
+        chi = Triangulation2D(out["triangulation"]).euler_characteristic()
         chi = Triangulation.from_list(
             out["triangulation"]
         ).euler_characteristic()

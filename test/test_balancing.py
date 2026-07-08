@@ -229,7 +229,7 @@ class TestBalanceDatasetDedup:
         )
         data = [sphere_entry("s0", nv=4)]
         with pytest.raises(AssertionError):
-            out = balance_dataset(
+            balance_dataset(
                 data,
                 target_count=2,
                 n_moves=12,
