@@ -372,11 +372,6 @@ class TestVertexLabeling:
 
     def test_glue_allocates_fresh_vertex_labels(self):
         t = Triangulation.from_list(SPHERE)
-        t.glue_torus(frozenset({1, 2, 3}))
-        assert Triangulation.from_list(exported).f_vector() == t.f_vector()
-
-    def test_glue_allocates_fresh_vertex_labels(self):
-        t = Triangulation.from_list(SPHERE)
         t.glue("torus", frozenset({1, 2, 3}))
         # 4 original vertices plus 4 interior torus vertices, with the
         # new labels allocated above the existing ones (no collision).

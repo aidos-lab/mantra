@@ -5,21 +5,17 @@ following the API of `pytorch-geometric`.
 
 import json
 import os
-
 import shutil
 
 from torch_geometric.data import (
+    Data,
+    InMemoryDataset,
     download_url,
     extract_gz,
 )
-
+from tqdm import tqdm
 
 from mantra.datasets.utils import _get_mantra_dataset_url
-from torch_geometric.data import (
-    Data,
-    InMemoryDataset,
-)
-from tqdm import tqdm
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -108,6 +104,7 @@ class ManifoldTriangulations(InMemoryDataset):
             return f"/mantra/{self.dimension}D"
         else:
             return f"/mantra/{self.version}/{self.dimension}D"
+
     @property
     def raw_file_names(self):
         """Return raw file names.
@@ -139,7 +136,7 @@ class ManifoldTriangulations(InMemoryDataset):
         Stores the processed data in a file. If this file is present in the
         `processed` folder, processing will typically be skipped.
         """
-        return [f"full.pt"]
+        return ["full.pt"]
 
     def download(self):
         """Download dataset depending on specified version."""
@@ -150,7 +147,6 @@ class ManifoldTriangulations(InMemoryDataset):
             path = download_url(self.url, self.raw_dir)
             extract_gz(path, self.raw_dir)
             os.unlink(path)
-
 
     def process(self):
         """Processes dataset."""

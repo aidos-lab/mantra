@@ -156,6 +156,7 @@ class Triangulation(ABC):
                     f"Face {set(face)} has {len(cofaces)} cofaces, "
                     f"expected 2 for a closed manifold."
                 )
+
     def _stellar_subdivide(self, simplex=None):
         """Stellar-subdivide one top-dimensional simplex.
 
@@ -295,7 +296,6 @@ class Triangulation(ABC):
             pending.discard(chosen)
             self._stellar_subdivide(chosen)
             n += 1
-
 
 
 class Triangulation2D(Triangulation):

@@ -13,7 +13,9 @@ def test_local_path_loads_dataset(
     make_manifolds_json, balanced_entries, tmp_path
 ):
     path = make_manifolds_json(balanced_entries)
-    ds = ManifoldTriangulations(str(tmp_path / "root"), dimension=2, local_path=path)
+    ds = ManifoldTriangulations(
+        str(tmp_path / "root"), dimension=2, local_path=path
+    )
     assert len(ds) == len(balanced_entries)
     assert ds[0].name == "S^2"
     assert ds.raw_file_names == ["2_manifolds.json"]
@@ -86,9 +88,12 @@ def test_url_download_branch(
     monkeypatch.setattr(mantra_mod, "download_url", fake_download_url)
     monkeypatch.setattr(mantra_mod, "extract_gz", fake_extract_gz)
 
-    ds = ManifoldTriangulations(str(tmp_path / "root"), dimension=2, version="latest")
+    ds = ManifoldTriangulations(
+        str(tmp_path / "root"), dimension=2, version="latest"
+    )
     assert len(ds) == len(balanced_entries)
     assert fake_download_url.url.endswith("2_manifolds.json.gz")
+
 
 def test_add_version_to_root_branches():
     obj = ManifoldTriangulations.__new__(ManifoldTriangulations)

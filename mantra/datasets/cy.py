@@ -7,8 +7,6 @@ import torch
 from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
 
-from mantra.datasets import ManifoldTriangulations
-
 
 class CY(InMemoryDataset):
     """Dataset of Calabi-Yau manifold triangulations."""

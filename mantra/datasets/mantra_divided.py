@@ -1,30 +1,28 @@
+import json
+import random
 from enum import Enum
 from typing import List
-import json
-from mantra.augmentations import Triangulation
+
 import numpy as np
-from tqdm import tqdm
-import random
-
-
+from sklearn.model_selection import train_test_split
 from torch_geometric.data import (
     Data,
 )
+from tqdm import tqdm
 
+from mantra.augmentations import Triangulation
 from mantra.datasets import ManifoldTriangulations
 from mantra.datasets.utils import filter_by_class_count
 
-from sklearn.model_selection import train_test_split
-
 
 class SubdivisionType(Enum):
-    STELLAR=1
-    GRADED=2
-    BARYCENTRIC=3
+    STELLAR = 1
+    GRADED = 2
+    BARYCENTRIC = 3
 
     def __str__(self):
         return self.name.lower()
-    
+
     @staticmethod
     def from_str(sub_name: str):
         for sub in SubdivisionType:
@@ -32,9 +30,10 @@ class SubdivisionType(Enum):
                 return sub
         raise ValueError(f"There is no Subdivision with name {sub_name}")
 
+
 class MANTRADivided(ManifoldTriangulations):
     """Dataset of manifold triangulations from the MANTRA benchmark
-        with subdivisions on the test set
+    with subdivisions on the test set
     """
 
     def __init__(
@@ -54,8 +53,8 @@ class MANTRADivided(ManifoldTriangulations):
         division_type: str = "barycentric",
         class_count_filter=None,
         split_proportions: List[float] = [0.6, 0.2, 0.2],
-        stratified = False,
-        **kwargs
+        stratified=False,
+        **kwargs,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -95,17 +94,17 @@ class MANTRADivided(ManifoldTriangulations):
             pre_transform,
             pre_filter,
             force_reload,
-            seed
+            seed,
         )
 
     def _build_ood_str(self):
         base_str = str(self.division_type)
         if self.division_type == SubdivisionType.BARYCENTRIC:
-            arg_str = f"{self.kwargs.get("round", 1)}"
+            arg_str = f"{self.kwargs.get('round', 1)}"
         elif self.division_type == SubdivisionType.STELLAR:
-            arg_str = f"{self.kwargs.get("fraction", 1)}"
-        else: # Graded
-            arg_str = f"{self.kwargs.get("min_vertices", 1)}"
+            arg_str = f"{self.kwargs.get('fraction', 1)}"
+        else:  # Graded
+            arg_str = f"{self.kwargs.get('min_vertices', 1)}"
 
         return base_str + f"_{arg_str}"
 
@@ -117,18 +116,18 @@ class MANTRADivided(ManifoldTriangulations):
         `processed` folder, processing will typically be skipped.
         """
         base_files = []
-        for split_type in ['train', 'val', 'test']:
+        for split_type in ["train", "val", "test"]:
             file_str = f"{split_type}.pt"
             base_files.append(file_str)
 
         ood_file: str = f"ood_{self._build_ood_str()}.pt"
-        base_files.append(ood_file)  
+        base_files.append(ood_file)
 
         return base_files
 
     def _calculate_induced_vertices(self):
-        """" This should calculate the number of vertices
-            induced by the application of this subdivision
+        """ " This should calculate the number of vertices
+        induced by the application of this subdivision
 
         """
         if self.division_type == SubdivisionType.BARYCENTRIC:
@@ -136,7 +135,7 @@ class MANTRADivided(ManifoldTriangulations):
         # TODO: This might change by dimension
         elif self.division_type == SubdivisionType.STELLAR:
             return 1
-        else: # self.division_type == SubdivisionType.GRADED:
+        else:  # self.division_type == SubdivisionType.GRADED:
             return 1
 
     def _subdivide_triangle(self, data, **kwargs):
@@ -156,20 +155,24 @@ class MANTRADivided(ManifoldTriangulations):
         return new_entry
 
     def _apply_subdivision(self, data_list):
-        """ Apply the subdivision to the data_list
-
-        """
+        """Apply the subdivision to the data_list"""
         if self.division_type == SubdivisionType.BARYCENTRIC:
             rounds = self.kwargs.get("round", 1)
             for _ in range(rounds):
                 data_list = [self.subdivide_triangle(tri) for tri in data_list]
         elif self.division_type == SubdivisionType.STELLAR:
             fraction = self.kwargs.get("fraction", 1)
-            data_list = [self.subdivive_triangle(tri, fraction=fraction) for tri in data_list]
-        else: # This is the graded
+            data_list = [
+                self.subdivive_triangle(tri, fraction=fraction)
+                for tri in data_list
+            ]
+        else:  # This is the graded
             min_vertices = self.kwargs.get("min_vertices", 1)
-            data_list = [self.subdivide_triangle(tri, over_vrtx_cnt=min_vertices) for tri in data_list]
-        
+            data_list = [
+                self.subdivide_triangle(tri, over_vrtx_cnt=min_vertices)
+                for tri in data_list
+            ]
+
         return data_list
 
     def process(self):
@@ -186,8 +189,10 @@ class MANTRADivided(ManifoldTriangulations):
                 if self.pre_filter(data)
             ]
 
-        # Filter by homeomorphism type 
-        data_list, _ =  filter_by_class_count(data_list, "name", self.class_count_filter)
+        # Filter by homeomorphism type
+        data_list, _ = filter_by_class_count(
+            data_list, "name", self.class_count_filter
+        )
         y_values = np.array([data.y for data in data_list])
 
         train_size, val_size, test_size = self.split_proportions
@@ -196,28 +201,18 @@ class MANTRADivided(ManifoldTriangulations):
             np.arange(len(data_list)),
             test_size=test_size,
             shuffle=True,
-            stratify=(
-               y_values 
-               if self.stratified
-                else None
-            ),
+            stratify=(y_values if self.stratified else None),
             random_state=self.seed,
         )
 
         # train val split
         train_index, val_index = train_test_split(
             train_val_index,
-            test_size=val_size
-            / (train_size + val_size),
+            test_size=val_size / (train_size + val_size),
             shuffle=True,
-            stratify=(
-                y_values[train_val_index]
-                if self.stratified 
-                else None
-            ),
+            stratify=(y_values[train_val_index] if self.stratified else None),
             random_state=self.seed,
         )
-
 
         # Apply the select subdivison algorithm
         data_test_list = [data_list[idx] for idx in test_index]
@@ -225,14 +220,16 @@ class MANTRADivided(ManifoldTriangulations):
         ood_data_list = self._apply_subdivision(data_test_list)
 
         # Get the indices for ood
-        ood_index = np.arange(len(data_list), len(data_list) + len(ood_data_list))
-        
+        ood_index = np.arange(
+            len(data_list), len(data_list) + len(ood_data_list)
+        )
+
         # Dictionary with splits
         split_dict = {
-            'train': train_index,
-            'val': val_index,
-            'test': test_index,
-            'ood': ood_index,
+            "train": train_index,
+            "val": val_index,
+            "test": test_index,
+            "ood": ood_index,
         }
 
         # Stick it at the end
@@ -245,7 +242,9 @@ class MANTRADivided(ManifoldTriangulations):
                 for data in tqdm(data_list, desc="Pre-transforming")
             ]
 
-        for i, split_type in enumerate(['train', 'val', 'test', 'ood']):
-            data_split_list = [data_list[idx] for idx in split_dict[split_type]] 
-            #WARN:  This is order specific!
+        for i, split_type in enumerate(["train", "val", "test", "ood"]):
+            data_split_list = [
+                data_list[idx] for idx in split_dict[split_type]
+            ]
+            # WARN:  This is order specific!
             self.save(data_split_list, self.processed_paths[i])
