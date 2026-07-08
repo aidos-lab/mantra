@@ -17,7 +17,7 @@ References
 """
 
 from collections.abc import Generator, Hashable, Iterable, Iterator, Sequence
-from typing import Any, Generic, TypeVar
+from typing import Any, Generic, Optional, TypeVar
 
 from .simplex import Simplex
 
@@ -79,18 +79,18 @@ class SimplexNode(Generic[ElementType]):
         The parent node of this node. If `None`, this node is the root node.
     """
 
-    label: ElementType | None
+    label: Optional[ElementType]
     elements: tuple[ElementType, ...]
     attributes: dict[Hashable, Any]
 
     depth: int
-    parent: "SimplexNode | None"
+    parent: "Optional[SimplexNode]"
     children: dict[ElementType, "SimplexNode[ElementType]"]
 
     def __init__(
         self,
-        label: ElementType | None,
-        parent: "SimplexNode[ElementType] | None" = None,
+        label: Optional[ElementType],
+        parent: "Optional[SimplexNode[ElementType]]" = None,
     ) -> None:
         """Node in a simplex trie.
 
@@ -138,7 +138,7 @@ class SimplexNode(Generic[ElementType]):
         return f"SimplexNode({self.label}, {self.parent!r})"
 
     @property
-    def simplex(self) -> Simplex[ElementType] | None:
+    def simplex(self) -> Optional[Simplex[ElementType]]:
         """Return a `Simplex` object representing this node.
 
         Returns
@@ -286,7 +286,7 @@ class SimplexTrie(Generic[ElementType]):
     def insert(
         self,
         item: Sequence[ElementType],
-        subtree: None | SimplexNode[ElementType] = None,
+        subtree: Optional[SimplexNode[ElementType]] = None,
     ) -> None:
         """Insert a simplex into the trie.
 
@@ -347,7 +347,7 @@ class SimplexTrie(Generic[ElementType]):
 
     def find(
         self, search: Iterable[ElementType]
-    ) -> SimplexNode[ElementType] | None:
+    ) -> Optional[SimplexNode[ElementType]]:
         """Find the node in the trie that matches the search.
 
         Parameters

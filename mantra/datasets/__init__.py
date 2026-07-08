@@ -1,4 +1,5 @@
-from .base import ManifoldTriangulations
-from .pairwise import PairwiseSimplicialDS
+from .cy import CY
+from .mantra import ManifoldTriangulations
+from .mantra_divided import MANTRADivided
 
-__all__ = ["ManifoldTriangulations", "PairwiseSimplicialDS"]
+__all__ = ["ManifoldTriangulations", "CY", "MANTRADivided"]
