@@ -14,15 +14,11 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-<<<<<<<< HEAD:mantra/datasets/base.py
 
-class ManifoldTriangulations(InMemoryDataset, abc.ABC):
-========
 from mantra.datasets.utils import _get_mantra_dataset_url
 
 
 class ManifoldTriangulations(InMemoryDataset):
->>>>>>>> main:mantra/datasets/mantra.py
     """Base class for storing manifold triangulations."""
 
     def __init__(
@@ -31,10 +27,7 @@ class ManifoldTriangulations(InMemoryDataset):
         version="latest",
         dimension=2,
         name=None,
-<<<<<<<< HEAD:mantra/datasets/base.py
-========
         balanced=False,
->>>>>>>> main:mantra/datasets/mantra.py
         local_path=None,
         transform=None,
         pre_transform=None,
@@ -77,20 +70,10 @@ class ManifoldTriangulations(InMemoryDataset):
 
             As a suggestion the name should not include any spaces, thus
             making it easier to parse for the OS.
-<<<<<<<< HEAD:mantra/datasets/base.py
-
-========
->>>>>>>> main:mantra/datasets/mantra.py
         local_path : str or None
             If set, use a local JSON file instead of downloading from
             GitHub. The file will be copied into the raw directory.
             Useful for testing locally generated datasets.
-<<<<<<<< HEAD:mantra/datasets/base.py
-        """
-        self.name = name
-        self.version = version
-        self.local_path = os.path.abspath(local_path) if local_path else None
-========
         seed : int
             Seed for generating additional triangulations or augmentations.
         """
@@ -103,7 +86,6 @@ class ManifoldTriangulations(InMemoryDataset):
         self.version = version
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.url = _get_mantra_dataset_url(version, dimension, balanced)
->>>>>>>> main:mantra/datasets/mantra.py
 
         root += self._add_version_to_root()
 
@@ -117,11 +99,6 @@ class ManifoldTriangulations(InMemoryDataset):
 
         self.load(self.processed_paths[0])
 
-<<<<<<<< HEAD:mantra/datasets/base.py
-    @abc.abstractmethod
-    def _add_version_to_root(self):
-        """Return the dataset-specific suffix appended to the root path."""
-========
     def _add_version_to_root(self):
         if self.version == "latest":
             return f"/mantra/{self.dimension}D"
@@ -137,7 +114,6 @@ class ManifoldTriangulations(InMemoryDataset):
         property `self.raw_paths`.
         """
         return [f"{self.dimension}_manifolds.json"]
->>>>>>>> main:mantra/datasets/mantra.py
 
     @property
     def processed_dir(self):
@@ -153,8 +129,6 @@ class ManifoldTriangulations(InMemoryDataset):
 
         return base_path
 
-<<<<<<<< HEAD:mantra/datasets/base.py
-========
     @property
     def processed_file_names(self):
         """Return process file names.
@@ -174,7 +148,6 @@ class ManifoldTriangulations(InMemoryDataset):
             extract_gz(path, self.raw_dir)
             os.unlink(path)
 
->>>>>>>> main:mantra/datasets/mantra.py
     def process(self):
         """Processes dataset."""
         with open(self.raw_paths[0]) as f:
