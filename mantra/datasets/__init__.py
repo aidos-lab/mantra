@@ -1,4 +1,6 @@
 from .cy import CY
-from .mantra import MANTRA
+from .mantra import ManifoldTriangulations
+from .mantra_divided import MANTRADivided
 
-__all__ = ["MANTRA", "CY"]
+
+__all__ = ["ManifoldTriangulations", "CY", "MANTRADivided"]
