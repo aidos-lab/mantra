@@ -3,7 +3,6 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
-import abc
 import json
 import os
 import shutil
