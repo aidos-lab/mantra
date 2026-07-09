@@ -125,19 +125,6 @@ class MANTRADivided(ManifoldTriangulations):
 
         return base_files
 
-    def _calculate_induced_vertices(self):
-        """ " This should calculate the number of vertices
-        induced by the application of this subdivision
-
-        """
-        if self.division_type == SubdivisionType.BARYCENTRIC:
-            return 4
-        # TODO: This might change by dimension
-        elif self.division_type == SubdivisionType.STELLAR:
-            return 1
-        else:  # self.division_type == SubdivisionType.GRADED:
-            return 1
-
     def _subdivide_triangle(self, data, **kwargs):
         triangulation = data["triangulation"]
         rng = random.Random(self.seed)
@@ -159,17 +146,17 @@ class MANTRADivided(ManifoldTriangulations):
         if self.division_type == SubdivisionType.BARYCENTRIC:
             rounds = self.kwargs.get("round", 1)
             for _ in range(rounds):
-                data_list = [self.subdivide_triangle(tri) for tri in data_list]
+                data_list = [self._subdivide_triangle(tri) for tri in data_list]
         elif self.division_type == SubdivisionType.STELLAR:
             fraction = self.kwargs.get("fraction", 1)
             data_list = [
-                self.subdivive_triangle(tri, fraction=fraction)
+                self._subdivive_triangle(tri, fraction=fraction)
                 for tri in data_list
             ]
         else:  # This is the graded
             min_vertices = self.kwargs.get("min_vertices", 1)
             data_list = [
-                self.subdivide_triangle(tri, over_vrtx_cnt=min_vertices)
+                self._subdivide_triangle(tri, over_vrtx_cnt=min_vertices)
                 for tri in data_list
             ]
 
