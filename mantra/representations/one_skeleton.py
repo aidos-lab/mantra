@@ -18,9 +18,9 @@ class OneSkeleton(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with the `triangulation` key removed,
-            all other keys maintained, and `edge_index` information of
-            the 1-skeleton being present.
+            Adjusted data object with all keys maintained and an
+            `edge_index` tensor for representing the 1-skeleton being
+            present.
         """
         G = self._build_one_skeleton(data["triangulation"])
         data_ = from_networkx(G)
@@ -44,21 +44,30 @@ class OneSkeleton(BaseTransform):
         for s in top_simplices:
             simplex_trie.insert(s)
 
+        zero_simplices = sorted(
+            node.simplex for node in simplex_trie.skeleton(0)
+        )
         one_simplices = sorted(
             node.simplex for node in simplex_trie.skeleton(1)
         )
 
         G = nx.Graph()
 
+        # Add every 0-simplex as a node *first*, in sorted (ascending) order.
+        # `from_networkx` later maps nodes to consecutive integers in their
+        # insertion order, so inserting them sorted makes that mapping the
+        # identity. This keeps the node labels aligned with the original
+        # (zero-indexed) vertex order, which other transforms -- e.g. the
+        # moment-curve embedding -- rely on. Adding nodes lazily while
+        # iterating over edges would instead permute the labels.
+        for s in zero_simplices:
+            (u,) = list(s)
+            G.add_node(u - 1)  # Convert to 0-index
+
         # We loop over each pair of 0-simplices (u,v), where s = (u,v)  is a 1-simplex
         for s in one_simplices:
             # These are the 0-simplices composing a 1-simplex
             u, v = list(s)
-
-            # Add the nodes that are not contained in the graph yet
-            for w in [u, v]:
-                if w - 1 not in G:  # Convert to 0-index
-                    G.add_node(w - 1)
             G.add_edge(u - 1, v - 1)  # Again convert to 0-index
 
         return G

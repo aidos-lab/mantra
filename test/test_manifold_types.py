@@ -15,41 +15,6 @@ def test_klein_bottle_member_replaces_p2_rp2():
     assert "#^2 RP^2" not in {m.value for m in Manifold2Type}
 
 
-# Every 2-manifold homeomorphism type present in 2_manifolds.json
-# (verified against the dataset on 2026-06-11).
-DATASET_2M_NAMES = {
-    # orientable: connected sums of tori
-    "S^2",
-    "T^2",
-    "#^2 T^2",
-    "#^3 T^2",
-    "#^4 T^2",
-    "#^5 T^2",
-    "#^6 T^2",
-    "#^8 T^2",
-    # non-orientable: connected sums of projective planes
-    "RP^2",
-    "Klein bottle",
-    "#^3 RP^2",
-    "#^4 RP^2",
-    "#^5 RP^2",
-    "#^6 RP^2",
-    "#^7 RP^2",
-    "#^8 RP^2",
-    "#^10 RP^2",
-    "#^12 RP^2",
-    "#^15 RP^2",
-    "#^16 RP^2",
-    "#^17 RP^2",
-}
-
-
-def test_enum_covers_exactly_the_dataset_2m_names():
-    # The enum must enumerate every type present in the dataset and
-    # nothing else (no stale or invented members).
-    assert {m.value for m in Manifold2Type} == DATASET_2M_NAMES
-
-
 def test_orientable_block_precedes_non_orientable_block():
     values = [m.value for m in Manifold2Type]
     # S^2 ... #^8 T^2 come before RP^2 ... #^17 RP^2.

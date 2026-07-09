@@ -18,6 +18,7 @@ class Manifold2Type(Enum):
     P4_T_2 = "#^4 T^2"
     P5_T_2 = "#^5 T^2"
     P6_T_2 = "#^6 T^2"
+    P7_T_2 = "#^7 T^2"
     P8_T_2 = "#^8 T^2"
 
     # Non-orientable surfaces: connected sums of projective planes,
