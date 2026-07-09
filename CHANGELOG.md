@@ -3,6 +3,44 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# Unreleased
+
+## Added
+
+- `balance_kwargs` parameter on `ManifoldTriangulations` and
+  `MANTRADivided` for tuning the on-the-fly balancing
+  (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
+  `verbose`).
+
+## Changed
+
+- `balanced=True` now computes the balanced dataset during `process()`
+  via Pachner-move augmentation and deduplication instead of
+  downloading a pre-generated release asset. This also fixes the 404
+  for recent releases, which no longer shipped balanced assets.
+
+- `version="latest"` is resolved to the concrete release tag on
+  construction (one cached HTTP request per process), so new releases
+  are picked up automatically. The root path becomes
+  `mantra/<tag>/<dim>D`; existing unversioned `latest` caches are
+  orphaned and re-downloaded once. When offline, the newest locally
+  cached release is used instead.
+
+- Split caches now also encode `split_proportions` and `stratified`,
+  so changing either re-processes instead of silently serving stale
+  splits.
+
+- `balance_dataset` draws augmentations only from original entries
+  (never from augmented copies), keeps a random subsample per class
+  instead of the smallest triangulations, deduplicates only classes
+  that gained augmented entries, and raises informative `ValueError`s
+  instead of bare assertions.
+
+## Removed
+
+- `scripts/generate_balanced.py` (superseded by on-the-fly balancing)
+  and the `balanced` parameter of the internal dataset URL helper.
+
 # v0.0.16
 
 ## Added

@@ -3,9 +3,11 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
+import inspect
 import json
 import os
 import shutil
+import warnings
 
 from torch_geometric.data import (
     Data,
@@ -15,7 +17,20 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-from mantra.datasets.utils import _get_mantra_dataset_url
+from mantra.augmentations.balancing import balance_dataset
+from mantra.datasets.utils import (
+    _find_cached_version,
+    _get_mantra_dataset_url,
+    _resolve_latest_version,
+)
+
+# Keyword arguments forwardable to balance_dataset, derived from its
+# signature so the two cannot drift apart. The seed comes from the
+# dataset's own seed parameter.
+BALANCE_KWARGS_KEYS = set(inspect.signature(balance_dataset).parameters) - {
+    "dataset",
+    "seed",
+}
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -34,6 +49,7 @@ class ManifoldTriangulations(InMemoryDataset):
         pre_filter=None,
         force_reload=False,
         seed=42,
+        balance_kwargs=None,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -46,16 +62,32 @@ class ManifoldTriangulations(InMemoryDataset):
             `on GitHub <https://github.com/aidos-lab/mantra/releases>`__.
             By default, the latest version will be downloaded. Unless
             specific reproducibility requirements are to be met, using
-            `latest` is recommended.
+            `latest` is recommended; it is resolved to the actual release
+            tag on construction, so new releases are picked up
+            automatically.
         dimension : int
             Dimension of manifold triangulations to load. Currently, only
             2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
             and 3-manifolds, respectively.
         balanced : bool
-            If True, download the balanced variant of the dataset.
-            Balanced datasets have been augmented via Pachner moves
-            so that all manifold classes have roughly equal
-            representation and vertex count distributions.
+            If True, balance the dataset during processing via Pachner
+            move augmentation (see
+            :func:`mantra.augmentations.balancing.balance_dataset`), so
+            that all manifold classes have equal representation.
+            Isomorphic duplicates created by the augmentation are removed
+            with the deduplication machinery in
+            ``mantra.utils.deduplication``. The result is cached in the
+            processed directory; the first run can take a while,
+            especially for the 3D dataset. Note that augmented
+            near-duplicates of the same source triangulation may end up
+            in different splits when the balanced dataset is split
+            downstream.
+        balance_kwargs : dict or None
+            Additional arguments forwarded to
+            :func:`mantra.augmentations.balancing.balance_dataset` when
+            ``balanced`` is True. Allowed keys: ``target_count``,
+            ``n_moves``, ``use_topology_changes``, ``max_vertices``,
+            ``verbose``. The seed is always taken from ``seed``.
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -78,14 +110,49 @@ class ManifoldTriangulations(InMemoryDataset):
             Seed for generating additional triangulations or augmentations.
         """
         assert dimension in [2, 3], "Dimension can only be 2 or 3"
+        self.balance_kwargs = dict(balance_kwargs or {})
+        if self.balance_kwargs and not balanced:
+            raise ValueError(
+                "balance_kwargs requires balanced=True; got "
+                f"{sorted(self.balance_kwargs)} with balanced=False."
+            )
+        if "seed" in self.balance_kwargs:
+            raise ValueError(
+                "Do not pass 'seed' in balance_kwargs; balancing uses the "
+                "dataset's seed parameter."
+            )
+        unknown_keys = set(self.balance_kwargs) - BALANCE_KWARGS_KEYS
+        if unknown_keys:
+            raise ValueError(
+                f"Unknown balance_kwargs keys {sorted(unknown_keys)}; "
+                f"allowed keys are {sorted(BALANCE_KWARGS_KEYS)}."
+            )
+
+        self.local_path = os.path.abspath(local_path) if local_path else None
+        resolved_from_latest = False
+        if version == "latest" and self.local_path is None:
+            version = _resolve_latest_version()
+            resolved_from_latest = version != "latest"
+            if not resolved_from_latest:
+                # Offline: fall back to the newest locally cached release
+                # so a warm cache keeps working without network access.
+                cached = _find_cached_version(root, dimension)
+                if cached is not None:
+                    version = cached
+                    resolved_from_latest = True
+                    warnings.warn(
+                        f"Using locally cached MANTRA release {cached}."
+                    )
         self.version = version
         self.seed = seed
         self.balanced = balanced
         self.name = name
         self.dimension = dimension
-        self.version = version
-        self.local_path = os.path.abspath(local_path) if local_path else None
-        self.url = _get_mantra_dataset_url(version, dimension, balanced)
+        # Tags resolved from the `latest` alias come from GitHub itself
+        # and need no validation round-trip.
+        self.url = _get_mantra_dataset_url(
+            version, dimension, validate=not resolved_from_latest
+        )
 
         root += self._add_version_to_root()
 
@@ -123,12 +190,30 @@ class ManifoldTriangulations(InMemoryDataset):
         """
         return [f"{self.dimension}_manifolds.json"]
 
+    def _balance_dir_suffix(self):
+        """Suffix encoding the explicitly set balancing parameters.
+
+        Ensures datasets balanced with different parameters are cached
+        in different directories. Every key is encoded generically so a
+        newly added parameter can never silently share a cache
+        directory; ``verbose`` is excluded since it does not change the
+        data.
+        """
+        parts = [
+            f"{key}{value}"
+            for key, value in sorted(self.balance_kwargs.items())
+            if key != "verbose"
+        ]
+        return "_" + "_".join(parts) if parts else ""
+
     @property
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
         balanced_suffix = "balanced" if self.balanced else "unbalanced"
-        balanced_suffix = f"{balanced_suffix}_{self.seed}"
+        balanced_suffix = (
+            f"{balanced_suffix}_{self.seed}{self._balance_dir_suffix()}"
+        )
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
@@ -156,10 +241,21 @@ class ManifoldTriangulations(InMemoryDataset):
             extract_gz(path, self.raw_dir)
             os.unlink(path)
 
-    def process(self):
-        """Processes dataset."""
+    def _load_raw_entries(self):
+        """Load raw JSON entries, balancing them when ``self.balanced``."""
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
+
+        if self.balanced:
+            inputs = balance_dataset(
+                inputs, seed=self.seed, **self.balance_kwargs
+            )
+
+        return inputs
+
+    def process(self):
+        """Processes dataset."""
+        inputs = self._load_raw_entries()
 
         data_list = [Data(**el) for el in inputs]
 

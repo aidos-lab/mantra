@@ -1,4 +1,3 @@
-import json
 import math
 import random
 import warnings
@@ -18,6 +17,7 @@ from mantra.datasets.mantra import ManifoldTriangulations
 from mantra.datasets.utils import filter_by_class_count
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
+DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
 
 
 class SubdivisionType(Enum):
@@ -55,9 +55,10 @@ class MANTRADivided(ManifoldTriangulations):
         pre_filter=None,
         force_reload=False,
         seed=42,
+        balance_kwargs=None,
         division_type: str = "barycentric",
         class_count_filter=None,
-        split_proportions: List[float] = [0.6, 0.2, 0.2],
+        split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified=False,
         max_vertices=None,
         max_ood_size_per_class=None,
@@ -70,6 +71,16 @@ class MANTRADivided(ManifoldTriangulations):
         ----------
         split_type: str
             Type of the split in [train, val, test, ood].
+        balance_kwargs : dict or None
+            Arguments for on-the-fly balancing, see
+            :class:`mantra.datasets.ManifoldTriangulations`. With
+            ``balanced=True`` the *whole* dataset is balanced before
+            splitting, so Pachner-augmented near-duplicates of one
+            source triangulation may land in different splits. Note that
+            ``balance_kwargs["max_vertices"]`` (a prefilter inside the
+            balancing) is distinct from this class's own ``max_vertices``
+            parameter (a cap on the in-distribution splits applied after
+            balancing).
         division_type : str
             Type of division to apply to the triangulations. Options are
             barycentric, graded, stellar.
@@ -127,6 +138,15 @@ class MANTRADivided(ManifoldTriangulations):
         self.max_ood_size_per_class = max_ood_size_per_class
         self.kwargs = kwargs
 
+        if balanced and (max_vertices is not None or class_count_filter):
+            warnings.warn(
+                "balanced=True equalizes the classes before max_vertices "
+                "and class_count_filter are applied, so these filters can "
+                "re-imbalance or drop classes. To keep the balance under a "
+                "vertex cap, pass balance_kwargs={'max_vertices': ...} "
+                "instead."
+            )
+
         if self.division_type == SubdivisionType.GRADED:
             if "vertex_number" not in kwargs:
                 raise ValueError(
@@ -157,6 +177,7 @@ class MANTRADivided(ManifoldTriangulations):
             pre_filter,
             force_reload,
             seed,
+            balance_kwargs,
         )
 
     def _load_index(self):
@@ -170,6 +191,12 @@ class MANTRADivided(ManifoldTriangulations):
             parts.append(f"mv{self.max_vertices}")
         if self.class_count_filter:
             parts.append(f"ccf{self.class_count_filter}")
+        if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
+            parts.append(
+                "sp" + "-".join(str(p) for p in self.split_proportions)
+            )
+        if self.stratified:
+            parts.append("strat")
         return "_" + "_".join(parts) if parts else ""
 
     def _build_ood_str(self):
@@ -196,7 +223,7 @@ class MANTRADivided(ManifoldTriangulations):
         """
         suffix = self._split_file_suffix()
         base_files = []
-        for split_type in ["train", "val", "test"]:
+        for split_type in SPLIT_TYPES[:3]:
             file_str = f"{split_type}{suffix}.pt"
             base_files.append(file_str)
 
@@ -263,34 +290,33 @@ class MANTRADivided(ManifoldTriangulations):
         for data in eligible:
             entries_by_class[data.name].append(data)
 
+        # Barycentric subdivision is always deterministic; stellar is
+        # deterministic when every top-simplex is subdivided.
+        deterministic = self.division_type == SubdivisionType.BARYCENTRIC or (
+            self.division_type == SubdivisionType.STELLAR
+            and self.kwargs.get("fraction", 1.0) >= 1.0
+        )
+
         ood_list = []
         for class_name in sorted(entries_by_class):
             sources = entries_by_class[class_name]
-            if (
-                len(sources) < cap
-                and self.division_type == SubdivisionType.BARYCENTRIC
-            ):
+            if len(sources) < cap and deterministic:
                 warnings.warn(
-                    f"Oversampling class '{class_name}' with the "
-                    "deterministic barycentric subdivision produces exact "
-                    "duplicates; consider graded or partial stellar "
-                    "subdivision instead."
+                    f"Oversampling class '{class_name}' with a "
+                    "deterministic subdivision (barycentric, or stellar "
+                    "with fraction=1.0) produces exact duplicates; "
+                    "consider graded or stellar with fraction < 1 instead."
                 )
             rng.shuffle(sources)
-            for i in tqdm(
-                range(cap), desc=f"Subdividing OOD ({class_name})"
-            ):
+            for i in tqdm(range(cap), desc=f"Subdividing OOD ({class_name})"):
                 source = sources[i % len(sources)]
-                ood_list.append(
-                    self._subdivide_entry(source, rng, f"ood_{i}")
-                )
+                ood_list.append(self._subdivide_entry(source, rng, f"ood_{i}"))
 
         return ood_list
 
     def process(self):
         """Processes dataset."""
-        with open(self.raw_paths[0]) as f:
-            inputs = json.load(f)
+        inputs = self._load_raw_entries()
 
         data_list = [Data(**el) for el in inputs]
 

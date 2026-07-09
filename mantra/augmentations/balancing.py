@@ -95,7 +95,6 @@ def _augment_with_topology_change(entry, glue_type, rng=None):
     if "genus" in new_entry:
         new_entry["genus"] = _genus_from_name(target_manifold_class)
 
-    print(new_entry)
     return new_entry
 
 
@@ -118,46 +117,40 @@ def _find_topology_sources(target_manifold_class, class_entries):
     return sources
 
 
-def _deduplicate(class_entries, verbose=False):
-    # Post-augmentation cleanup: remove isomorphic duplicates and
-    # entries exceeding max_vertices, then regenerate replacements.
-    # On the final round, only remove without regenerating —
-    # prioritising a clean dataset over hitting the exact target
-    # count.
+def _deduplicate(class_entries, verbose=False, class_names=None):
+    """Remove isomorphic duplicates from each class (single pass).
 
-    # find duplicates
+    For every duplicate pair reported by ``find_duplicates``, the
+    second entry is dropped. Entries are not regenerated; callers
+    oversample beforehand so that enough entries survive.
+
+    Parameters
+    ----------
+    class_names : set of str or None
+        If given, only these classes are scanned. Classes that received
+        no augmented entries contain only upstream-curated originals,
+        so scanning them wastes the bulk of the deduplication cost.
+    """
     for manifold_name, entries in class_entries.items():
-        # Duplicated ones
-        # TODO CHeck what happens here
+        if class_names is not None and manifold_name not in class_names:
+            continue
         duplicates = find_duplicates(entries, verbose=verbose)
 
         # Get the id of the second duplicate
         dup_ids = {pair[1] for pair in duplicates}
 
-        # If there are no duplicates or vertex over the max we are done
-        to_remove = dup_ids
-        if not to_remove:
-            if verbose:
-                print(
-                    "Dedup round: no duplicates "
-                    "or vertex violations found.",
-                    file=sys.stderr,
-                )
-
         if verbose:
-            parts = []
-            if dup_ids:
-                parts.append(f"{len(dup_ids)} duplicates")
+            message = (
+                f"Dedup: removing {len(dup_ids)} duplicates "
+                f"from class {manifold_name}."
+                if dup_ids
+                else f"Dedup: no duplicates found in class {manifold_name}."
+            )
+            print(message, file=sys.stderr)
 
-        # group removed entries by class for targeted regeneration
-        removed_by_class = defaultdict(int)
-        kept = []
-        for e in entries:
-            if e["id"] in to_remove:
-                removed_by_class[e["name"]] += 1
-            else:
-                kept.append(e)
-        class_entries[manifold_name] = kept
+        class_entries[manifold_name] = [
+            e for e in entries if e["id"] not in dup_ids
+        ]
     return class_entries
 
 
@@ -172,21 +165,18 @@ def balance_dataset(
 ):
     """Generate a balanced dataset via Pachner move augmentation.
 
-    After augmentation, runs deduplication to remove isomorphic
+    Each class is oversampled to twice the target count, isomorphic
     duplicates (e.g. a Pachner-moved copy that happens to be
-    isomorphic to an existing triangulation). Removed duplicates
-    are replaced with fresh augmentations and re-checked, up to
-    ``dedup_max_rounds`` times.
+    isomorphic to an existing triangulation) are removed in a single
+    deduplication pass over the classes that gained augmented entries,
+    and a random subsample of ``target_count`` entries per class is
+    kept. The dimension is derived from the data.
 
     Parameters
     ----------
     dataset : list of dict
-        Raw JSON entries with 'triangulation', 'name', etc. Entry
-        names are normalised in place (e.g. "#^2 RP^2" becomes
-        "Klein bottle"), and the returned list shares entry dicts
-        with the input.
-    dimension : int
-        2 or 3.
+        Raw JSON entries with 'triangulation', 'name', etc. The
+        returned list shares entry dicts with the input.
     target_count : int
         Target count per class.
     n_moves : int
@@ -195,14 +185,11 @@ def balance_dataset(
         Random seed for reproducibility.
     use_topology_changes : bool
         If True and dimension==2, use topology-changing operations
-        to generate samples for classes that can be reached.
-    dedup_max_rounds : int
-        Maximum number of dedup-regenerate rounds. Set to 0 to
-        skip deduplication entirely.
+        (torus/crosscap gluing) to generate samples for missing
+        classes that can be reached from existing ones.
     max_vertices : int or None
-        If set, discard all entries (original and augmented) with
-        more than this many vertices. Applied both before balancing
-        and as a final filter after augmentation and deduplication.
+        If set, discard all entries with more than this many vertices
+        before balancing.
     verbose : bool
         If True, print progress to stderr.
 
@@ -211,9 +198,6 @@ def balance_dataset(
     list of dict
         Balanced dataset.
     """
-    # TODO: First glue for the missing classes,
-    # then do the Pachner move augmentation for the classes
-    # that are missing.
     rng = random.Random(seed)
     dimension = len(dataset[0]["triangulation"][0]) - 1
 
@@ -234,11 +218,12 @@ def balance_dataset(
 
     GLUE_ADDS_N_VERTICES = {"torus": 3, "crosscap": 1}
     id_cnt = 0
+    # Classes that gain augmented entries; only these need deduplication.
+    augmented_classes = set()
 
     # In 2D we can do some glueings to generate more classes
     # which we are missing
     if dimension == 2 and use_topology_changes:
-
         for obj_manifold in Manifold2Type:
             # Set name
             target_manifold_name = obj_manifold.value
@@ -292,6 +277,7 @@ def balance_dataset(
                         new_entry,
                         key=lambda x: x["n_vertices"],
                     )
+                    augmented_classes.add(target_manifold_name)
 
                     # Reduce counter
                     deficit -= 1
@@ -304,20 +290,30 @@ def balance_dataset(
         if len(entries) >= target_count * 2:
             continue
 
-        # oversample with Pachner moves
+        # Oversample with Pachner moves, cycling through a snapshot of
+        # the current entries: augmented copies must not become sources
+        # of further augmentation, or minority classes drift arbitrarily
+        # far from real data. Each move adds at most one vertex, so
+        # sources within max_vertices - n_moves stay under the limit.
+        sources = [
+            e
+            for e in entries
+            if max_vertices is None
+            or e["n_vertices"] + n_moves <= max_vertices
+        ]
+        if not sources:
+            raise ValueError(
+                f"Cannot balance class '{manifold_name}': all "
+                f"{len(entries)} of its triangulations have more than "
+                f"max_vertices - n_moves = {max_vertices - n_moves} "
+                "vertices, so no augmented copy can stay under the "
+                "vertex limit. Increase max_vertices, reduce n_moves, "
+                "or filter the class out before balancing."
+            )
+
         deficit = target_count * 2 - len(entries)
         for i in range(deficit):
-            source_entry = entries[i]
-
-            # If the source entry has too many vertices, break
-            if (
-                max_vertices is not None
-                and source_entry["n_vertices"] + n_moves > max_vertices
-            ):
-                print(
-                    "Source entry has too many vertices, skipping augmentation."
-                )
-                break
+            source_entry = sources[i % len(sources)]
 
             # Augment
             new_entry = _augment_triangulation(source_entry, n_moves, rng=rng)
@@ -330,33 +326,30 @@ def balance_dataset(
                 new_entry,
                 key=lambda x: x["n_vertices"],
             )
+            augmented_classes.add(manifold_name)
 
             id_cnt += 1
 
-    # Sanity check
+    # Deduplicate the classes that gained augmented entries
+    class_entries = _deduplicate(
+        class_entries, verbose=verbose, class_names=augmented_classes
+    )
+
     for manifold_name, entries in class_entries.items():
-        if len(entries) < target_count * 1.5:
-            raise AssertionError(
-                f"The augmententation for manifold class {manifold_name} could not be created."
+        if len(entries) < target_count:
+            raise ValueError(
+                f"Deduplication left class '{manifold_name}' with "
+                f"{len(entries)} < target_count ({target_count}) "
+                "entries: the augmented copies were too similar to "
+                "survive. Increase n_moves or lower target_count."
             )
+        if len(entries) > target_count:
+            # Random subsample down to the target: slicing the
+            # vertex-sorted list would keep only the smallest
+            # triangulations and bias the vertex distribution.
+            class_entries[manifold_name] = rng.sample(entries, target_count)
 
-    print(class_entries.keys())
-
-    # Deduplicate extra
-    class_entries = _deduplicate(class_entries, verbose=verbose)
-
-    # print(class_entries.keys())
-    if "#^3 RP^2" in class_entries:
-        print(class_entries["#^3 RP^2"])
-
-    # Sanity check 2
-    for manifold_name, entries in class_entries.items():
-        assert (
-            len(entries) >= target_count
-        ), f"The augmententation for manifold class {manifold_name} could not be created."
-        class_entries[manifold_name] = entries[:target_count]
-
-    # keep all originals
+    # Collect the balanced classes
     resulting_entries = []
     for manifold_name, entries in class_entries.items():
         resulting_entries.extend(entries)
