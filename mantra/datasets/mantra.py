@@ -97,7 +97,15 @@ class ManifoldTriangulations(InMemoryDataset):
             force_reload=force_reload,
         )
 
-        self.load(self.processed_paths[0])
+        self.load(self.processed_paths[self._load_index()])
+
+    def _load_index(self):
+        """Index into ``processed_paths`` of the file to load.
+
+        Subclasses producing several processed files (e.g. one per
+        split) override this to select the right one.
+        """
+        return 0
 
     def _add_version_to_root(self):
         if self.version == "latest":

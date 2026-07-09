@@ -36,8 +36,11 @@ def _get_mantra_dataset_url(
 
 
 def filter_by_class_count(entries, label_source, min_count):
-    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times."""
-    if min_count <= 0:
+    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times.
+
+    A ``min_count`` of ``None`` (or <= 0) disables filtering.
+    """
+    if min_count is None or min_count <= 0:
         return entries, Counter()
     counts = Counter(e[label_source] for e in entries)
     kept_labels = {lbl for lbl, c in counts.items() if c > min_count}
