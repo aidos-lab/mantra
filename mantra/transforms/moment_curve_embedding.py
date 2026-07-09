@@ -242,8 +242,6 @@ class MomentCurveEmbedding(BaseTransform):
             Z = np.sqrt(np.maximum(1 - Z**2, 0.0))
             X = np.column_stack((X, Z))
 
-        data["moment_curve_embedding"] = torch.from_numpy(X).to(
-            torch.float32
-        )
+        data["moment_curve_embedding"] = torch.from_numpy(X).to(torch.float32)
 
         return data

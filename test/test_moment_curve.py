@@ -141,9 +141,7 @@ class TestMomentCurveEmbedding:
         result = MomentCurveEmbedding(normalize=True, rng=0)(data)
 
         norms = torch.linalg.norm(result.moment_curve_embedding, dim=1)
-        np.testing.assert_allclose(
-            norms.numpy(), np.ones(4), atol=1e-6
-        )
+        np.testing.assert_allclose(norms.numpy(), np.ones(4), atol=1e-6)
 
     def test_perturb_preserves_pairwise_distances(self):
         data_a = _make_data(TETRAHEDRON_TRI, n_vertices=5, dimension=2)
