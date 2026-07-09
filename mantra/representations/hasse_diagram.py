@@ -23,7 +23,7 @@ class HasseDiagram(BaseTransform):
         -------
         torch_geometric.data.Data
             Adjusted data object with all keys maintained and an `edge_index`
-            tensor for representing the dual graph being present.
+            tensor for representing the Hasse diagram being present.
         """
 
         top_simplices = list(set([tuple(s) for s in data["triangulation"]]))
@@ -33,7 +33,6 @@ class HasseDiagram(BaseTransform):
 
         G = self._build_hasse_diagram(top_simplices, data)
 
-        print(nx.get_node_attributes(G, self.feature_propagation))
         if self.feature_propagation:
             data_ = from_networkx(
                 G, group_node_attrs=[self.feature_propagation]
