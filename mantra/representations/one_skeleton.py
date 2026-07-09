@@ -18,9 +18,9 @@ class OneSkeleton(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with the `triangulation` key removed,
-            all other keys maintained, and `edge_index` information of
-            the 1-skeleton being present.
+            Adjusted data object with all keys maintained and an
+            `edge_index` tensor for representing the 1-skeleton being
+            present.
         """
         G = self._build_one_skeleton(data["triangulation"])
         data_ = from_networkx(G)
