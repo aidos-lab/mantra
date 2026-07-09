@@ -1,8 +1,10 @@
 import torch
 from torch_geometric.data import Data
 
-from mantra.representations import AdjacencySimplicialComplex, IncidenceSimplicialComplex
-from mantra.representations.simplicial_connectivity import IncidenceSimplicialComplex
+from mantra.representations import (
+    AdjacencySimplicialComplex,
+    IncidenceSimplicialComplex,
+)
 
 
 class TestTensors:
