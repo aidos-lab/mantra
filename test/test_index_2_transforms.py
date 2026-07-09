@@ -1,7 +1,8 @@
 import torch
 from torch_geometric.data import Data
 
-from mantra.representations import AdjacencySCTransform, IncidenceSCTransform
+from mantra.representations import AdjacencySimplicialComplex, IncidenceSimplicialComplex
+from mantra.representations.simplicial_connectivity import IncidenceSimplicialComplex
 
 
 class TestTensors:
@@ -18,8 +19,8 @@ class TestTensors:
             triangulation=self.triangulation, dimension=torch.tensor([2])
         )
 
-        self.transform_incidence = IncidenceSCTransform(signed=False)
-        self.transform_adjacency = AdjacencySCTransform(signed=False)
+        self.transform_incidence = IncidenceSimplicialComplex(signed=False)
+        self.transform_adjacency = AdjacencySimplicialComplex(signed=False)
 
     def test_incidence(self):
 
