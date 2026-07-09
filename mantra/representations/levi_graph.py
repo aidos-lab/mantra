@@ -16,8 +16,6 @@ class LeviGraph(BaseTransform):
         [1] Hauschild, J., Ortiz, J., & Vega, O. (2015). On the Levi graph of point-line configurations. Involve, a Journal of Mathematics, 8(5), 893-900.
         https://msp.org/involve/2015/8-5/involve-v8-n5-p14-s.pdf
 
-        .
-
         Parameters
         ----------
         data : torch_geometric.data.Data
@@ -27,9 +25,9 @@ class LeviGraph(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with the `triangulation` key removed,
-            all other keys maintained, and `edge_index` information of
-            the Levy Graph being present.
+            Adjusted data object with all keys maintained and an
+            `edge_index` tensor for representing the Levi graph being
+            present.
         """
         G = self._build_levi(data["triangulation"])
         data_ = from_networkx(G)
@@ -42,33 +40,39 @@ class LeviGraph(BaseTransform):
         return data
 
     def _build_levi(self, top_simplices):
-        """Constructs the Levy Graph.
+        """Constructs the Levi graph.
 
-        The Levi Graph of a triangulation $T$ of dimension $d$ is a graph
-        that has 0-simplices and k-simplices as
-        nodes and each 0-simplex is connected to a k-simplex if
+        The Levi graph of a triangulation $T$ of dimension $d$ is a
+        bipartite graph that has 0-simplices and maximal simplices as
+        nodes and each 0-simplex is connected to a maximal simplex if
         it's contained in it.
 
         """
+        # Guarantee the ordering
+        top_simplices = list(set([tuple(s) for s in top_simplices]))
+        top_simplices.sort()
+        top_simplices.sort(key=len)
+
         G = nx.Graph()
-        nodes = set()
 
-        # Collect all the nodes
-        # composing the simplices
-        for top_simp in top_simplices:
-            nodes.update(tuple(top_simp))
+        # Collect all the vertices composing the simplices. Vertex
+        # labels are contiguous and 1-indexed, so vertex $v$ becomes
+        # node $v - 1$.
+        vertices = sorted({v for simp in top_simplices for v in simp})
+        n = len(vertices)
 
-        n = len(nodes)
-
-        # We add a node for all the pre-existing nodes
-        for i, node in enumerate(list(nodes)):
-            G.add_node(i, simplex=[i])
+        # Add every 0-simplex as a node *first*, in sorted (ascending)
+        # order, so that `from_networkx` maps them to consecutive
+        # integers aligned with the original (zero-indexed) vertex
+        # order.
+        for v in vertices:
+            G.add_node(v - 1, simplex=[v - 1])
 
         # For each maximal simplex
         for i, simp in enumerate(top_simplices):
-            G.add_node(n + i, simplex=simp)
-            # Add edges
-            for node in simp:
-                G.add_edge(node - 1, n + i)
+            G.add_node(n + i, simplex=[v - 1 for v in simp])
+            # Connect the maximal simplex to the 0-simplices it contains
+            for v in simp:
+                G.add_edge(v - 1, n + i)
 
         return G
