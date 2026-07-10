@@ -14,7 +14,7 @@ class CoordinateEmbedding(BaseTransform):
     object, e.g. the lattice coordinates of a Calabi-Yau triangulation.
     """
 
-    def __init__(self, propagate=False):
+    def __init__(self, propagate=False, append_attributes=None):
         """Create new coordinate embedding transform.
 
         Parameters
@@ -25,10 +25,19 @@ class CoordinateEmbedding(BaseTransform):
             in a dictionary keyed by simplex dimension. This requires
             `triangulation` to be present in the data object. If not
             set, the plain vertex coordinate tensor is used.
+
+        append_attributes : list of str or None
+            Scalar attributes of the data object (e.g. lattice-point
+            counts) to broadcast as additional constant feature
+            columns. Since barycenters of constants are constant, the
+            attributes reach every simplex rank when propagating.
         """
         super().__init__()
 
         self.propagate = propagate
+        self.append_attributes = (
+            list(append_attributes) if append_attributes else []
+        )
 
     def forward(self, data):
         """Assign coordinate embedding for a data object.
@@ -52,6 +61,19 @@ class CoordinateEmbedding(BaseTransform):
         if isinstance(X, torch.Tensor):
             X = X.detach().cpu().numpy()
         X = np.asarray(X, dtype=np.float32)
+
+        for attribute in self.append_attributes:
+            assert (
+                attribute in data
+            ), f"Attribute '{attribute}' is not present in data"
+
+            value = data[attribute]
+            if isinstance(value, torch.Tensor):
+                value = value.item()
+
+            X = np.column_stack(
+                [X, np.full((X.shape[0], 1), float(value), dtype=np.float32)]
+            )
 
         if self.propagate:
             assert (

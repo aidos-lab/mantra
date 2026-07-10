@@ -6,6 +6,7 @@ from mantra.datasets import CY
 from mantra.transforms import (
     CoordinateEmbedding,
     CreateRegressionLabels,
+    ScalarFeatures,
     SelectFeatures,
 )
 
@@ -86,6 +87,50 @@ class TestCoordinateEmbedding:
 
         for rank, count in enumerate([5, 8, 4]):
             assert data[f"x_{rank}"].shape == (count, 2)
+
+
+class TestCoordinateEmbeddingAppend:
+    def test_append_plain(self, tmp_path, make_cy_parquet, cy_rows):
+        dataset = _load(tmp_path, make_cy_parquet, cy_rows)
+        data = CoordinateEmbedding(
+            propagate=False, append_attributes=["h11", "h12"]
+        )(dataset[0])
+
+        embedding = data.coordinate_embedding
+        assert embedding.shape == (5, 4)
+        assert torch.equal(embedding[:, :2], data.vertices)
+        assert torch.all(embedding[:, 2] == 6.0)
+        assert torch.all(embedding[:, 3] == 46.0)
+
+    def test_append_propagates_to_all_ranks(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        dataset = _load(tmp_path, make_cy_parquet, cy_rows)
+        data = CoordinateEmbedding(
+            propagate=True, append_attributes=["h11"]
+        )(dataset[0])
+
+        for rank, count in enumerate([5, 8, 4]):
+            values = data.coordinate_embedding[rank]
+            assert values.shape == (count, 3)
+            # Barycenters of a constant column stay constant.
+            assert torch.all(values[:, 2] == 6.0)
+
+
+class TestScalarFeatures:
+    def test_collects_sources(self, tmp_path, make_cy_parquet, cy_rows):
+        dataset = _load(tmp_path, make_cy_parquet, cy_rows)
+        data = ScalarFeatures(sources=["h11", "h12"])(dataset[1])
+
+        assert data.scalar_features.dtype == torch.float32
+        assert data.scalar_features.tolist() == [[7.0, 43.0]]
+
+    def test_missing_source_raises(self, tmp_path, make_cy_parquet, cy_rows):
+        dataset = _load(tmp_path, make_cy_parquet, cy_rows)
+        import pytest
+
+        with pytest.raises(AssertionError, match="not present"):
+            ScalarFeatures(sources=["h99"])(dataset[0])
 
 
 class TestCreateRegressionLabels:

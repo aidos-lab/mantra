@@ -10,6 +10,7 @@ from .effective_resistance import (
     EffectiveResistanceStatisticsEmbedding,
 )
 from .moment_curve_embedding import MomentCurveEmbedding
+from .scalar_features import ScalarFeatures
 from .select_attributes import SelectAttributes
 from .select_features import SelectFeatures
 from .util_transforms import PropagateConvexComb
@@ -19,6 +20,7 @@ __all__ = [
     "CreateLabels",
     "CreateRegressionLabels",
     "MomentCurveEmbedding",
+    "ScalarFeatures",
     "SelectAttributes",
     "SelectFeatures",
     "SimplexRandomTransform",
