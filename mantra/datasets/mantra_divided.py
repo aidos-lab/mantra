@@ -18,6 +18,7 @@ from mantra.datasets.mantra import ManifoldTriangulations
 from mantra.datasets.utils import filter_by_class_count
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
+DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
 
 
 class SubdivisionType(Enum):
@@ -57,7 +58,7 @@ class MANTRADivided(ManifoldTriangulations):
         seed=42,
         division_type: str = "barycentric",
         class_count_filter=None,
-        split_proportions: List[float] = [0.6, 0.2, 0.2],
+        split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified=False,
         max_vertices=None,
         max_ood_size_per_class=None,
@@ -170,6 +171,12 @@ class MANTRADivided(ManifoldTriangulations):
             parts.append(f"mv{self.max_vertices}")
         if self.class_count_filter:
             parts.append(f"ccf{self.class_count_filter}")
+        if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
+            parts.append(
+                "sp" + "-".join(str(p) for p in self.split_proportions)
+            )
+        if self.stratified:
+            parts.append("strat")
         return "_" + "_".join(parts) if parts else ""
 
     def _build_ood_str(self):
@@ -196,7 +203,7 @@ class MANTRADivided(ManifoldTriangulations):
         """
         suffix = self._split_file_suffix()
         base_files = []
-        for split_type in ["train", "val", "test"]:
+        for split_type in SPLIT_TYPES[:3]:
             file_str = f"{split_type}{suffix}.pt"
             base_files.append(file_str)
 
@@ -263,27 +270,27 @@ class MANTRADivided(ManifoldTriangulations):
         for data in eligible:
             entries_by_class[data.name].append(data)
 
+        # Barycentric subdivision is always deterministic; stellar is
+        # deterministic when every top-simplex is subdivided.
+        deterministic = self.division_type == SubdivisionType.BARYCENTRIC or (
+            self.division_type == SubdivisionType.STELLAR
+            and self.kwargs.get("fraction", 1.0) >= 1.0
+        )
+
         ood_list = []
         for class_name in sorted(entries_by_class):
             sources = entries_by_class[class_name]
-            if (
-                len(sources) < cap
-                and self.division_type == SubdivisionType.BARYCENTRIC
-            ):
+            if len(sources) < cap and deterministic:
                 warnings.warn(
-                    f"Oversampling class '{class_name}' with the "
-                    "deterministic barycentric subdivision produces exact "
-                    "duplicates; consider graded or partial stellar "
-                    "subdivision instead."
+                    f"Oversampling class '{class_name}' with a "
+                    "deterministic subdivision (barycentric, or stellar "
+                    "with fraction=1.0) produces exact duplicates; "
+                    "consider graded or stellar with fraction < 1 instead."
                 )
             rng.shuffle(sources)
-            for i in tqdm(
-                range(cap), desc=f"Subdividing OOD ({class_name})"
-            ):
+            for i in tqdm(range(cap), desc=f"Subdividing OOD ({class_name})"):
                 source = sources[i % len(sources)]
-                ood_list.append(
-                    self._subdivide_entry(source, rng, f"ood_{i}")
-                )
+                ood_list.append(self._subdivide_entry(source, rng, f"ood_{i}"))
 
         return ood_list
 

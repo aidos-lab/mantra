@@ -3,6 +3,18 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# Unreleased
+
+## Changed
+
+- Split caches now also encode `split_proportions` and `stratified`,
+  so changing either re-processes instead of silently serving stale
+  splits.
+
+- The exact-duplicates warning for oversampled OOD classes now also
+  covers stellar subdivision with `fraction=1.0`, which is just as
+  deterministic as barycentric subdivision.
+
 # v0.0.16
 
 ## Added
