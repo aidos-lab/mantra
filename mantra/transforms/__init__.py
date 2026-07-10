@@ -3,7 +3,8 @@ from .attribute_transform import (
     NodeRandomTransform,
     SimplexRandomTransform,
 )
-from .create_labels import CreateLabels
+from .coordinate_embedding import CoordinateEmbedding
+from .create_labels import CreateLabels, CreateRegressionLabels
 from .effective_resistance import (
     EffectiveResistanceEmbedding,
     EffectiveResistanceStatisticsEmbedding,
@@ -14,7 +15,9 @@ from .select_features import SelectFeatures
 from .util_transforms import PropagateConvexComb
 
 __all__ = [
+    "CoordinateEmbedding",
     "CreateLabels",
+    "CreateRegressionLabels",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",

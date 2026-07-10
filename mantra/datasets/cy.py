@@ -9,7 +9,21 @@ from tqdm import tqdm
 
 
 class CY(InMemoryDataset):
-    """Dataset of Calabi-Yau manifold triangulations."""
+    """Dataset of Calabi-Yau manifold triangulations.
+
+    Each sample is a fine star triangulation of a 4-dimensional
+    reflexive lattice polytope, stored in a parquet file with columns
+    `simplices` (top-level simplices, 0-indexed vertex lists) and
+    `vertices` (integer lattice coordinates, one row per vertex). All
+    remaining columns (e.g. Hodge numbers `h11`, `h12`) are attached to
+    the resulting :class:`~torch_geometric.data.Data` objects verbatim.
+
+    To stay compatible with the MANTRA conventions used by the
+    transforms and representations of this library, `process()` converts
+    the simplices to 1-indexed lists and stores the *topological*
+    dimension of the complex (number of vertices per top simplex minus
+    one) in the `dimension` attribute.
+    """
 
     def __init__(
         self,
@@ -17,11 +31,11 @@ class CY(InMemoryDataset):
         version="latest",
         name=None,
         local_path=None,
+        limit=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
-        debug=False,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -56,31 +70,34 @@ class CY(InMemoryDataset):
             GitHub. The file will be copied into the raw directory.
             Useful for testing locally generated datasets.
 
-        debug : bool
-            Only load 1k triangulations for debug purposes.
+        limit : int or None
+            Only process the first `limit` triangulations. Limited
+            subsets are stored in their own processed directory, so
+            they can coexist with the full dataset and are cheap to
+            precompute, e.g. for smoke tests or timing benchmarks.
         """
         self.version = version
         self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
-        self.debug = debug
+        self.limit = limit
+
+        root += self._add_version_to_root()
 
         super().__init__(
-            root,
-            transform,
-            pre_transform,
-            pre_filter,
-            force_reload,
+            root=root,
+            transform=transform,
+            pre_transform=pre_transform,
+            pre_filter=pre_filter,
+            force_reload=force_reload,
         )
+
+        self.load(self.processed_paths[0])
 
     def _add_version_to_root(self):
         if self.version == "latest":
-            return "/cy/debug/" if self.debug else "/cy/"
+            return "/cy/"
         else:
-            return (
-                f"/cy/{self.version}/debug/"
-                if self.debug
-                else f"/cy/{self.version}/"
-            )
+            return f"/cy/{self.version}/"
 
     @property
     def raw_file_names(self):
@@ -91,6 +108,22 @@ class CY(InMemoryDataset):
         property `self.raw_paths`.
         """
         return ["manifolds.parquet"]
+
+    @property
+    def processed_dir(self):
+        """Return path of directory with the processed files.
+
+        The path encodes the optional `name` and `limit` parameters so
+        that differently prepared variants of the dataset can coexist.
+        """
+        path = os.path.join(self.root, "processed")
+
+        if self.name is not None:
+            path = os.path.join(path, self.name)
+        if self.limit is not None:
+            path = os.path.join(path, f"limit_{self.limit}")
+
+        return path
 
     @property
     def processed_file_names(self):
@@ -119,25 +152,46 @@ class CY(InMemoryDataset):
             for _, row in parquet_df.iterrows():
                 row_dict = row.to_dict()
 
-                # Rename the column to match downstream processing.
-                row_dict["triangulation"] = row_dict["simplices"]
+                # Convert to the MANTRA convention: plain (nested) lists
+                # of 1-indexed vertices, named `triangulation`.
+                triangulation = [
+                    [int(v) + 1 for v in simplex]
+                    for simplex in row_dict.pop("simplices")
+                ]
 
-                # Convert vertex coordinates to a float tensor.
-                row_dict["vertices"] = np.vstack(row_dict["vertices"])
-                row_dict["vertices"] = torch.as_tensor(
-                    row_dict["vertices"], dtype=torch.float32
+                # Convert vertex coordinates to a float tensor; row `i`
+                # holds the coordinates of vertex `i + 1`.
+                vertices = torch.as_tensor(
+                    np.vstack(row_dict.pop("vertices")), dtype=torch.float32
                 )
 
-                del row_dict["simplices"]
+                used_vertices = {v for s in triangulation for v in s}
+                assert used_vertices == set(
+                    range(1, vertices.shape[0] + 1)
+                ), "Triangulation does not use all vertices consecutively"
+
+                # Numpy scalars (e.g. labels like `h11`) are converted to
+                # Python scalars so that they collate like the fields of
+                # the JSON-based MANTRA datasets.
+                row_dict = {
+                    k: v.item() if isinstance(v, np.generic) else v
+                    for k, v in row_dict.items()
+                }
 
                 data_list.append(
                     Data(
+                        triangulation=triangulation,
+                        vertices=vertices,
+                        dimension=len(triangulation[0]) - 1,
+                        n_vertices=vertices.shape[0],
                         **row_dict,
-                        dimension=len(row_dict["triangulation"][0]),
                     )
                 )
 
-            if self.debug:
+                if self.limit is not None and len(data_list) >= self.limit:
+                    break
+
+            if self.limit is not None and len(data_list) >= self.limit:
                 break
 
         if self.pre_filter is not None:

@@ -82,16 +82,15 @@ def pairwise_entries():
 def make_cy_parquet(tmp_path):
     """Return a factory writing CY-style rows to a parquet file.
 
-    ``rows`` is a list of ``(simplices, vertices)`` tuples.
+    ``rows`` is a list of dicts with at least the keys ``simplices``
+    and ``vertices``; any further keys become additional columns
+    (e.g. labels such as ``h11``).
     """
 
     def _make(rows, filename="manifolds.parquet"):
         path = tmp_path / filename
         df = pd.DataFrame(
-            {
-                "simplices": [r[0] for r in rows],
-                "vertices": [r[1] for r in rows],
-            }
+            {key: [r[key] for r in rows] for key in rows[0].keys()}
         )
         pq.write_table(pa.Table.from_pandas(df), str(path))
         return str(path)
@@ -101,12 +100,31 @@ def make_cy_parquet(tmp_path):
 
 @pytest.fixture
 def cy_rows():
-    """Two tetrahedral CY-style rows (4 vertices in 3-space)."""
-    simplices = [[0, 1, 2, 3]]
+    """Two CY-style star triangulations (0-indexed, with labels).
+
+    Each row is the cone over the boundary of a square: vertex 0 is
+    the origin and every top-level simplex contains it, mimicking the
+    star triangulations of the Calabi-Yau datasets one dimension down.
+    """
+    simplices = [[0, 1, 2], [0, 2, 3], [0, 3, 4], [0, 4, 1]]
     vertices = [
-        [0.0, 0.0, 0.0],
-        [1.0, 0.0, 0.0],
-        [0.0, 1.0, 0.0],
-        [0.0, 0.0, 1.0],
+        [0, 0],
+        [1, 0],
+        [0, 1],
+        [-1, 0],
+        [0, -1],
     ]
-    return [(simplices, vertices), (simplices, vertices)]
+    return [
+        {
+            "simplices": simplices,
+            "vertices": vertices,
+            "h11": 6,
+            "h12": 46,
+        },
+        {
+            "simplices": simplices,
+            "vertices": vertices,
+            "h11": 7,
+            "h12": 43,
+        },
+    ]

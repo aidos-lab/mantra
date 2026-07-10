@@ -88,3 +88,71 @@ class CreateLabels(BaseTransform):
             data = self._assign_precompute(data)
 
         return data
+
+
+class CreateRegressionLabels(BaseTransform):
+    """Create regression targets based on attributes.
+
+    This transform assembles a float target vector `y` from one or
+    more scalar attributes present in a dataset, e.g. Hodge numbers
+    of a Calabi-Yau triangulation. In contrast to `CreateLabels`, the
+    attribute values are used directly instead of being mapped to
+    class indices.
+    """
+
+    def __init__(self, sources, sum_sources=False):
+        """Create new regression label transform.
+
+        Parameters
+        ----------
+        sources : str or list of str
+            Attribute(s) used to create the target. Each attribute must
+            be a scalar that is present in the data.
+
+        sum_sources : bool
+            If set, the values of all sources are summed into a single
+            scalar target (e.g. `h11 + h12`) instead of being stacked
+            into a vector.
+        """
+        super().__init__()
+
+        self.sources = [sources] if isinstance(sources, str) else list(sources)
+        self.sum_sources = sum_sources
+
+        # Kept for interface compatibility with `CreateLabels`; there
+        # is no label indexing for regression targets.
+        self.label_to_index = {}
+
+    def forward(self, data):
+        """Assign regression target for a given `data` object.
+
+        Parameters
+        ----------
+        data : torch_geometric.data.Data
+            Input data object. All source attributes must be present.
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Data object with the target attached to it, stored in the
+            `y` attribute as a float tensor of shape `(1, k)`, with
+            `k` the number of sources (or `1` if `sum_sources`).
+        """
+        values = []
+        for source in self.sources:
+            assert (
+                source in data
+            ), f"Source attribute '{source}' is not present in data"
+
+            value = data[source]
+            if isinstance(value, torch.Tensor):
+                value = value.item()
+            values.append(float(value))
+
+        y = torch.tensor(values, dtype=torch.float32).view(1, -1)
+
+        if self.sum_sources:
+            y = y.sum(dim=1, keepdim=True)
+
+        data.y = y
+        return data
