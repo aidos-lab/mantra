@@ -1,5 +1,6 @@
 """Tests for ``mantra.datasets.mantra_divided``."""
 
+import warnings
 from collections import Counter
 
 import pytest
@@ -406,7 +407,6 @@ class TestProcessedFileNames:
         obj.division_type = SubdivisionType.from_str(
             kwargs.pop("division_type", "barycentric")
         )
-        obj.max_vertices = kwargs.pop("max_vertices", None)
         obj.max_ood_size_per_class = kwargs.pop("max_ood_size_per_class", None)
         obj.class_count_filter = kwargs.pop("class_count_filter", None)
         obj.split_proportions = kwargs.pop(
@@ -425,18 +425,19 @@ class TestProcessedFileNames:
         ]
 
     def test_names_encode_parameters(self):
+        # max_vertices needs no file-name entry: the parent class
+        # encodes it into the processed directory.
         names = self._names(
             division_type="graded",
             vertex_number=50,
-            max_vertices=10,
             max_ood_size_per_class=100,
             class_count_filter=5,
         )
         assert names == [
-            "train_mv10_ccf5.pt",
-            "val_mv10_ccf5.pt",
-            "test_mv10_ccf5.pt",
-            "ood_graded_50_cap100_mv10_ccf5.pt",
+            "train_ccf5.pt",
+            "val_ccf5.pt",
+            "test_ccf5.pt",
+            "ood_graded_50_cap100_ccf5.pt",
         ]
 
     def test_names_encode_split_proportions_and_stratified(self):
@@ -499,7 +500,7 @@ class TestBalancedDivided:
             "balanced_42_n_moves1_target_count4_use_topology_changesFalse"
         )
 
-    def test_balanced_with_post_filters_warns(
+    def test_balanced_with_class_count_filter_warns(
         self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
     ):
         with pytest.warns(UserWarning, match="re-imbalance"):
@@ -510,5 +511,46 @@ class TestBalancedDivided:
                 split_type="train",
                 balanced=True,
                 balance_kwargs=self.BALANCE_KWARGS,
+                class_count_filter=1,
+            )
+
+    def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
+        with pytest.raises(ValueError, match="top-level max_vertices"):
+            MANTRADivided(
+                str(tmp_path / "root"),
+                split_type="train",
+                balanced=True,
+                balance_kwargs={"max_vertices": 5},
+            )
+
+    def test_max_vertices_forwarded_to_balancing(
+        self, make_manifolds_json, tmp_path, no_dedup
+    ):
+        # Octahedral spheres (6 vertices) exceed the cap and must be
+        # excluded inside the balancing; every class is then balanced
+        # to target_count from the tetrahedral sources alone, and no
+        # re-imbalance warning is emitted.
+        entries = (
+            [manifold_entry(f"s{i}", name="S^2") for i in range(3)]
+            + [octahedron_entry(f"o{i}", name="S^2") for i in range(2)]
+            + [
+                manifold_entry(f"r{i}", name="RP^2", orientable=False)
+                for i in range(2)
+            ]
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            ds = make_divided(
+                make_manifolds_json,
+                entries,
+                tmp_path,
+                split_type="train",
+                balanced=True,
+                balance_kwargs=self.BALANCE_KWARGS,
                 max_vertices=5,
             )
+        assert not [
+            w for w in caught if "re-imbalance" in str(w.message)
+        ]
+        assert ds.max_vertices == 5
+        assert all(int(d.n_vertices) <= 5 for d in ds)

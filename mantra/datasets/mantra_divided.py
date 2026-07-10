@@ -76,11 +76,7 @@ class MANTRADivided(ManifoldTriangulations):
             :class:`mantra.datasets.ManifoldTriangulations`. With
             ``balanced=True`` the *whole* dataset is balanced before
             splitting, so Pachner-augmented near-duplicates of one
-            source triangulation may land in different splits. Note that
-            ``balance_kwargs["max_vertices"]`` (a prefilter inside the
-            balancing) is distinct from this class's own ``max_vertices``
-            parameter (a cap on the in-distribution splits applied after
-            balancing).
+            source triangulation may land in different splits.
         division_type : str
             Type of division to apply to the triangulations. Options are
             barycentric, graded, stellar.
@@ -99,6 +95,9 @@ class MANTRADivided(ManifoldTriangulations):
             combination with a graded subdivision this guarantees that
             every OOD sample is strictly larger than any in-distribution
             sample, since ``vertex_number`` must exceed ``max_vertices``.
+            With ``balanced=True`` the cap is also enforced inside the
+            balancing itself (as a prefilter and during augmentation),
+            so the classes stay balanced under the cap.
         max_ood_size_per_class : int or None
             If set, oversample and trim the OOD split so that every
             class contains exactly this many samples (classes without
@@ -134,17 +133,14 @@ class MANTRADivided(ManifoldTriangulations):
         self.split_proportions = split_proportions
         self.class_count_filter = class_count_filter
         self.division_type = SubdivisionType.from_str(division_type)
-        self.max_vertices = max_vertices
         self.max_ood_size_per_class = max_ood_size_per_class
         self.kwargs = kwargs
 
-        if balanced and (max_vertices is not None or class_count_filter):
+        if balanced and class_count_filter:
             warnings.warn(
-                "balanced=True equalizes the classes before max_vertices "
-                "and class_count_filter are applied, so these filters can "
-                "re-imbalance or drop classes. To keep the balance under a "
-                "vertex cap, pass balance_kwargs={'max_vertices': ...} "
-                "instead."
+                "balanced=True equalizes the classes before "
+                "class_count_filter is applied, so the filter can "
+                "re-imbalance or drop classes again."
             )
 
         if self.division_type == SubdivisionType.GRADED:
@@ -178,6 +174,7 @@ class MANTRADivided(ManifoldTriangulations):
             force_reload,
             seed,
             balance_kwargs,
+            max_vertices,
         )
 
     def _load_index(self):
@@ -185,10 +182,12 @@ class MANTRADivided(ManifoldTriangulations):
         return SPLIT_TYPES.index(self.split_type)
 
     def _split_file_suffix(self):
-        """Suffix encoding parameters that change the train/val/test data."""
+        """Suffix encoding parameters that change the train/val/test data.
+
+        The vertex cap needs no entry here: the parent class encodes
+        ``max_vertices`` into the processed directory itself.
+        """
         parts = []
-        if self.max_vertices is not None:
-            parts.append(f"mv{self.max_vertices}")
         if self.class_count_filter:
             parts.append(f"ccf{self.class_count_filter}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
@@ -325,14 +324,6 @@ class MANTRADivided(ManifoldTriangulations):
                 data
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
-            ]
-
-        # Cap the vertex count of the in-distribution splits
-        if self.max_vertices is not None:
-            data_list = [
-                data
-                for data in data_list
-                if data.n_vertices <= self.max_vertices
             ]
 
         # Filter by homeomorphism type

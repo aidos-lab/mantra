@@ -26,10 +26,12 @@ from mantra.datasets.utils import (
 
 # Keyword arguments forwardable to balance_dataset, derived from its
 # signature so the two cannot drift apart. The seed comes from the
-# dataset's own seed parameter.
+# dataset's own seed parameter and the vertex cap from the dataset's
+# top-level max_vertices parameter.
 BALANCE_KWARGS_KEYS = set(inspect.signature(balance_dataset).parameters) - {
     "dataset",
     "seed",
+    "max_vertices",
 }
 
 
@@ -50,6 +52,7 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload=False,
         seed=42,
         balance_kwargs=None,
+        max_vertices=None,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -86,8 +89,14 @@ class ManifoldTriangulations(InMemoryDataset):
             Additional arguments forwarded to
             :func:`mantra.augmentations.balancing.balance_dataset` when
             ``balanced`` is True. Allowed keys: ``target_count``,
-            ``n_moves``, ``use_topology_changes``, ``max_vertices``,
-            ``verbose``. The seed is always taken from ``seed``.
+            ``n_moves``, ``use_topology_changes``, ``verbose``. The seed
+            is always taken from ``seed`` and the vertex cap from
+            ``max_vertices``.
+        max_vertices : int or None
+            If set, keep only triangulations with at most this many
+            vertices. With ``balanced=True`` the cap is enforced inside
+            the balancing itself (as a prefilter and during
+            augmentation), so the classes stay balanced under the cap.
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -121,6 +130,11 @@ class ManifoldTriangulations(InMemoryDataset):
                 "Do not pass 'seed' in balance_kwargs; balancing uses the "
                 "dataset's seed parameter."
             )
+        if "max_vertices" in self.balance_kwargs:
+            raise ValueError(
+                "Do not pass 'max_vertices' in balance_kwargs; use the "
+                "top-level max_vertices parameter instead."
+            )
         unknown_keys = set(self.balance_kwargs) - BALANCE_KWARGS_KEYS
         if unknown_keys:
             raise ValueError(
@@ -128,6 +142,7 @@ class ManifoldTriangulations(InMemoryDataset):
                 f"allowed keys are {sorted(BALANCE_KWARGS_KEYS)}."
             )
 
+        self.max_vertices = max_vertices
         self.local_path = os.path.abspath(local_path) if local_path else None
         resolved_from_latest = False
         if version == "latest" and self.local_path is None:
@@ -191,19 +206,22 @@ class ManifoldTriangulations(InMemoryDataset):
         return [f"{self.dimension}_manifolds.json"]
 
     def _balance_dir_suffix(self):
-        """Suffix encoding the explicitly set balancing parameters.
+        """Suffix encoding the explicitly set data-changing parameters.
 
-        Ensures datasets balanced with different parameters are cached
-        in different directories. Every key is encoded generically so a
-        newly added parameter can never silently share a cache
-        directory; ``verbose`` is excluded since it does not change the
-        data.
+        Ensures datasets prepared with different balancing parameters
+        or vertex caps are cached in different directories. Every key
+        is encoded generically so a newly added parameter can never
+        silently share a cache directory; ``verbose`` is excluded since
+        it does not change the data.
         """
-        parts = [
-            f"{key}{value}"
-            for key, value in sorted(self.balance_kwargs.items())
+        params = {
+            key: value
+            for key, value in self.balance_kwargs.items()
             if key != "verbose"
-        ]
+        }
+        if self.max_vertices is not None:
+            params["max_vertices"] = self.max_vertices
+        parts = [f"{key}{value}" for key, value in sorted(params.items())]
         return "_" + "_".join(parts) if parts else ""
 
     @property
@@ -242,14 +260,23 @@ class ManifoldTriangulations(InMemoryDataset):
             os.unlink(path)
 
     def _load_raw_entries(self):
-        """Load raw JSON entries, balancing them when ``self.balanced``."""
+        """Load raw JSON entries, applying the vertex cap and balancing."""
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
         if self.balanced:
+            # balance_dataset enforces the vertex cap itself, both as a
+            # prefilter and during augmentation.
             inputs = balance_dataset(
-                inputs, seed=self.seed, **self.balance_kwargs
+                inputs,
+                seed=self.seed,
+                max_vertices=self.max_vertices,
+                **self.balance_kwargs,
             )
+        elif self.max_vertices is not None:
+            inputs = [
+                e for e in inputs if e["n_vertices"] <= self.max_vertices
+            ]
 
         return inputs
 

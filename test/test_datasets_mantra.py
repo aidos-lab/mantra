@@ -220,6 +220,14 @@ class TestBalanceKwargsValidation:
                 balance_kwargs=dict(dedup_max_rounds=3),
             )
 
+    def test_max_vertices_key_raises(self, tmp_path):
+        with pytest.raises(ValueError, match="top-level max_vertices"):
+            ManifoldTriangulations(
+                str(tmp_path / "root"),
+                balanced=True,
+                balance_kwargs=dict(max_vertices=5),
+            )
+
 
 class TestBalancedProcessing:
     def test_balance_dataset_called_with_seed_and_kwargs(
@@ -240,10 +248,13 @@ class TestBalancedProcessing:
             balanced=True,
             local_path=path,
             seed=7,
+            max_vertices=9,
             balance_kwargs=dict(target_count=3, n_moves=2),
         )
         assert calls["n_entries"] == len(balanced_entries)
-        assert calls["kwargs"] == dict(seed=7, target_count=3, n_moves=2)
+        assert calls["kwargs"] == dict(
+            seed=7, max_vertices=9, target_count=3, n_moves=2
+        )
         assert len(ds) == 4
 
     def test_unbalanced_skips_balance_dataset(
@@ -258,6 +269,22 @@ class TestBalancedProcessing:
             str(tmp_path / "root"), dimension=2, local_path=path
         )
         assert len(ds) == len(balanced_entries)
+
+    def test_unbalanced_max_vertices_filters_entries(
+        self, make_manifolds_json, balanced_entries, tmp_path
+    ):
+        entries = balanced_entries + [
+            manifold_entry("big", n_vertices=99)
+        ]
+        path = make_manifolds_json(entries)
+        ds = ManifoldTriangulations(
+            str(tmp_path / "root"),
+            dimension=2,
+            local_path=path,
+            max_vertices=4,
+        )
+        assert len(ds) == len(balanced_entries)
+        assert all(int(d.n_vertices) <= 4 for d in ds)
 
     def test_balancing_equalizes_class_counts(
         self, make_manifolds_json, tmp_path, no_dedup
@@ -355,12 +382,13 @@ class TestBalancedProcessing:
 
 
 class TestBalanceDirSuffix:
-    def _dir(self, balanced=True, seed=42, **balance_kwargs):
+    def _dir(self, balanced=True, seed=42, max_vertices=None, **balance_kwargs):
         obj = ManifoldTriangulations.__new__(ManifoldTriangulations)
         obj.root = "/x"
         obj.name = None
         obj.balanced = balanced
         obj.seed = seed
+        obj.max_vertices = max_vertices
         obj.balance_kwargs = balance_kwargs
         return os.path.basename(obj.processed_dir)
 
@@ -377,6 +405,12 @@ class TestBalanceDirSuffix:
         ) == (
             "balanced_42_max_vertices30_n_moves2_target_count5"
             "_use_topology_changesFalse"
+        )
+
+    def test_max_vertices_encoded_when_unbalanced(self):
+        assert (
+            self._dir(balanced=False, max_vertices=4)
+            == "unbalanced_42_max_vertices4"
         )
 
     def test_verbose_not_encoded_but_other_keys_are(self):
