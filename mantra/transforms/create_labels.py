@@ -74,18 +74,22 @@ class CreateLabels(BaseTransform):
             Data object with a label attached to it, stored in the `y`
             attribute of the tensor.
         """
-        # In this case, we are performing a remapping in either
-        # 1) Dataset was already preprocessed but we filtered,
-        # or, 2) we are loading the dataset
-        if "label" in data:
+        # Whenever the source attribute is available, (re)build the
+        # label mapping from it. This keeps `label_to_index` consistent
+        # regardless of whether the data was freshly processed, loaded
+        # from a cache, or filtered in between: surviving labels are
+        # indexed compactly in order of appearance.
+        if self.source in data or "y" not in data:
+            data = self._assign_precompute(data)
+        else:
+            # Fallback for preprocessed data that only carries `y`:
+            # remap the existing indices compactly.
             remap = copy.copy(data.y.item())
 
             if remap not in self.index_remap:
                 self.index_remap[remap] = len(self.index_remap)
 
             data.y = torch.tensor([self.index_remap[remap]])
-        else:
-            data = self._assign_precompute(data)
 
         return data
 
