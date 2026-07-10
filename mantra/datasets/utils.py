@@ -3,12 +3,9 @@ from collections import Counter
 import requests
 
 
-def _get_mantra_dataset_url(
-    version: str, dimension: int, balanced: bool = False
-) -> str:
+def _get_mantra_dataset_url(version: str, dimension: int) -> str:
     """Get URL to download dataset from."""
-    suffix = "_balanced" if balanced else ""
-    filename = f"{dimension}_manifolds{suffix}.json.gz"
+    filename = f"{dimension}_manifolds.json.gz"
 
     if version == "latest":
         return f"https://github.com/aidos-lab/MANTRA/releases/latest/download/{filename}"  # noqa

@@ -3,6 +3,7 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
+import inspect
 import json
 import os
 import shutil
@@ -15,7 +16,18 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
+from mantra.augmentations.balancing import balance_dataset
 from mantra.datasets.utils import _get_mantra_dataset_url
+
+# Keyword arguments forwardable to balance_dataset, derived from its
+# signature so the two cannot drift apart. The seed comes from the
+# dataset's own seed parameter and the vertex cap from the dataset's
+# top-level max_vertices parameter.
+BALANCE_KWARGS_KEYS = set(inspect.signature(balance_dataset).parameters) - {
+    "dataset",
+    "seed",
+    "max_vertices",
+}
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -34,6 +46,8 @@ class ManifoldTriangulations(InMemoryDataset):
         pre_filter=None,
         force_reload=False,
         seed=42,
+        balance_kwargs=None,
+        max_vertices=None,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -52,10 +66,30 @@ class ManifoldTriangulations(InMemoryDataset):
             2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
             and 3-manifolds, respectively.
         balanced : bool
-            If True, download the balanced variant of the dataset.
-            Balanced datasets have been augmented via Pachner moves
-            so that all manifold classes have roughly equal
-            representation and vertex count distributions.
+            If True, balance the dataset during processing via Pachner
+            move augmentation (see
+            :func:`mantra.augmentations.balancing.balance_dataset`), so
+            that all manifold classes have equal representation.
+            Isomorphic duplicates created by the augmentation are removed
+            with the deduplication machinery in
+            ``mantra.utils.deduplication``. The result is cached in the
+            processed directory; the first run can take a while,
+            especially for the 3D dataset. Note that augmented
+            near-duplicates of the same source triangulation may end up
+            in different splits when the balanced dataset is split
+            downstream.
+        balance_kwargs : dict or None
+            Additional arguments forwarded to
+            :func:`mantra.augmentations.balancing.balance_dataset` when
+            ``balanced`` is True. Allowed keys: ``target_count``,
+            ``n_moves``, ``use_topology_changes``, ``verbose``. The seed
+            is always taken from ``seed`` and the vertex cap from
+            ``max_vertices``.
+        max_vertices : int or None
+            If set, keep only triangulations with at most this many
+            vertices. With ``balanced=True`` the cap is enforced inside
+            the balancing itself (as a prefilter and during
+            augmentation), so the classes stay balanced under the cap.
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -78,6 +112,30 @@ class ManifoldTriangulations(InMemoryDataset):
             Seed for generating additional triangulations or augmentations.
         """
         assert dimension in [2, 3], "Dimension can only be 2 or 3"
+        self.balance_kwargs = dict(balance_kwargs or {})
+        if self.balance_kwargs and not balanced:
+            raise ValueError(
+                "balance_kwargs requires balanced=True; got "
+                f"{sorted(self.balance_kwargs)} with balanced=False."
+            )
+        if "seed" in self.balance_kwargs:
+            raise ValueError(
+                "Do not pass 'seed' in balance_kwargs; balancing uses the "
+                "dataset's seed parameter."
+            )
+        if "max_vertices" in self.balance_kwargs:
+            raise ValueError(
+                "Do not pass 'max_vertices' in balance_kwargs; use the "
+                "top-level max_vertices parameter instead."
+            )
+        unknown_keys = set(self.balance_kwargs) - BALANCE_KWARGS_KEYS
+        if unknown_keys:
+            raise ValueError(
+                f"Unknown balance_kwargs keys {sorted(unknown_keys)}; "
+                f"allowed keys are {sorted(BALANCE_KWARGS_KEYS)}."
+            )
+
+        self.max_vertices = max_vertices
         self.version = version
         self.seed = seed
         self.balanced = balanced
@@ -85,7 +143,7 @@ class ManifoldTriangulations(InMemoryDataset):
         self.dimension = dimension
         self.version = version
         self.local_path = os.path.abspath(local_path) if local_path else None
-        self.url = _get_mantra_dataset_url(version, dimension, balanced)
+        self.url = _get_mantra_dataset_url(version, dimension)
 
         root += self._add_version_to_root()
 
@@ -123,12 +181,33 @@ class ManifoldTriangulations(InMemoryDataset):
         """
         return [f"{self.dimension}_manifolds.json"]
 
+    def _balance_dir_suffix(self):
+        """Suffix encoding the explicitly set data-changing parameters.
+
+        Ensures datasets prepared with different balancing parameters
+        or vertex caps are cached in different directories. Every key
+        is encoded generically so a newly added parameter can never
+        silently share a cache directory; ``verbose`` is excluded since
+        it does not change the data.
+        """
+        params = {
+            key: value
+            for key, value in self.balance_kwargs.items()
+            if key != "verbose"
+        }
+        if self.max_vertices is not None:
+            params["max_vertices"] = self.max_vertices
+        parts = [f"{key}{value}" for key, value in sorted(params.items())]
+        return "_" + "_".join(parts) if parts else ""
+
     @property
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
         balanced_suffix = "balanced" if self.balanced else "unbalanced"
-        balanced_suffix = f"{balanced_suffix}_{self.seed}"
+        balanced_suffix = (
+            f"{balanced_suffix}_{self.seed}{self._balance_dir_suffix()}"
+        )
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
@@ -156,10 +235,30 @@ class ManifoldTriangulations(InMemoryDataset):
             extract_gz(path, self.raw_dir)
             os.unlink(path)
 
-    def process(self):
-        """Processes dataset."""
+    def _load_raw_entries(self):
+        """Load raw JSON entries, applying the vertex cap and balancing."""
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
+
+        if self.balanced:
+            # balance_dataset enforces the vertex cap itself, both as a
+            # prefilter and during augmentation.
+            inputs = balance_dataset(
+                inputs,
+                seed=self.seed,
+                max_vertices=self.max_vertices,
+                **self.balance_kwargs,
+            )
+        elif self.max_vertices is not None:
+            inputs = [
+                e for e in inputs if e["n_vertices"] <= self.max_vertices
+            ]
+
+        return inputs
+
+    def process(self):
+        """Processes dataset."""
+        inputs = self._load_raw_entries()
 
         data_list = [Data(**el) for el in inputs]
 

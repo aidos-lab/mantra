@@ -1,5 +1,6 @@
 """Tests for ``mantra.datasets.mantra_divided``."""
 
+import warnings
 from collections import Counter
 
 import pytest
@@ -408,7 +409,6 @@ class TestProcessedFileNames:
         )
         obj.max_ood_size_per_class = kwargs.pop("max_ood_size_per_class", None)
         obj.class_count_filter = kwargs.pop("class_count_filter", None)
-        obj.max_vertices = kwargs.pop("max_vertices", None)
         obj.split_proportions = kwargs.pop(
             "split_proportions", [0.6, 0.2, 0.2]
         )
@@ -425,6 +425,8 @@ class TestProcessedFileNames:
         ]
 
     def test_names_encode_parameters(self):
+        # max_vertices needs no file-name entry: the parent class
+        # encodes it into the processed directory.
         names = self._names(
             division_type="graded",
             vertex_number=50,
@@ -445,3 +447,108 @@ class TestProcessedFileNames:
     def test_stellar_name_encodes_fraction(self):
         names = self._names(division_type="stellar", fraction=0.5)
         assert names[-1] == "ood_stellar_0.5.pt"
+
+
+class TestBalancedDivided:
+    BALANCE_KWARGS = dict(
+        target_count=4, n_moves=1, use_topology_changes=False
+    )
+
+    def test_balancing_feeds_the_splits(
+        self, make_manifolds_json, tmp_path, no_dedup
+    ):
+        # Imbalanced input; balancing yields 4 per class = 8 entries,
+        # which then split 5/1/2 with proportions [0.6, 0.2, 0.2].
+        entries = [manifold_entry(f"s{i}", name="S^2") for i in range(6)] + [
+            manifold_entry(f"r{i}", name="RP^2", orientable=False)
+            for i in range(2)
+        ]
+        sizes = {}
+        for split in ["train", "val", "test", "ood"]:
+            ds = make_divided(
+                make_manifolds_json,
+                entries,
+                tmp_path,
+                split_type=split,
+                balanced=True,
+                balance_kwargs=self.BALANCE_KWARGS,
+            )
+            sizes[split] = len(ds)
+        assert sizes["train"] + sizes["val"] + sizes["test"] == 8
+        assert sizes["ood"] == sizes["test"]
+
+    def test_processed_dir_separates_balanced(
+        self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
+    ):
+        plain = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="train",
+        )
+        balanced = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="train",
+            balanced=True,
+            balance_kwargs=self.BALANCE_KWARGS,
+        )
+        assert plain.processed_dir != balanced.processed_dir
+        assert plain.processed_dir.endswith("unbalanced_42")
+        assert balanced.processed_dir.endswith(
+            "balanced_42_n_moves1_target_count4_use_topology_changesFalse"
+        )
+
+    def test_balanced_with_class_count_filter_warns(
+        self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
+    ):
+        with pytest.warns(UserWarning, match="re-imbalance"):
+            make_divided(
+                make_manifolds_json,
+                balanced_entries,
+                tmp_path,
+                split_type="train",
+                balanced=True,
+                balance_kwargs=self.BALANCE_KWARGS,
+                class_count_filter=1,
+            )
+
+    def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
+        with pytest.raises(ValueError, match="top-level max_vertices"):
+            MANTRADivided(
+                str(tmp_path / "root"),
+                split_type="train",
+                balanced=True,
+                balance_kwargs={"max_vertices": 5},
+            )
+
+    def test_max_vertices_forwarded_to_balancing(
+        self, make_manifolds_json, tmp_path, no_dedup
+    ):
+        # Octahedral spheres (6 vertices) exceed the cap and must be
+        # excluded inside the balancing; every class is then balanced
+        # to target_count from the tetrahedral sources alone, and no
+        # re-imbalance warning is emitted.
+        entries = (
+            [manifold_entry(f"s{i}", name="S^2") for i in range(3)]
+            + [octahedron_entry(f"o{i}", name="S^2") for i in range(2)]
+            + [
+                manifold_entry(f"r{i}", name="RP^2", orientable=False)
+                for i in range(2)
+            ]
+        )
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            ds = make_divided(
+                make_manifolds_json,
+                entries,
+                tmp_path,
+                split_type="train",
+                balanced=True,
+                balance_kwargs=self.BALANCE_KWARGS,
+                max_vertices=5,
+            )
+        assert not [w for w in caught if "re-imbalance" in str(w.message)]
+        assert ds.max_vertices == 5
+        assert all(int(d.n_vertices) <= 5 for d in ds)
