@@ -17,30 +17,50 @@ class CreateLabels(BaseTransform):
 
         Parameters
         ----------
-        source : str
-            Denotes attribute that is used to create labels. If not
+        source : str or list of str
+            Denotes attribute(s) used to create labels. If not
             present in the data, the `forward()` function will just
-            fail with an exception.
+            fail with an exception. For multiple attributes, the
+            label is the tuple of their values, i.e. one class per
+            distinct value combination.
         """
         super().__init__()
 
+        # Accept list-like inputs (e.g. an OmegaConf ListConfig) as a
+        # plain list of attribute names.
+        if not isinstance(source, str):
+            source = [str(s) for s in source]
         self.source = source
         self.label_to_index = {}
         self.index_remap = {}
 
-    def _assign_precompute(self, data):
-        assert (
-            self.source in data
-        ), f"Source attribute '{self.source}' is not present in data"
+    def _sources_present(self, data):
+        if isinstance(self.source, list):
+            return all(s in data for s in self.source)
+        return self.source in data
 
-        label = data[self.source]
+    def _read_label(self, data):
+        def value(name):
+            v = data[name]
+            if isinstance(v, torch.Tensor):
+                v = v.item()
+            return v
+
+        if isinstance(self.source, list):
+            return tuple(value(s) for s in self.source)
+        return value(self.source)
+
+    def _assign_precompute(self, data):
+        assert self._sources_present(
+            data
+        ), f"Source attribute(s) '{self.source}' not present in data"
+
+        label = self._read_label(data)
 
         if isinstance(label, bool):
             # Booleans map directly: ``False = 0`` and ``True = 1``.
             data.y = torch.tensor([int(label)])
         else:
-            if isinstance(label, torch.Tensor):
-                label = label.item()
             if label not in self.label_to_index:
                 self.label_to_index[label] = self.index_remap[label] = len(
                     self.label_to_index
@@ -79,7 +99,7 @@ class CreateLabels(BaseTransform):
         # regardless of whether the data was freshly processed, loaded
         # from a cache, or filtered in between: surviving labels are
         # indexed compactly in order of appearance.
-        if self.source in data or "y" not in data:
+        if self._sources_present(data) or "y" not in data:
             data = self._assign_precompute(data)
         else:
             # Fallback for preprocessed data that only carries `y`:
