@@ -92,16 +92,16 @@ class DualGraph(BaseTransform):
                 i, **extra_attr_dict
             )  # -1 to convert 1-index to 0-indexed
 
-        # This is a helper in case we need it later for
-        # feature propagation
-        edge_tuples = []
+        # Remember which (d-1)-face induced each edge so features can
+        # be propagated onto the edges below.
+        edge_faces = {}
 
         # Add an edge to connect all cofaces. Notice that we implicitly only
         # ever consider valid cofaces, i.e., list of length at least two.
         for face, cofaces in face_to_cofaces.items():
             for a, b in combinations(sorted(cofaces), 2):
                 G.add_edge(a, b)
-                edge_tuples.append((a, b))
+                edge_faces[(a, b)] = face
 
         # Here we do an extra step to assign features to the simplices
         if self.feature_propagation:
@@ -116,10 +116,15 @@ class DualGraph(BaseTransform):
                 i: vtx_feat_tensor[i] for i in range(vtx_feat_tensor.shape[0])
             }
 
-            # For edges this is a bit more complicated since we need the edge tuples
-            # here we assume that they are oredered lexicographically
+            # The per-rank feature tensors are ordered lexicographically
+            # over all simplices of the rank; look each edge's inducing
+            # face up in that ordering.
+            face_index = {
+                f: i for i, f in enumerate(sorted(face_to_cofaces))
+            }
             edge_feat_dict = {
-                t: edge_feat_tensor[i] for i, t in enumerate(edge_tuples)
+                t: edge_feat_tensor[face_index[f]]
+                for t, f in edge_faces.items()
             }
 
             # Here we just set it

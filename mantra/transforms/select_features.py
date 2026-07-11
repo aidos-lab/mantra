@@ -50,6 +50,11 @@ class SelectFeatures(BaseTransform):
         ], f"Invalid value: {representation}"
 
         self.src = src
+        # Coerce list-like inputs (e.g. an OmegaConf ListConfig coming
+        # from a Hydra override) into a plain list so the dispatch on
+        # `isinstance(self.dst, List)` in `forward` works.
+        if dst is not None and not isinstance(dst, str):
+            dst = [str(d) for d in dst]
         self.dst = dst
         self.representation = representation
 

@@ -1,3 +1,4 @@
+from collections import defaultdict
 from itertools import combinations
 from typing import Optional, Tuple
 
@@ -31,7 +32,12 @@ class HasseDiagram(BaseTransform):
         top_simplices.sort()
         top_simplices.sort(key=len)
 
-        G = self._build_hasse_diagram(top_simplices, data)
+        feat_index = (
+            self._feature_index(top_simplices)
+            if self.feature_propagation
+            else None
+        )
+        G = self._build_hasse_diagram(top_simplices, data, feat_index)
 
         if self.feature_propagation:
             data_ = from_networkx(
@@ -51,8 +57,37 @@ class HasseDiagram(BaseTransform):
 
         return data
 
+    def _feature_index(self, top_simplices):
+        """Map each simplex to its row in the per-rank feature tensors.
+
+        Propagating transforms (cf. `_propagate_values`) order each
+        rank's feature tensor lexicographically over *all* simplices of
+        that rank, except for rank 0, whose tensor is the raw vertex
+        tensor indexed by (zero-based) vertex id. This mapping mirrors
+        that ordering so features can be looked up per simplex.
+        """
+        m = len(top_simplices[0])
+        simplices = set(top_simplices)
+        for s in top_simplices:
+            for dim in range(1, m):
+                simplices.update(combinations(s, dim))
+
+        by_rank = defaultdict(list)
+        for s in simplices:
+            by_rank[len(s)].append(s)
+
+        index = {}
+        for k, rank_simplices in by_rank.items():
+            if k == 1:
+                index.update((s, s[0] - 1) for s in rank_simplices)
+            else:
+                index.update(
+                    (s, i) for i, s in enumerate(sorted(rank_simplices))
+                )
+        return index
+
     def _build_connecting_lower_simplices(
-        self, G: nx.Graph, data, k_simplex: Tuple[int]
+        self, G: nx.Graph, data, k_simplex: Tuple[int], feat_index
     ) -> None:
         """
         Create the Hasse diagram layer corresponding to k_simplices.
@@ -80,27 +115,35 @@ class HasseDiagram(BaseTransform):
         k_minus_1_simplices.sort(key=len)
 
         # For each k-1 simplex
-        for i, k_simp in enumerate(k_minus_1_simplices):
+        for k_simp in k_minus_1_simplices:
             k_simp = tuple(k_simp)
+            new_nodes.append(k_simp)
+
+            # A node reached via several parents only needs to be
+            # built (and recursed into) once.
+            if G.has_node(k_simp):
+                continue
+
             extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
 
-            # NOTE: A bit of an ugly patch, could come up with a better solutin
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(k_simp)-1}"
                 feat_vtx_tensor = getattr(data, vtx_feat_str)
-                # Get's the i-th tensor from the feature tensor
-                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[
+                    feat_index[k_simp]
+                ]
 
             G.add_node(k_simp, **extra_attr_dict)
-            new_nodes.append(k_simp)
 
-            self._build_connecting_lower_simplices(G, data, k_simp)
+            self._build_connecting_lower_simplices(
+                G, data, k_simp, feat_index
+            )
 
         # TODO: What does edge_features look like in this case ?
         for new_node in new_nodes:
             G.add_edge(k_simplex, new_node)
 
-    def _build_hasse_diagram(self, top_simplices, data):
+    def _build_hasse_diagram(self, top_simplices, data, feat_index=None):
         """
         Construct the Hasse diagram out of the triangulation of a
         $d$-manifold. There is a vertex for each k-simplex and it's joined
@@ -119,15 +162,18 @@ class HasseDiagram(BaseTransform):
         """
         G = nx.Graph()
 
-        for i, top_simp in enumerate(top_simplices):
+        for top_simp in top_simplices:
             extra_attr_dict = {"simplex": [sim - 1 for sim in top_simp]}
 
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(top_simp)-1}"
                 feat_vtx_tensor = getattr(data, vtx_feat_str)
-                # Get's the i-th tensor from the feature tensor
-                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[i]
+                extra_attr_dict[self.feature_propagation] = feat_vtx_tensor[
+                    feat_index[top_simp]
+                ]
             G.add_node(top_simp, **extra_attr_dict)
-            self._build_connecting_lower_simplices(G, data, top_simp)
+            self._build_connecting_lower_simplices(
+                G, data, top_simp, feat_index
+            )
 
         return G
