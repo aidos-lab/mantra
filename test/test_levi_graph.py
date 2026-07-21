@@ -35,7 +35,6 @@ class TestLeviGraph:
     @pytest.mark.parametrize("triangles", ["single_triangle", "two_triangles"])
     def test_node_count(self, transform, triangles, request):
         triangles = request.getfixturevalue(triangles)
-        print(triangles)
 
         data = transform(self._make_data(triangles))
 

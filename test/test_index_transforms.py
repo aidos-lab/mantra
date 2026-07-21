@@ -99,7 +99,6 @@ class TestTensors:
         )
 
         data = self.transform_adjacency(self.data)
-        print(data.adjacency_2.to_dense())
         assert (
             self.adjacency_0 == data.adjacency_0.to_dense()
         ).all(), "Error at `adjacency_0` "
