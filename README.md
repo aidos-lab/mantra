@@ -12,9 +12,17 @@ paper](https://openreview.net/pdf?id=X6y5CC44HM) for more details and
 our [benchmarks repository](https://github.com/aidos-lab/mantra-benchmarks) for
 additional code to reproduce all experiments.
 
-Please use the following citation for our work:
+Please use the following citations for our work:
 
 ```bibtex
+@unpublished{Schmidt26a,
+  title         = {No Triangulation Without Representation: Generalization in Topological Deep Learning},
+  author        = {Johannes S. Schmidt and Martin Carrasco and Ernst Röell and Guy Wolf and Nello Blaser and Bastian Rieck},
+  year          = 2026,
+  eprint        = {2605.06467},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.LG},
+}
 @inproceedings{Ballester25a,
   title         = {{MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage},
   author        = {Rubén Ballester and Ernst Röell and Daniel Bīn Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
