@@ -3,6 +3,21 @@
 This is a [changelog](https://keepachangelog.com/) of all notable
 changes to this project. We adhere to [Semantic Versioning](https://semver.org/).
 
+# Unreleased
+
+## Changed
+
+- `version="latest"` is resolved to the concrete release tag on
+  construction (one cached HTTP request per process), so new releases
+  are picked up automatically. The root path becomes
+  `mantra/<tag>/<dim>D`; existing unversioned `latest` caches are
+  orphaned and re-downloaded once. When offline, the newest locally
+  cached release is used instead.
+
+- Pinned versions are validated against the release tag names instead
+  of the display names; validation degrades to a warning when the
+  release listing cannot be fetched (e.g. API rate limit).
+
 # v0.0.16
 
 ## Added

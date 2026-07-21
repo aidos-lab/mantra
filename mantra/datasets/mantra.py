@@ -6,6 +6,7 @@ following the API of `pytorch-geometric`.
 import json
 import os
 import shutil
+import warnings
 
 from torch_geometric.data import (
     Data,
@@ -15,7 +16,11 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-from mantra.datasets.utils import _get_mantra_dataset_url
+from mantra.datasets.utils import (
+    _find_cached_version,
+    _get_mantra_dataset_url,
+    _resolve_latest_version,
+)
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -46,7 +51,9 @@ class ManifoldTriangulations(InMemoryDataset):
             `on GitHub <https://github.com/aidos-lab/mantra/releases>`__.
             By default, the latest version will be downloaded. Unless
             specific reproducibility requirements are to be met, using
-            `latest` is recommended.
+            `latest` is recommended; it is resolved to the actual release
+            tag on construction, so new releases are picked up
+            automatically.
         dimension : int
             Dimension of manifold triangulations to load. Currently, only
             2 or 3 are supported, denoting 2-manifolds (i.e., surfaces)
@@ -78,14 +85,31 @@ class ManifoldTriangulations(InMemoryDataset):
             Seed for generating additional triangulations or augmentations.
         """
         assert dimension in [2, 3], "Dimension can only be 2 or 3"
+        self.local_path = os.path.abspath(local_path) if local_path else None
+        resolved_from_latest = False
+        if version == "latest" and self.local_path is None:
+            version = _resolve_latest_version()
+            resolved_from_latest = version != "latest"
+            if not resolved_from_latest:
+                # Offline: fall back to the newest locally cached release
+                # so a warm cache keeps working without network access.
+                cached = _find_cached_version(root, dimension)
+                if cached is not None:
+                    version = cached
+                    resolved_from_latest = True
+                    warnings.warn(
+                        f"Using locally cached MANTRA release {cached}."
+                    )
         self.version = version
         self.seed = seed
         self.balanced = balanced
         self.name = name
         self.dimension = dimension
-        self.version = version
-        self.local_path = os.path.abspath(local_path) if local_path else None
-        self.url = _get_mantra_dataset_url(version, dimension, balanced)
+        # Tags resolved from the `latest` alias come from GitHub itself
+        # and need no validation round-trip.
+        self.url = _get_mantra_dataset_url(
+            version, dimension, balanced, validate=not resolved_from_latest
+        )
 
         root += self._add_version_to_root()
 
