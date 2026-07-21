@@ -156,7 +156,7 @@ def _sample_from_special_orthogonal_group(n, rng=None):
 class MomentCurveEmbedding(BaseTransform):
 
     def __init__(
-        self, perturb=False, normalize=False, propagate=False, rng=None
+        self, perturb=False, normalize=False, rng=None
     ):
         """Create new moment curve embedding transform.
 
@@ -173,12 +173,6 @@ class MomentCurveEmbedding(BaseTransform):
         normalize : bool
             If set, normalize coordinates to a higher-dimensional
             sphere, thus increasing dimensionality by one.
-        propagate : bool
-            If set propagates the values upwards from the 0-simplices
-            to the k-simplices above by getting a barycenter. Note
-            this option requires that `triangulation` be present
-            in the data object.
-
         rng : np.random.Generator, int, or None
             Random number generator object. If set to `None`, the
             default generator (`np.random.default_rng()`) will be
@@ -187,7 +181,6 @@ class MomentCurveEmbedding(BaseTransform):
         """
         super().__init__()
 
-        self.propagate = propagate
         self.perturb = perturb
         self.normalize = normalize
 
