@@ -155,9 +155,7 @@ def _sample_from_special_orthogonal_group(n, rng=None):
 
 class MomentCurveEmbedding(BaseTransform):
 
-    def __init__(
-        self, perturb=False, normalize=False, rng=None
-    ):
+    def __init__(self, perturb=False, normalize=False, rng=None):
         """Create new moment curve embedding transform.
 
         Parameters
