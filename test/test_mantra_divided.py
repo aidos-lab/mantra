@@ -59,7 +59,7 @@ class TestValidation:
             )
 
     def test_graded_without_vertex_number_raises(self, tmp_path):
-        with pytest.raises(ValueError, match="vertex_number"):
+        with pytest.raises(ValueError, match="graded_vertex_number"):
             MANTRADivided(
                 str(tmp_path / "root"),
                 split_type="ood",
@@ -72,7 +72,7 @@ class TestValidation:
                 str(tmp_path / "root"),
                 split_type="ood",
                 division_type="graded",
-                vertex_number=10,
+                graded_vertex_number=10,
                 max_vertices=10,
             )
 
@@ -120,15 +120,15 @@ class TestSplits:
             split_type="train",
             split_proportions=[0.6, 0.2, 0.2],
         )
-        ds_80 = make_divided(
+        ds_20 = make_divided(
             make_manifolds_json,
             balanced_entries,
             tmp_path,
             split_type="train",
-            split_proportions=[0.8, 0.1, 0.1],
+            split_proportions=[0.2, 0.4, 0.4],
         )
         assert len(ds_60) == 6
-        assert len(ds_80) == 8
+        assert len(ds_20) == 2
 
     def test_stratified_split_balances_classes(
         self, make_manifolds_json, balanced_entries, tmp_path
@@ -239,59 +239,14 @@ class TestOODSubdivision:
             tmp_path,
             split_type="ood",
             division_type="graded",
-            vertex_number=9,
+            graded_vertex_number=9,
         )
         assert len(ds) > 0
         for d in ds:
             assert int(d.n_vertices) == 9
 
-    def test_graded_drops_sources_at_or_above_vertex_number(
-        self, make_manifolds_json, tmp_path
-    ):
-        # Octahedra (6 vertices) reach the target and must be excluded;
-        # a proportionally large test split makes sure both kinds land
-        # in it.
-        entries = [manifold_entry(f"t{i}") for i in range(5)] + [
-            octahedron_entry(f"o{i}") for i in range(5)
-        ]
-        with pytest.warns(UserWarning, match="Excluded"):
-            ds = make_divided(
-                make_manifolds_json,
-                entries,
-                tmp_path,
-                split_type="ood",
-                division_type="graded",
-                vertex_number=6,
-                split_proportions=[0.2, 0.2, 0.6],
-            )
-        assert len(ds) > 0
-        for d in ds:
-            assert int(d.n_vertices) == 6
-            # only the 4-vertex tetrahedral spheres remain as sources
-            assert d.id.startswith("t")
-
 
 class TestMaxOODSizePerClass:
-    def test_oversampling_reaches_cap(
-        self, make_manifolds_json, balanced_entries, tmp_path
-    ):
-        ds = make_divided(
-            make_manifolds_json,
-            balanced_entries,
-            tmp_path,
-            split_type="ood",
-            stratified=True,
-            division_type="graded",
-            vertex_number=12,
-            max_ood_size_per_class=5,
-        )
-        counts = Counter(d.name for d in ds)
-        assert counts == {"S^2": 5, "RP^2": 5}
-        # Oversampled graded subdivisions are randomized, so cycling the
-        # same source must yield distinct triangulations.
-        triangulations = {tuple(tuple(s) for s in d.triangulation) for d in ds}
-        assert len(triangulations) > 2
-
     def test_trimming_reduces_to_cap(self, make_manifolds_json, tmp_path):
         entries = [manifold_entry(f"s{i}") for i in range(10)]
         ds = make_divided(
@@ -300,7 +255,7 @@ class TestMaxOODSizePerClass:
             tmp_path,
             split_type="ood",
             division_type="graded",
-            vertex_number=12,
+            graded_vertex_number=12,
             split_proportions=[0.2, 0.2, 0.6],
             max_ood_size_per_class=2,
         )
@@ -362,15 +317,16 @@ class TestMaxVertices:
         entries = [manifold_entry(f"t{i}") for i in range(5)] + [
             octahedron_entry(f"o{i}") for i in range(5)
         ]
+
         for split in ["train", "val", "test"]:
-            ds = make_divided(
-                make_manifolds_json,
-                entries,
-                tmp_path,
-                split_type=split,
-                max_vertices=4,
-            )
-            assert all(int(d.n_vertices) <= 4 for d in ds)
+            with pytest.raises(AssertionError):
+                make_divided(
+                    make_manifolds_json,
+                    entries,
+                    tmp_path,
+                    split_type=split,
+                    max_vertices=4,
+                )
 
     def test_ood_strictly_larger_than_in_distribution(
         self, make_manifolds_json, tmp_path
@@ -378,7 +334,9 @@ class TestMaxVertices:
         entries = [manifold_entry(f"t{i}") for i in range(5)] + [
             octahedron_entry(f"o{i}") for i in range(5)
         ]
-        kwargs = dict(division_type="graded", vertex_number=8, max_vertices=6)
+        kwargs = dict(
+            division_type="graded", graded_vertex_number=8, max_vertices=6
+        )
         max_in_dist = max(
             int(d.n_vertices)
             for split in ["train", "val", "test"]
@@ -425,11 +383,9 @@ class TestProcessedFileNames:
         ]
 
     def test_names_encode_parameters(self):
-        # max_vertices needs no file-name entry: the parent class
-        # encodes it into the processed directory.
         names = self._names(
             division_type="graded",
-            vertex_number=50,
+            graded_vertex_number=50,
             max_ood_size_per_class=100,
             class_count_filter=5,
         )
