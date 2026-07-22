@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from mantra.augmentations import Triangulation
 from mantra.datasets.mantra import ManifoldTriangulations
-from mantra.datasets.utils import filter_by_class_count
+from mantra.datasets.utils import filter_by_class_count, make_split_index
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -129,18 +129,18 @@ class MANTRADivided(ManifoldTriangulations):
         self.kwargs = kwargs
 
         if self.division_type == SubdivisionType.GRADED:
-            if "vertex_number" not in kwargs:
+            if "graded_vertex_number" not in kwargs:
                 raise ValueError(
-                    "Graded subdivision requires a 'vertex_number' keyword "
+                    "Graded subdivision requires a 'graded_vertex_number' keyword "
                     "argument: the number of vertices every OOD sample is "
                     "grown to."
                 )
             if (
                 max_vertices is not None
-                and kwargs["vertex_number"] <= max_vertices
+                and kwargs["graded_vertex_number"] <= max_vertices
             ):
                 raise ValueError(
-                    f"vertex_number ({kwargs['vertex_number']}) must be "
+                    f"graded_vertex_number ({kwargs['vertex_number']}) must be "
                     f"strictly greater than max_vertices ({max_vertices}); "
                     "otherwise OOD samples are not guaranteed to be larger "
                     "than the train/val/test triangulations."
@@ -225,7 +225,7 @@ class MANTRADivided(ManifoldTriangulations):
             )
         else:  # Graded
             triangle.graded_subdivision(
-                over_vrtx_cnt=self.kwargs["vertex_number"]
+                over_vrtx_cnt=self.kwargs["graded_vertex_number"]
             )
 
         new_entry = Data(**data.to_dict())
@@ -235,67 +235,39 @@ class MANTRADivided(ManifoldTriangulations):
 
         return new_entry
 
-    def _build_ood_split(self, test_entries, rng):
+    def _build_ood_split(self, test_entries: List[Data], rng: random.Random):
         """Build the OOD split by subdividing the test-set entries.
-
-        For a graded subdivision, sources whose vertex count already
-        reaches ``vertex_number`` cannot be grown to exactly the target
-        and are excluded. If ``max_ood_size_per_class`` is set, each
-        class is oversampled (cycling through its sources with fresh
-        randomness) or trimmed to exactly that many samples.
         """
-        if self.division_type == SubdivisionType.GRADED:
-            target = self.kwargs["vertex_number"]
-            eligible = [d for d in test_entries if d.n_vertices < target]
-            n_dropped = len(test_entries) - len(eligible)
-            if n_dropped:
-                warnings.warn(
-                    f"Excluded {n_dropped} test triangulations with >= "
-                    f"{target} vertices from the OOD split; they cannot be "
-                    f"grown to exactly {target} vertices."
-                )
-        else:
-            eligible = list(test_entries)
+        k = self.max_ood_size_per_class
 
-        cap = self.max_ood_size_per_class
-        if cap is None:
-            return [
-                self._subdivide_entry(data, rng, f"ood_{i}")
-                for i, data in enumerate(
-                    tqdm(eligible, desc="Subdividing OOD")
-                )
-            ]
-
+        # Construct class dict
         entries_by_class = defaultdict(list)
-        for data in eligible:
+        for data in test_entries:
             entries_by_class[data.name].append(data)
 
-        # Barycentric subdivision is always deterministic; stellar is
-        # deterministic when every top-simplex is subdivided.
-        deterministic = self.division_type == SubdivisionType.BARYCENTRIC or (
-            self.division_type == SubdivisionType.STELLAR
-            and self.kwargs.get("fraction", 1.0) >= 1.0
-        )
-
-        ood_list = []
+        ood_list: List = []
         for class_name in sorted(entries_by_class):
-            sources = entries_by_class[class_name]
-            if len(sources) < cap and deterministic:
+            # Choose only k samples  if specified with `k`,
+            #  if there's less than k, choose the maximum amount of samples in a `class_name`
+            k_cap: int = min(len(entries_by_class[class_name]), k) if k else len(entries_by_class[class_name])
+            if k is not None and k_cap < k:
                 warnings.warn(
-                    f"Oversampling class '{class_name}' with a "
-                    "deterministic subdivision (barycentric, or stellar "
-                    "with fraction=1.0) produces exact duplicates; "
-                    "consider graded or stellar with fraction < 1 instead."
+                    f"Not enough samples of '{class_name}'"
+                    "increase the size of test (split or amount of samples) "
+                    "or lower the class count number"
                 )
-            rng.shuffle(sources)
-            for i in tqdm(range(cap), desc=f"Subdividing OOD ({class_name})"):
-                source = sources[i % len(sources)]
+            sources = rng.choices(entries_by_class[class_name], k=k_cap)
+
+            for i in tqdm(range(len(sources)), desc=f"Subdividing OOD ({class_name})"):
+                source = sources[i]
                 ood_list.append(self._subdivide_entry(source, rng, f"ood_{i}"))
 
         return ood_list
 
     def process(self):
         """Processes dataset."""
+        rng = random.Random(self.seed)
+
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
@@ -309,43 +281,31 @@ class MANTRADivided(ManifoldTriangulations):
             ]
 
         # Cap the vertex count of the in-distribution splits
-        if self.max_vertices is not None:
-            data_list = [
-                data
-                for data in data_list
-                if data.n_vertices <= self.max_vertices
-            ]
+        if self.division_type == SubdivisionType.GRADED:
+            assert max([d.n_vertices for d in data_list]) < self.kwargs.get("graded_vertex_number"), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
 
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(
             data_list, "name", self.class_count_filter
         )
+
+        # Get the class labels
         labels = np.array([data.name for data in data_list])
 
-        train_size, val_size, test_size = self.split_proportions
-        # Train / test split
-        train_val_index, test_index = train_test_split(
-            np.arange(len(data_list)),
-            test_size=test_size,
-            shuffle=True,
-            stratify=(labels if self.stratified else None),
-            random_state=self.seed,
-        )
-
-        # train val split
-        train_index, val_index = train_test_split(
-            train_val_index,
-            test_size=val_size / (train_size + val_size),
-            shuffle=True,
-            stratify=(labels[train_val_index] if self.stratified else None),
-            random_state=self.seed,
+        # Make index splits
+        train_index, val_index, test_index = make_split_index(
+                data_list_size = len(data_list),
+                seed = self.seed,
+                train_size = self.split_proportions[0],
+                val_size = self.split_proportions[1],
+                test_size = self.split_proportions[2],
+                labels=labels
         )
 
         # Apply the selected subdivision algorithm to the test set
-        data_test_list = [data_list[idx] for idx in test_index]
-
-        rng = random.Random(self.seed)
-        ood_data_list = self._build_ood_split(data_test_list, rng)
+        ood_data_list = self._build_ood_split(
+            test_entries=[data_list[idx] for idx in test_index],
+            rng=rng)
 
         # Get the indices for ood
         ood_index = np.arange(
