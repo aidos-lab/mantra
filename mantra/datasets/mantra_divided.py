@@ -7,7 +7,6 @@ from enum import Enum
 from typing import List
 
 import numpy as np
-from sklearn.model_selection import train_test_split
 from torch_geometric.data import (
     Data,
 )
@@ -236,8 +235,7 @@ class MANTRADivided(ManifoldTriangulations):
         return new_entry
 
     def _build_ood_split(self, test_entries: List[Data], rng: random.Random):
-        """Build the OOD split by subdividing the test-set entries.
-        """
+        """Build the OOD split by subdividing the test-set entries."""
         k = self.max_ood_size_per_class
 
         # Construct class dict
@@ -249,7 +247,11 @@ class MANTRADivided(ManifoldTriangulations):
         for class_name in sorted(entries_by_class):
             # Choose only k samples  if specified with `k`,
             #  if there's less than k, choose the maximum amount of samples in a `class_name`
-            k_cap: int = min(len(entries_by_class[class_name]), k) if k else len(entries_by_class[class_name])
+            k_cap: int = (
+                min(len(entries_by_class[class_name]), k)
+                if k
+                else len(entries_by_class[class_name])
+            )
             if k is not None and k_cap < k:
                 warnings.warn(
                     f"Not enough samples of '{class_name}'"
@@ -258,7 +260,9 @@ class MANTRADivided(ManifoldTriangulations):
                 )
             sources = rng.choices(entries_by_class[class_name], k=k_cap)
 
-            for i in tqdm(range(len(sources)), desc=f"Subdividing OOD ({class_name})"):
+            for i in tqdm(
+                range(len(sources)), desc=f"Subdividing OOD ({class_name})"
+            ):
                 source = sources[i]
                 ood_list.append(self._subdivide_entry(source, rng, f"ood_{i}"))
 
@@ -282,7 +286,9 @@ class MANTRADivided(ManifoldTriangulations):
 
         # Cap the vertex count of the in-distribution splits
         if self.division_type == SubdivisionType.GRADED:
-            assert max([d.n_vertices for d in data_list]) < self.kwargs.get("graded_vertex_number"), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
+            assert max([d.n_vertices for d in data_list]) < self.kwargs.get(
+                "graded_vertex_number"
+            ), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
 
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(
@@ -294,18 +300,18 @@ class MANTRADivided(ManifoldTriangulations):
 
         # Make index splits
         train_index, val_index, test_index = make_split_index(
-                data_list_size = len(data_list),
-                seed = self.seed,
-                train_size = self.split_proportions[0],
-                val_size = self.split_proportions[1],
-                test_size = self.split_proportions[2],
-                labels=labels
+            data_list_size=len(data_list),
+            seed=self.seed,
+            train_size=self.split_proportions[0],
+            val_size=self.split_proportions[1],
+            test_size=self.split_proportions[2],
+            labels=labels,
         )
 
         # Apply the selected subdivision algorithm to the test set
         ood_data_list = self._build_ood_split(
-            test_entries=[data_list[idx] for idx in test_index],
-            rng=rng)
+            test_entries=[data_list[idx] for idx in test_index], rng=rng
+        )
 
         # Get the indices for ood
         ood_index = np.arange(

@@ -1,6 +1,6 @@
 from collections import Counter
-import numpy as np
 
+import numpy as np
 import requests
 from sklearn.model_selection import train_test_split
 
@@ -49,7 +49,15 @@ def filter_by_class_count(entries, label_source, min_count):
     filtered = [e for e in entries if e[label_source] in kept_labels]
     return filtered, counts
 
-def make_split_index(data_list_size: int, seed: int, train_size: float, val_size: float, test_size: float, labels = None):
+
+def make_split_index(
+    data_list_size: int,
+    seed: int,
+    train_size: float,
+    val_size: float,
+    test_size: float,
+    labels=None,
+):
     # Train / test split
     train_val_index, test_index = train_test_split(
         np.arange(data_list_size),
@@ -58,7 +66,7 @@ def make_split_index(data_list_size: int, seed: int, train_size: float, val_size
         stratify=labels,
         random_state=seed,
     )
-    
+
     # train val split
     train_index, val_index = train_test_split(
         train_val_index,
