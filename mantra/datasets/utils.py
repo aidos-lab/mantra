@@ -1,6 +1,8 @@
 from collections import Counter
 
+import numpy as np
 import requests
+from sklearn.model_selection import train_test_split
 
 
 def _get_mantra_dataset_url(
@@ -36,10 +38,41 @@ def _get_mantra_dataset_url(
 
 
 def filter_by_class_count(entries, label_source, min_count):
-    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times."""
-    if min_count <= 0:
+    """Drop entries whose ``label_source`` value occurs <= ``min_count`` times.
+
+    A ``min_count`` of ``None`` (or <= 0) disables filtering.
+    """
+    if min_count is None or min_count <= 0:
         return entries, Counter()
     counts = Counter(e[label_source] for e in entries)
     kept_labels = {lbl for lbl, c in counts.items() if c > min_count}
     filtered = [e for e in entries if e[label_source] in kept_labels]
     return filtered, counts
+
+
+def make_split_index(
+    data_list_size: int,
+    seed: int,
+    train_size: float,
+    val_size: float,
+    test_size: float,
+    labels=None,
+):
+    # Train / test split
+    train_val_index, test_index = train_test_split(
+        np.arange(data_list_size),
+        test_size=test_size,
+        shuffle=True,
+        stratify=labels,
+        random_state=seed,
+    )
+
+    # train val split
+    train_index, val_index = train_test_split(
+        train_val_index,
+        test_size=val_size / (train_size + val_size),
+        shuffle=True,
+        stratify=(labels[train_val_index] if labels is not None else None),
+        random_state=seed,
+    )
+    return train_index, val_index, test_index
