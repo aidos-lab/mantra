@@ -87,7 +87,7 @@ class MANTRADivided(ManifoldTriangulations):
             triangulations with at most ``max_vertices`` vertices. In
             combination with a graded subdivision this guarantees that
             every OOD sample is strictly larger than any in-distribution
-            sample, since ``vertex_number`` must exceed ``max_vertices``.
+            sample, since ``graded_vertex_number`` must exceed ``max_vertices``.
         max_ood_size_per_class : int or None
             If set, oversample and trim the OOD split so that every
             class contains exactly this many samples (classes without
@@ -101,9 +101,9 @@ class MANTRADivided(ManifoldTriangulations):
             Arguments for the subdivision. Barycentric accepts ``round``
             (number of rounds, default 1), stellar accepts ``fraction``
             (fraction of top-simplices to subdivide, default 1.0), and
-            graded requires ``vertex_number``: every OOD sample is grown
+            graded requires ``graded_vertex_number``: every OOD sample is grown
             to exactly this number of vertices, and test-set sources that
-            already have ``vertex_number`` or more vertices are excluded
+            already have ``graded_vertex_number`` or more vertices are excluded
             from the OOD split.
         """
         if split_type not in SPLIT_TYPES:
@@ -139,7 +139,7 @@ class MANTRADivided(ManifoldTriangulations):
                 and kwargs["graded_vertex_number"] <= max_vertices
             ):
                 raise ValueError(
-                    f"graded_vertex_number ({kwargs['vertex_number']}) must be "
+                    f"graded_vertex_number ({kwargs['graded_vertex_number']}) must be "
                     f"strictly greater than max_vertices ({max_vertices}); "
                     "otherwise OOD samples are not guaranteed to be larger "
                     "than the train/val/test triangulations."
@@ -185,7 +185,7 @@ class MANTRADivided(ManifoldTriangulations):
         elif self.division_type == SubdivisionType.STELLAR:
             arg_str = f"{self.kwargs.get('fraction', 1)}"
         else:  # Graded
-            arg_str = f"{self.kwargs['vertex_number']}"
+            arg_str = f"{self.kwargs['graded_vertex_number']}"
 
         ood_str = base_str + f"_{arg_str}"
         if self.max_ood_size_per_class is not None:
@@ -286,9 +286,16 @@ class MANTRADivided(ManifoldTriangulations):
 
         # Cap the vertex count of the in-distribution splits
         if self.division_type == SubdivisionType.GRADED:
-            assert max([d.n_vertices for d in data_list]) < self.kwargs.get(
-                "graded_vertex_number"
+            assert (
+                max([d.n_vertices for d in data_list])
+                < self.kwargs["graded_vertex_number"]
             ), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
+
+        # Cap the vertices
+        if self.max_vertices is not None:
+            assert (
+                max([d.n_vertices for d in data_list]) <= self.max_vertices
+            ), "The dataset contains triangulations with more vertices than `max_vertices`"
 
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(

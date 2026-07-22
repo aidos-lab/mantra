@@ -75,4 +75,4 @@ def make_split_index(
         stratify=(labels[train_val_index] if labels is not None else None),
         random_state=seed,
     )
-    return train_index, train_val_index, test_index
+    return train_index, val_index, test_index
