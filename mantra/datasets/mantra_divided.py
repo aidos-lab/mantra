@@ -19,7 +19,6 @@ from mantra.datasets.utils import filter_by_class_count, make_split_index
 SPLIT_TYPES = ["train", "val", "test", "ood"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
 
-
 class SubdivisionType(Enum):
     STELLAR = 1
     GRADED = 2
@@ -55,6 +54,7 @@ class MANTRADivided(ManifoldTriangulations):
         pre_filter=None,
         force_reload=False,
         seed=42,
+        balance_kwargs=None,
         division_type: str = "barycentric",
         class_count_filter=None,
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
@@ -70,6 +70,12 @@ class MANTRADivided(ManifoldTriangulations):
         ----------
         split_type: str
             Type of the split in [train, val, test, ood].
+        balance_kwargs : dict or None
+            Arguments for on-the-fly balancing, see
+            :class:`mantra.datasets.ManifoldTriangulations`. With
+            ``balanced=True`` the *whole* dataset is balanced before
+            splitting, so Pachner-augmented near-duplicates of one
+            source triangulation may land in different splits.
         division_type : str
             Type of division to apply to the triangulations. Options are
             barycentric, graded, stellar.
@@ -123,10 +129,15 @@ class MANTRADivided(ManifoldTriangulations):
         self.split_proportions = split_proportions
         self.class_count_filter = class_count_filter
         self.division_type = SubdivisionType.from_str(division_type)
-        self.max_vertices = max_vertices
         self.max_ood_size_per_class = max_ood_size_per_class
         self.kwargs = kwargs
 
+        if balanced and class_count_filter:
+            warnings.warn(
+                "balanced=True equalizes the classes before "
+                "class_count_filter is applied, so the filter can "
+                "re-imbalance or drop classes again."
+            )
         if self.division_type == SubdivisionType.GRADED:
             if "graded_vertex_number" not in kwargs:
                 raise ValueError(
@@ -157,6 +168,8 @@ class MANTRADivided(ManifoldTriangulations):
             pre_filter,
             force_reload,
             seed,
+            balance_kwargs,
+            max_vertices,
         )
 
     def _load_index(self):
@@ -164,10 +177,12 @@ class MANTRADivided(ManifoldTriangulations):
         return SPLIT_TYPES.index(self.split_type)
 
     def _split_file_suffix(self):
-        """Suffix encoding parameters that change the train/val/test data."""
+        """Suffix encoding parameters that change the train/val/test data.
+
+        The vertex cap needs no entry here: the parent class encodes
+        ``max_vertices`` into the processed directory itself.
+        """
         parts = []
-        if self.max_vertices is not None:
-            parts.append(f"mv{self.max_vertices}")
         if self.class_count_filter:
             parts.append(f"ccf{self.class_count_filter}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
@@ -270,10 +285,8 @@ class MANTRADivided(ManifoldTriangulations):
 
     def process(self):
         """Processes dataset."""
+        inputs = self._load_raw_entries()
         rng = random.Random(self.seed)
-
-        with open(self.raw_paths[0]) as f:
-            inputs = json.load(f)
 
         data_list = [Data(**el) for el in inputs]
 

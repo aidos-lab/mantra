@@ -220,15 +220,14 @@ class TestBalanceDatasetDedup:
         # Single (last) round only removes -> below target, no regen.
         assert len(out) == 3
 
-    def test_over_limit_entries_removed(self, monkeypatch, capsys):
-        # No isomorphic duplicates; removal is driven purely by the
-        # vertex limit (augmented copies grow past it). verbose=True
-        # exercises the over-limit branch of the progress message.
+    def test_over_limit_class_raises_value_error(self, monkeypatch):
+        # Every source would exceed the vertex limit after n_moves, so
+        # the class cannot be balanced and a clear error is raised.
         monkeypatch.setattr(
             balancing, "find_duplicates", lambda result, verbose=False: []
         )
         data = [sphere_entry("s0", nv=4)]
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="Cannot balance class"):
             balance_dataset(
                 data,
                 target_count=2,
@@ -237,6 +236,24 @@ class TestBalanceDatasetDedup:
                 use_topology_changes=False,
                 max_vertices=4,
                 verbose=True,
+            )
+
+    def test_dedup_shortfall_raises_value_error(self, monkeypatch):
+        # Deduplication collapses all augmented copies onto the first
+        # entry, dropping the class below the target count.
+        def all_duplicates(result, verbose=False):
+            ids = [e["id"] for e in result]
+            return [(ids[0], other) for other in ids[1:]]
+
+        monkeypatch.setattr(balancing, "find_duplicates", all_duplicates)
+        data = [sphere_entry("s0")]
+        with pytest.raises(ValueError, match="Deduplication left class"):
+            balance_dataset(
+                data,
+                target_count=2,
+                n_moves=2,
+                seed=0,
+                use_topology_changes=False,
             )
 
     def test_regeneration_skips_classes_without_originals(self, monkeypatch):
@@ -281,6 +298,82 @@ class TestBalanceDatasetMaxVertices:
         )
         assert all(e["n_vertices"] <= 10 for e in out)
         assert "drop" not in {e["id"] for e in out}
+
+    def test_only_undersized_sources_are_used(self, monkeypatch):
+        # Both sources survive the prefilter, but only the small one can
+        # be augmented without its copies exceeding the vertex limit.
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry("small", nv=4), sphere_entry("big", nv=6)]
+        out = balance_dataset(
+            data,
+            target_count=3,
+            n_moves=1,
+            seed=0,
+            use_topology_changes=False,
+            max_vertices=6,
+        )
+        augmented = [e for e in out if "_aug_" in e["id"]]
+        assert augmented
+        assert all(e["id"].startswith("small_aug_") for e in augmented)
+
+    def test_augmented_copies_are_not_re_augmented(self, monkeypatch):
+        # Oversampling cycles through the original entries only; an
+        # augmented copy must never become the source of another
+        # augmentation (no chained '_aug_..._aug_...' ids).
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry("s0")]
+        out = balance_dataset(
+            data,
+            target_count=4,
+            n_moves=1,
+            seed=0,
+            use_topology_changes=False,
+        )
+        assert len(out) == 4
+        assert all(e["id"].count("_aug_") <= 1 for e in out)
+
+    def test_truncation_is_a_random_subsample(self, monkeypatch):
+        # A class that already has more than 2x the target skips both
+        # augmentation and dedup; the survivors are a random subsample,
+        # not the smallest-n_vertices prefix.
+        def fail(result, verbose=False):  # pragma: no cover
+            raise AssertionError("dedup must skip never-augmented classes")
+
+        monkeypatch.setattr(balancing, "find_duplicates", fail)
+        data = [sphere_entry(f"s{i}", nv=4 + i) for i in range(10)]
+        out = balance_dataset(
+            data,
+            target_count=5,
+            seed=0,
+            use_topology_changes=False,
+        )
+        assert len(out) == 5
+        assert {e["id"] for e in out} <= {f"s{i}" for i in range(10)}
+        assert sorted(e["n_vertices"] for e in out) != [4, 5, 6, 7, 8]
+
+    def test_glueing_stops_at_vertex_limit(self, monkeypatch):
+        # Torus gluing adds 3 vertices, pushing 4-vertex spheres past
+        # the limit, so no T^2 entries can be generated; crosscap
+        # gluing adds only 1 vertex and still fits.
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry(f"s{i}", nv=4) for i in range(2)]
+        out = balance_dataset(
+            data,
+            target_count=1,
+            n_moves=1,
+            seed=0,
+            use_topology_changes=True,
+            max_vertices=6,
+        )
+        names = {e["name"] for e in out}
+        assert "T^2" not in names
+        assert "RP^2" in names
 
 
 # class TestPrintStatistics:
