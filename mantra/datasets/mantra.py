@@ -19,16 +19,6 @@ from tqdm import tqdm
 from mantra.augmentations.balancing import balance_dataset
 from mantra.datasets.utils import _get_mantra_dataset_url
 
-# Keyword arguments forwardable to balance_dataset, derived from its
-# signature so the two cannot drift apart. The seed comes from the
-# dataset's own seed parameter and the vertex cap from the dataset's
-# top-level max_vertices parameter.
-BALANCE_KWARGS_KEYS = set(inspect.signature(balance_dataset).parameters) - {
-    "dataset",
-    "seed",
-    "max_vertices",
-}
-
 
 class ManifoldTriangulations(InMemoryDataset):
     """Base class for storing manifold triangulations."""
@@ -46,7 +36,6 @@ class ManifoldTriangulations(InMemoryDataset):
         pre_filter=None,
         force_reload=False,
         seed=42,
-        balance_kwargs=None,
         max_vertices=None,
     ):
         """
@@ -78,13 +67,6 @@ class ManifoldTriangulations(InMemoryDataset):
             near-duplicates of the same source triangulation may end up
             in different splits when the balanced dataset is split
             downstream.
-        balance_kwargs : dict or None
-            Additional arguments forwarded to
-            :func:`mantra.augmentations.balancing.balance_dataset` when
-            ``balanced`` is True. Allowed keys: ``target_count``,
-            ``n_moves``, ``use_topology_changes``, ``verbose``. The seed
-            is always taken from ``seed`` and the vertex cap from
-            ``max_vertices``.
         max_vertices : int or None
             If set, keep only triangulations with at most this many
             vertices. With ``balanced=True`` the cap is enforced inside
@@ -112,29 +94,6 @@ class ManifoldTriangulations(InMemoryDataset):
             Seed for generating additional triangulations or augmentations.
         """
         assert dimension in [2, 3], "Dimension can only be 2 or 3"
-        self.balance_kwargs = dict(balance_kwargs or {})
-        if self.balance_kwargs and not balanced:
-            raise ValueError(
-                "balance_kwargs requires balanced=True; got "
-                f"{sorted(self.balance_kwargs)} with balanced=False."
-            )
-        if "seed" in self.balance_kwargs:
-            raise ValueError(
-                "Do not pass 'seed' in balance_kwargs; balancing uses the "
-                "dataset's seed parameter."
-            )
-        if "max_vertices" in self.balance_kwargs:
-            raise ValueError(
-                "Do not pass 'max_vertices' in balance_kwargs; use the "
-                "top-level max_vertices parameter instead."
-            )
-        unknown_keys = set(self.balance_kwargs) - BALANCE_KWARGS_KEYS
-        if unknown_keys:
-            raise ValueError(
-                f"Unknown balance_kwargs keys {sorted(unknown_keys)}; "
-                f"allowed keys are {sorted(BALANCE_KWARGS_KEYS)}."
-            )
-
         self.max_vertices = max_vertices
         self.version = version
         self.seed = seed
