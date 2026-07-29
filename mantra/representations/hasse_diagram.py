@@ -7,6 +7,37 @@ from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
 
+def simplex_feature_index(top_simplices):
+    """Map each simplex to its row in the per-rank feature tensors.
+
+    Propagating transforms (cf. `_propagate_values`) order each
+    rank's feature tensor lexicographically over *all* simplices of
+    that rank, except for rank 0, whose tensor is the raw vertex
+    tensor indexed by (zero-based) vertex id. This mapping mirrors
+    that ordering so features can be looked up per simplex. Shared by
+    the derived-graph representations (Hasse diagram, Levi graph).
+    """
+    m = len(top_simplices[0])
+    simplices = set(top_simplices)
+    for s in top_simplices:
+        for dim in range(1, m):
+            simplices.update(combinations(s, dim))
+
+    by_rank = defaultdict(list)
+    for s in simplices:
+        by_rank[len(s)].append(s)
+
+    index = {}
+    for k, rank_simplices in by_rank.items():
+        if k == 1:
+            index.update((s, s[0] - 1) for s in rank_simplices)
+        else:
+            index.update(
+                (s, i) for i, s in enumerate(sorted(rank_simplices))
+            )
+    return index
+
+
 class HasseDiagram(BaseTransform):
     def __init__(self, feature_propagation: Optional[str] = None):
         self.feature_propagation = feature_propagation
@@ -58,33 +89,7 @@ class HasseDiagram(BaseTransform):
         return data
 
     def _feature_index(self, top_simplices):
-        """Map each simplex to its row in the per-rank feature tensors.
-
-        Propagating transforms (cf. `_propagate_values`) order each
-        rank's feature tensor lexicographically over *all* simplices of
-        that rank, except for rank 0, whose tensor is the raw vertex
-        tensor indexed by (zero-based) vertex id. This mapping mirrors
-        that ordering so features can be looked up per simplex.
-        """
-        m = len(top_simplices[0])
-        simplices = set(top_simplices)
-        for s in top_simplices:
-            for dim in range(1, m):
-                simplices.update(combinations(s, dim))
-
-        by_rank = defaultdict(list)
-        for s in simplices:
-            by_rank[len(s)].append(s)
-
-        index = {}
-        for k, rank_simplices in by_rank.items():
-            if k == 1:
-                index.update((s, s[0] - 1) for s in rank_simplices)
-            else:
-                index.update(
-                    (s, i) for i, s in enumerate(sorted(rank_simplices))
-                )
-        return index
+        return simplex_feature_index(top_simplices)
 
     def _build_connecting_lower_simplices(
         self, G: nx.Graph, data, k_simplex: Tuple[int], feat_index
