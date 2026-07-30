@@ -25,10 +25,11 @@ dependencies = [
 requires-python = ">=3.10"
 authors = [
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
-  {name = "Bastian Rieck", email = "bastian.rieck@helmholtz-munich.de"},
+  {name = "Bastian Rieck", email = "bastian.grossenbacher@unifr.ch"},
 ]
 maintainers = [
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
+  {name = "Bastian Rieck", email = "bastian.grossenbacher@unifr.ch"},
 ]
 description = "A package for working with higher-order datasets like manifold triangulations."
 readme = "README.md"
@@ -65,10 +66,6 @@ dev = [
     "pytest>=8.0",
     "coverage>=7.0",
 ]
-
-
-
-
 
 [project.urls]
 documentation = "https://aidos.group/mantra/"
