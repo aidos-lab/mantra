@@ -35,6 +35,18 @@ def manifold_entry(id, name="S^2", orientable=True, genus=0, **extra):
 
 
 @pytest.fixture
+def no_dedup(monkeypatch):
+    """Disable isomorphism deduplication inside ``balance_dataset``.
+
+    The shared fixtures reuse one tetrahedral sphere, so real
+    deduplication would collapse them.
+    """
+    import mantra.augmentations.balancing as balancing_mod
+
+    monkeypatch.setattr(balancing_mod, "find_duplicates", lambda *a, **k: [])
+
+
+@pytest.fixture
 def make_manifolds_json(tmp_path):
     """Return a factory writing a list of entries to a JSON file."""
 
