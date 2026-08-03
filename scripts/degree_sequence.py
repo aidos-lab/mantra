@@ -11,18 +11,51 @@ import seaborn as sns
 from itertools import combinations
 from itertools import count
 
+from joblib import delayed
+from joblib import Parallel
+
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
 from scipy.stats import wasserstein_distance
+from scipy.optimize import linear_sum_assignment
 
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
 from sklearn.metrics import silhouette_samples
 
 
-def pairwise_wasserstein(sequences):
+def loo_nn_predict(D, labels):
+    labels = np.asarray(labels)
+    Dm = D.copy()
+    np.fill_diagonal(Dm, np.inf)  # exclude self
+    nn = Dm.argmin(axis=1)  # nearest other point
+    return labels[nn]
+
+
+def penalty_matching_distance(x, y, penalty, p=1):
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    n, m = len(x), len(y)
+    C = np.zeros((n + m, n + m))
+
+    C[:n, :m] = np.abs(x[:, None] - y[None, :]) ** p
+    C[:n, m:] = penalty**p
+    C[n:, :m] = penalty**p
+
+    r, c = linear_sum_assignment(C)
+    return C[r, c].sum() ** (1 / p)
+
+
+def pairwise_parallel(sequences, metric, n_jobs=-1):
     n = len(sequences)
+    pairs = list(combinations(range(n), 2))
+    vals = Parallel(n_jobs=n_jobs)(
+        delayed(metric)(sequences[i], sequences[j]) for i, j in pairs
+    )
+
     D = np.zeros((n, n))
-    for i, j in combinations(range(n), 2):
-        D[i, j] = D[j, i] = wasserstein_distance(sequences[i], sequences[j])
+    for (i, j), v in zip(pairs, vals):
+        D[i, j] = D[j, i] = v
+
     return D
 
 
@@ -64,11 +97,11 @@ if __name__ == "__main__":
             if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
                 continue
 
-            if len(degree_sequences) == 200:
+            if len(degree_sequences) == 300:
                 break
 
             K = manifold["triangulation"]
-            K.extend(barycentric_subdivision(K))
+            K = barycentric_subdivision(K)
 
             G = one_skeleton(manifold["triangulation"])
 
@@ -77,18 +110,30 @@ if __name__ == "__main__":
 
             labels.append(manifold["name"])
 
-        D = pairwise_wasserstein(degree_sequences)
+        D1 = pairwise_parallel(
+            degree_sequences, lambda x, y: wasserstein_distance(x, y)
+        )
 
-        sil = silhouette_samples(D, labels, metric="precomputed")
-        df = pd.DataFrame({"label": labels, "silhouette": sil})
+        D2 = pairwise_parallel(
+            degree_sequences,
+            lambda x, y: penalty_matching_distance(x, y, 6, p=1),
+        )
 
-        print(df.groupby("label")["silhouette"].mean().sort_values())
+        for D, name in zip([D1, D2], ["Wasserstein", "Partial matching"]):
+            print("Metric:", name)
+            sil = silhouette_samples(D, labels, metric="precomputed")
+            df = pd.DataFrame({"label": labels, "silhouette": sil})
+            print(df.groupby("label")["silhouette"].mean().sort_values())
 
-        C = squareform(D, checks=False)
+            pred = loo_nn_predict(D, labels)
+            print(confusion_matrix(labels, pred))
+            print(classification_report(labels, pred))
+
+        C = squareform(D1, checks=False)
         Z = linkage(C, method="average")
 
         sns.clustermap(
-            D,
+            D1,
             row_linkage=Z,
             col_linkage=Z,
             xticklabels=labels,
