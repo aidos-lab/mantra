@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from itertools import combinations
+from itertools import count
 
 from scipy.cluster.hierarchy import linkage
 from scipy.spatial.distance import squareform
@@ -28,8 +29,28 @@ def pairwise_wasserstein(sequences):
 def one_skeleton(triangles):
     G = nx.Graph()
     for t in triangles:
-        G.add_edges_from(combinations(t, 2))  # the 3 edges of the triangle
+        G.add_edges_from(combinations(t, 2))
     return G
+
+
+def barycentric_subdivision(triangles):
+    ctr = count(max((v for t in triangles for v in t), default=-1) + 1)
+    bary = {}
+
+    def b(simplex):
+        key = tuple(sorted(simplex))
+        if key not in bary:
+            bary[key] = next(ctr)
+        return bary[key]
+
+    out = []
+    for a, b_, c in triangles:
+        f = b([a, b_, c])
+        for u, v in [(a, b_), (b_, c), (a, c)]:
+            m = b([u, v])
+            out += [[f, m, u], [f, m, v]]
+
+    return out
 
 
 if __name__ == "__main__":
@@ -43,8 +64,11 @@ if __name__ == "__main__":
             if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
                 continue
 
-            if len(degree_sequences) == 100:
+            if len(degree_sequences) == 200:
                 break
+
+            K = manifold["triangulation"]
+            K.extend(barycentric_subdivision(K))
 
             G = one_skeleton(manifold["triangulation"])
 
@@ -60,8 +84,6 @@ if __name__ == "__main__":
 
         print(df.groupby("label")["silhouette"].mean().sort_values())
 
-        print(sil)
-
         C = squareform(D, checks=False)
         Z = linkage(C, method="average")
 
@@ -71,7 +93,7 @@ if __name__ == "__main__":
             col_linkage=Z,
             xticklabels=labels,
             yticklabels=labels,
-            annot=True,
+            annot=False,
             fmt=".2f",
         )
 
