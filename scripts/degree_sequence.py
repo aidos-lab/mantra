@@ -124,7 +124,7 @@ if __name__ == "__main__":
             if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
                 continue
 
-            if len(degree_sequences) == 1500:
+            if len(degree_sequences) == 1000:
                 break
 
             K = manifold["triangulation"]
