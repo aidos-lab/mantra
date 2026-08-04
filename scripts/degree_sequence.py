@@ -78,6 +78,20 @@ def one_skeleton(triangles):
     return G
 
 
+def simplicial_complex(triangles):
+    K = {0: set(), 1: set(), 2: set()}
+    for t in triangles:
+        for d in (1, 2, 3):
+            for f in combinations(sorted(t), d):
+                K[d - 1].add(f)
+    return K
+
+
+def euler_characteristic(triangles):
+    K = simplicial_complex(triangles)
+    return sum((-1) ** d * len(K[d]) for d in K)
+
+
 def barycentric_subdivision(triangles):
     ctr = count(max((v for t in triangles for v in t), default=-1) + 1)
     bary = {}
@@ -104,6 +118,7 @@ if __name__ == "__main__":
 
         degree_sequences = []
         labels = []
+        chi = []
 
         for manifold in data:
             if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
@@ -121,6 +136,7 @@ if __name__ == "__main__":
             degree_sequences.append(degree_sequence)
 
             labels.append(manifold["name"])
+            chi.append(euler_characteristic(K))
 
         D1 = pairwise_parallel(
             degree_sequences, lambda x, y: wasserstein_distance(x, y)
@@ -131,7 +147,15 @@ if __name__ == "__main__":
             lambda x, y: penalty_matching_distance(x, y, 6, p=1),
         )
 
-        for D, name in zip([D1, D2], ["Wasserstein", "Partial matching"]):
+        D3 = pairwise_parallel(
+            chi,
+            lambda x, y: np.abs(x - y),
+        )
+
+        for D, name in zip(
+            [D1, D2, D3],
+            ["Wasserstein", "Partial matching", "Euler characteristic"],
+        ):
             print("Metric:", name)
             sil = silhouette_samples(D, labels, metric="precomputed")
             df = pd.DataFrame({"label": labels, "silhouette": sil})
@@ -139,7 +163,7 @@ if __name__ == "__main__":
 
             pred = loo_nn_predict(D, labels)
             print(confusion_matrix(labels, pred))
-            print(classification_report(labels, pred))
+            print(classification_report(labels, pred, zero_division=0.0))
 
         C = squareform(D1, checks=False)
         Z = linkage(C, method="average")
