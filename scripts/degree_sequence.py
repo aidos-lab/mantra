@@ -8,6 +8,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+from collections import Counter
+
 from itertools import combinations
 from itertools import count
 
@@ -27,9 +29,19 @@ from sklearn.metrics import silhouette_samples
 def loo_nn_predict(D, labels):
     labels = np.asarray(labels)
     Dm = D.copy()
-    np.fill_diagonal(Dm, np.inf)  # exclude self
-    nn = Dm.argmin(axis=1)  # nearest other point
-    return labels[nn]
+    np.fill_diagonal(Dm, np.inf)
+
+    # If there are duplicate values, we are still assigning the label of
+    # the neighbor with the closest index. We do not want that, so let's
+    # rather take a majority vote.
+    row_min = Dm.min(axis=1, keepdims=True)
+    ties = np.isclose(Dm, row_min)
+
+    preds = np.empty(len(labels), dtype=labels.dtype)
+    for i in range(len(labels)):
+        preds[i] = Counter(labels[ties[i]]).most_common(1)[0][0]
+
+    return preds
 
 
 def penalty_matching_distance(x, y, penalty, p=1):
@@ -97,7 +109,7 @@ if __name__ == "__main__":
             if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
                 continue
 
-            if len(degree_sequences) == 300:
+            if len(degree_sequences) == 1500:
                 break
 
             K = manifold["triangulation"]
