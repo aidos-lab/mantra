@@ -47,14 +47,13 @@ class MANTRADivided(ManifoldTriangulations):
         dimension: int = 2,
         version: str = "latest",
         balanced: bool = False,
-        name: str = None,
+        name: str | None = None,
         local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
         force_reload: bool = False,
         seed: int = 42,
-        balance_kwargs=None,
         division_type: str = "barycentric",
         class_count_filter=None,
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
@@ -70,12 +69,6 @@ class MANTRADivided(ManifoldTriangulations):
         ----------
         split_type: str
             Type of the split in [train, val, test, ood].
-        balance_kwargs : dict or None
-            Arguments for on-the-fly balancing, see
-            :class:`mantra.datasets.ManifoldTriangulations`. With
-            ``balanced=True`` the *whole* dataset is balanced before
-            splitting, so Pachner-augmented near-duplicates of one
-            source triangulation may land in different splits.
         division_type : str
             Type of division to apply to the triangulations. Options are
             barycentric, graded, stellar.
