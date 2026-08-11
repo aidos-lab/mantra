@@ -7,7 +7,6 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
-- `balance_kwargs` parameter on `ManifoldTriangulations` and
   `MANTRADivided` for tuning the on-the-fly balancing
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).
