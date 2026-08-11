@@ -14,7 +14,7 @@ from itertools import combinations
 
 from mantra.augmentations.balancing import (
     _augment_triangulation,
-    _augment_with_surgery
+    _augment_with_surgery,
 )
 from mantra.augmentations.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
@@ -387,5 +387,7 @@ class TestVertexLabeling:
             "n_vertices": 4,
             "triangulation": [list(s) for s in SPHERE],
         }
-        out = _augment_triangulation(entry, n_moves=8, id_cnt=0, rng=random.Random(42))
+        out = _augment_triangulation(
+            entry, n_moves=8, id_cnt=0, rng=random.Random(42)
+        )
         assert_canonical_labels(out["triangulation"], out["n_vertices"])

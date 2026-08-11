@@ -33,7 +33,9 @@ def sphere_entry(id="s0", name="S^2", nv=4, **extra):
 class TestAugmentTriangulation:
     def test_2d_returns_new_entry(self):
         entry = sphere_entry()
-        out = _augment_triangulation(entry, id_cnt=0, n_moves=3, rng=random.Random(0))
+        out = _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert isinstance(out["triangulation"], list)
         assert out["n_vertices"] == len(
             {v for s in out["triangulation"] for v in s}
@@ -42,7 +44,9 @@ class TestAugmentTriangulation:
     def test_does_not_mutate_input(self):
         entry = sphere_entry()
         before = [list(s) for s in entry["triangulation"]]
-        _augment_triangulation(entry, id_cnt=0, n_moves=3, rng=random.Random(0))
+        _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert entry["triangulation"] == before
 
     def test_3d_path(self):
@@ -52,7 +56,9 @@ class TestAugmentTriangulation:
             "n_vertices": 5,
             "triangulation": [list(s) for s in TET_PAIR],
         }
-        out = _augment_triangulation(entry, id_cnt=0, n_moves=3, rng=random.Random(0))
+        out = _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert isinstance(out["triangulation"], list)
 
 

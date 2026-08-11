@@ -1,4 +1,3 @@
-import json
 import math
 import random
 import warnings
@@ -18,6 +17,7 @@ from mantra.datasets.utils import filter_by_class_count, make_split_index
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
+
 
 class SubdivisionType(Enum):
     STELLAR = 1
