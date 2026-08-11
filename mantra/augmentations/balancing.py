@@ -5,7 +5,7 @@ import copy
 import random
 import sys
 from collections import defaultdict
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from mantra.augmentations.constants import (
     BETTI_NUMBERS,
@@ -16,6 +16,7 @@ from mantra.augmentations.triangulation import Triangulation
 from mantra.manifold_types import Manifold2Type
 from mantra.utils.deduplication import find_duplicates
 
+GLUE_ADDS_N_VERTICES = {"torus": 3, "crosscap": 1}
 
 def _genus_from_name(name):
     """Genus of a 2-manifold class, derived from its Betti numbers.
@@ -29,7 +30,7 @@ def _genus_from_name(name):
     return betti[1] + 1
 
 
-def _augment_triangulation(entry, n_moves=5, rng=None):
+def _augment_triangulation(entry: Dict, id_cnt: int, rng: random.Random, n_moves: int = 5):
     """Create a new triangulation by applying random Pachner moves.
 
     Parameters
@@ -56,15 +57,17 @@ def _augment_triangulation(entry, n_moves=5, rng=None):
 
     new_entry["triangulation"] = t.to_list()
     new_entry["n_vertices"] = t.n_vertices
+    new_entry["id"] = f"{new_entry['id']}_aug_{id_cnt}"
+
     return new_entry
 
 
-def _augment_with_topology_change(entry, glue_type, rng=None):
+def _augment_with_surgery(entry: Dict, glue_type: str, id_cnt: int, rng: random.Random):
     """Create a new triangulation by changing topology (2D only).
 
     Parameters
     ----------
-    entry : dict
+    entry : Rict
         Source entry.
     glue_type : str
         Type of topology change: 'torus' or 'crosscap'.
@@ -76,10 +79,12 @@ def _augment_with_topology_change(entry, glue_type, rng=None):
     dict or None
         New entry with changed topology, or None if not possible.
     """
+
+    # Get the taret type from the entry
     target_manifold_class = (
-        TORUS_GLUE_MAP.get(entry["name"])
+        TORUS_GLUE_MAP[entry["name"]]
         if glue_type == "torus"
-        else CROSSCAP_GLUE_MAP.get(entry["name"])
+        else CROSSCAP_GLUE_MAP[entry["name"]]
     )
 
     new_entry = copy.deepcopy(entry)
@@ -89,16 +94,22 @@ def _augment_with_topology_change(entry, glue_type, rng=None):
     new_entry["n_vertices"] = t.n_vertices
     new_entry["name"] = target_manifold_class
     new_entry["betti_numbers"] = list(BETTI_NUMBERS[target_manifold_class])
+    new_entry["name"] = target_manifold_class
     new_entry["orientable"] = (
         glue_type == "torus"
     )  # Only torus gluing preserves orientability
     if "genus" in new_entry:
         new_entry["genus"] = _genus_from_name(target_manifold_class)
 
+    #  Update the id to reflect source
+    new_entry["id"] = (
+        f"{entry['id']}_glued_{glue_type}_{id_cnt}"
+    )
+
     return new_entry
 
 
-def _find_topology_sources(target_manifold_class, class_entries):
+def _find_topology_sources(target_manifold_class: str, class_entries: Dict[str, List]):
     """Find classes that can produce the target via topology change.
 
     Returns
@@ -108,7 +119,8 @@ def _find_topology_sources(target_manifold_class, class_entries):
     """
     sources = []
     for name, entries in class_entries.items():
-        if not entries:
+        # No entries for a given class name
+        if len(entries) == 0:
             continue
         if TORUS_GLUE_MAP.get(name) == target_manifold_class:
             sources.append((name, "torus"))
@@ -117,7 +129,7 @@ def _find_topology_sources(target_manifold_class, class_entries):
     return sources
 
 
-def _deduplicate(class_entries, verbose=False, class_names=None):
+def _deduplicate(class_entries, verbose=False, class_names: List = []):
     """Remove isomorphic duplicates from each class (single pass).
 
     For every duplicate pair reported by ``find_duplicates``, the
@@ -132,7 +144,7 @@ def _deduplicate(class_entries, verbose=False, class_names=None):
         so scanning them wastes the bulk of the deduplication cost.
     """
     for manifold_name, entries in class_entries.items():
-        if class_names is not None and manifold_name not in class_names:
+        if len(class_names) > 0 and manifold_name not in class_names:
             continue
         duplicates = find_duplicates(entries, verbose=verbose)
 
@@ -153,15 +165,120 @@ def _deduplicate(class_entries, verbose=False, class_names=None):
         ]
     return class_entries
 
+def do_surgery(class_entries: Dict[str, List], target_count: int, max_vertices: int | None, rng):
+    """
+    Perform surgical augmentations. So far this only works for 2D Manifolds.
+
+    target_count : int
+        Target count of samples per class.
+    """
+    id_cnt = 0
+    augmented_classes = set()
+
+    # Only go over the types we are missing
+    missing_types = list(set([m_type.value for m_type in Manifold2Type]) - set(list(class_entries.keys())))
+
+    # List of elements to apply surgery to
+    to_surgery: List = []
+
+    # For each type of manifold, we want to
+    # see how we can construct it
+    for target_manifold_name in missing_types:
+
+        # Overshoot in case we get isomorphic triangulations
+        deficit = target_count * 2
+
+        # Return `source_manifold_names` that generate `manifold_name`
+        # This are the manifolds that we can use to obtain our target
+        # this contains a list of (name, glue_type) tuple
+        source_manifold_names: List[Tuple[str, str]] = (
+            _find_topology_sources(target_manifold_name, class_entries)
+        )
+        
+
+        # Construct the manifolds we need to augment
+        for source_manifold_name, glue_type in source_manifold_names:
+            amount = min(deficit, len(class_entries[source_manifold_name]))
+            # Try as many as we can fit
+            for i in range(amount):
+                source_entry = class_entries[source_manifold_name][i]
+
+                # Glueing always add new vertices
+                if (
+                    max_vertices is not None
+                    and source_entry["n_vertices"]
+                    + GLUE_ADDS_N_VERTICES[glue_type]
+                    > max_vertices
+                ):
+                    break
+
+                to_surgery.append((source_entry, glue_type))
+
+                deficit -= 1
+
+    # Performs the augmentations
+    for source_entry, glue_type in to_surgery:
+        new_entry = _augment_with_surgery(source_entry, glue_type, id_cnt, rng)
+        target_manifold_name = new_entry["name"]
+
+        # Add new entry
+        bisect.insort(
+            class_entries[target_manifold_name],
+            new_entry,
+            key=lambda x: x["n_vertices"],
+        )
+
+        augmented_classes.add(target_manifold_name)
+
+        # Reduce counter
+        id_cnt += 1
+
+    return augmented_classes
+
+def do_pachner(class_entries: Dict, target_count: int, max_vertices: int | None, n_moves: int, rng: random.Random):
+
+    id_cnt = 0
+    augmented_classes = set()
+
+    # For each name (manifold class) and a list of all entries (triangulation)
+    # of that class
+    for manifold_name, entries in class_entries.items():
+
+        # If we have more than enough entries
+        if len(entries) >= target_count * 2:
+            continue
+
+        deficit = target_count * 2 - len(entries)
+
+        for i in range(deficit):
+            source_entry = entries[i % len(entries)]
+
+            # Augment
+            new_entry = _augment_triangulation(source_entry, id_cnt, rng=rng, n_moves=n_moves )
+            
+            if new_entry["n_vertices"] > max_vertices:
+                continue
+
+            # Sorted insert
+            bisect.insort(
+                class_entries[manifold_name],
+                new_entry,
+                key=lambda x: x["n_vertices"],
+            )
+            augmented_classes.add(manifold_name)
+
+            id_cnt += 1
+
+    return augmented_classes
 
 def balance_dataset(
     dataset,
-    target_count=1000,
-    n_moves=5,
-    seed=42,
-    use_topology_changes=True,
-    max_vertices=None,
-    verbose=False,
+    target_count:int = 1000,
+    n_moves: int = 5,
+    use_surgery: bool = True,
+    max_vertices: int | None = None,
+    verbose: bool = False,
+    seed: int = 42,
 ):
     """Generate a balanced dataset via Pachner move augmentation.
 
@@ -183,13 +300,12 @@ def balance_dataset(
         Number of Pachner moves per augmented sample.
     seed : int
         Random seed for reproducibility.
-    use_topology_changes : bool
-        If True and dimension==2, use topology-changing operations
+    use_surgery : bool
+        If True and dimension==2, use surgery techniques
         (torus/crosscap gluing) to generate samples for missing
         classes that can be reached from existing ones.
     max_vertices : int or None
-        If set, discard all entries with more than this many vertices
-        before balancing.
+        If set, don't produce entries with more than this amount of vertices.
     verbose : bool
         If True, print progress to stderr.
 
@@ -199,11 +315,8 @@ def balance_dataset(
         Balanced dataset.
     """
     rng = random.Random(seed)
-    dimension = len(dataset[0]["triangulation"][0]) - 1
 
-    # filter by max_vertices before balancing
-    if max_vertices is not None:
-        dataset = [e for e in dataset if e["n_vertices"] <= max_vertices]
+    dimension = len(dataset[0]["triangulation"][0]) - 1
 
     # Counts of each class
     class_entries = defaultdict(list)
@@ -216,123 +329,22 @@ def balance_dataset(
             entries, key=lambda x: x["n_vertices"], reverse=False
         )
 
-    GLUE_ADDS_N_VERTICES = {"torus": 3, "crosscap": 1}
-    id_cnt = 0
     # Classes that gain augmented entries; only these need deduplication.
     augmented_classes = set()
 
     # In 2D we can do some glueings to generate more classes
     # which we are missing
-    if dimension == 2 and use_topology_changes:
-        for obj_manifold in Manifold2Type:
-            # Set name
-            target_manifold_name = obj_manifold.value
-
-            # We already have this manifold
-            if target_manifold_name in class_entries:
-                continue
-            deficit = target_count * 2
-            # Return `source_manifold_names` that generate `manifold_name`
-            source_manifold_names: List[Tuple[str, str]] = (
-                _find_topology_sources(target_manifold_name, class_entries)
-            )
-
-            # class_entries[x[0]] (manifold type) is the list of triangulations
-            # we grab the manifold type with the minimal triangulation
-            # since they are sorted, we grab the first one
-            source_manifold_names = sorted(
-                source_manifold_names,
-                key=lambda x: class_entries[x[0]][0]["n_vertices"],
-                reverse=False,
-            )
-
-            for source_manifold_name, glue_type in source_manifold_names:
-                amount = min(deficit, len(class_entries[source_manifold_name]))
-                # Try as many as we can fit
-                for i in range(amount):
-                    source_entry = class_entries[source_manifold_name][i]
-
-                    # Glueing always add new vertices
-                    if (
-                        max_vertices is not None
-                        and source_entry["n_vertices"]
-                        + GLUE_ADDS_N_VERTICES[glue_type]
-                        > max_vertices
-                    ):
-                        break
-
-                    # Perform the glueing
-                    new_entry = _augment_with_topology_change(
-                        source_entry, glue_type=glue_type, rng=rng
-                    )
-
-                    #  Update the id to reflect source
-                    new_entry["id"] = (
-                        f"{source_entry['id']}_glued_{glue_type}_{id_cnt}"
-                    )
-
-                    # Add new entry
-                    bisect.insort(
-                        class_entries[target_manifold_name],
-                        new_entry,
-                        key=lambda x: x["n_vertices"],
-                    )
-                    augmented_classes.add(target_manifold_name)
-
-                    # Reduce counter
-                    deficit -= 1
-                    id_cnt += 1
-
-    # For each name (manifold class) and a list of all entries (triangulation)
-    # of that class
-    for manifold_name, entries in class_entries.items():
-        # If we have more than enough entries
-        if len(entries) >= target_count * 2:
-            continue
-
-        # Oversample with Pachner moves, cycling through a snapshot of
-        # the current entries: augmented copies must not become sources
-        # of further augmentation, or minority classes drift arbitrarily
-        # far from real data. Each move adds at most one vertex, so
-        # sources within max_vertices - n_moves stay under the limit.
-        sources = [
-            e
-            for e in entries
-            if max_vertices is None
-            or e["n_vertices"] + n_moves <= max_vertices
-        ]
-        if not sources:
-            raise ValueError(
-                f"Cannot balance class '{manifold_name}': all "
-                f"{len(entries)} of its triangulations have more than "
-                f"max_vertices - n_moves = {max_vertices - n_moves} "
-                "vertices, so no augmented copy can stay under the "
-                "vertex limit. Increase max_vertices, reduce n_moves, "
-                "or filter the class out before balancing."
-            )
-
-        deficit = target_count * 2 - len(entries)
-        for i in range(deficit):
-            source_entry = sources[i % len(sources)]
-
-            # Augment
-            new_entry = _augment_triangulation(source_entry, n_moves, rng=rng)
-
-            new_entry["id"] = f"{source_entry['id']}_aug_{id_cnt}"
-
-            # Sorted insert
-            bisect.insort(
-                class_entries[manifold_name],
-                new_entry,
-                key=lambda x: x["n_vertices"],
-            )
-            augmented_classes.add(manifold_name)
-
-            id_cnt += 1
+    if dimension == 2 and use_surgery:
+        new_agumented_classes = do_surgery(class_entries, target_count, max_vertices, rng)
+        augmented_classes.union(new_agumented_classes)
+        
+    # Perform pachner moves
+    new_agumented_classes = do_pachner(class_entries, target_count, max_vertices=max_vertices, n_moves=n_moves, rng=rng)
+    augmented_classes.union(new_agumented_classes)
 
     # Deduplicate the classes that gained augmented entries
     class_entries = _deduplicate(
-        class_entries, verbose=verbose, class_names=augmented_classes
+        class_entries, verbose=verbose, class_names=list(augmented_classes)
     )
 
     for manifold_name, entries in class_entries.items():
