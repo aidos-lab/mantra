@@ -3,7 +3,6 @@ This module contains datasets describing triangulations of manifolds,
 following the API of `pytorch-geometric`.
 """
 
-import inspect
 import json
 import os
 import shutil
@@ -26,17 +25,17 @@ class ManifoldTriangulations(InMemoryDataset):
     def __init__(
         self,
         root,
-        version="latest",
-        dimension=2,
-        name=None,
+        version: str = "latest",
+        dimension: int = 2,
+        name: str | None = None,
         balanced=False,
         local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        force_reload=False,
-        seed=42,
-        max_vertices=None,
+        force_reload: bool = False,
+        seed: int = 42,
+        max_vertices: int | None = None,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -122,7 +121,7 @@ class ManifoldTriangulations(InMemoryDataset):
         Subclasses producing several processed files (e.g. one per
         split) override this to select the right one.
         """
-        return 0
+        return int(0)
 
     def _add_version_to_root(self):
         if self.version == "latest":
@@ -208,10 +207,6 @@ class ManifoldTriangulations(InMemoryDataset):
                 max_vertices=self.max_vertices,
                 **self.balance_kwargs,
             )
-        elif self.max_vertices is not None:
-            inputs = [
-                e for e in inputs if e["n_vertices"] <= self.max_vertices
-            ]
 
         return inputs
 
