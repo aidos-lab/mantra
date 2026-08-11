@@ -143,9 +143,9 @@ def _deduplicate(class_entries, verbose=False, class_names: List = []):
         no augmented entries contain only upstream-curated originals,
         so scanning them wastes the bulk of the deduplication cost.
     """
-    for manifold_name, entries in class_entries.items():
-        if len(class_names) > 0 and manifold_name not in class_names:
-            continue
+    for manifold_name in class_names:
+        entries = class_entries[manifold_name]
+
         duplicates = find_duplicates(entries, verbose=verbose)
 
         # Get the id of the second duplicate
@@ -253,10 +253,14 @@ def do_pachner(class_entries: Dict, target_count: int, max_vertices: int | None,
         for i in range(deficit):
             source_entry = entries[i % len(entries)]
 
+            # Already augmented one
+            if "_aug_" in source_entry["id"]:
+                continue
+
             # Augment
             new_entry = _augment_triangulation(source_entry, id_cnt, rng=rng, n_moves=n_moves )
             
-            if new_entry["n_vertices"] > max_vertices:
+            if max_vertices is not None and new_entry["n_vertices"] > max_vertices:
                 continue
 
             # Sorted insert
@@ -321,6 +325,8 @@ def balance_dataset(
     # Counts of each class
     class_entries = defaultdict(list)
     for entry in dataset:
+        if max_vertices is not None and entry["n_vertices"] > max_vertices:
+            continue
         class_entries[entry["name"]].append(entry)
 
     # Sort the entries based on name (ascending)
@@ -336,11 +342,11 @@ def balance_dataset(
     # which we are missing
     if dimension == 2 and use_surgery:
         new_agumented_classes = do_surgery(class_entries, target_count, max_vertices, rng)
-        augmented_classes.union(new_agumented_classes)
+        augmented_classes = augmented_classes.union(new_agumented_classes)
         
     # Perform pachner moves
-    new_agumented_classes = do_pachner(class_entries, target_count, max_vertices=max_vertices, n_moves=n_moves, rng=rng)
-    augmented_classes.union(new_agumented_classes)
+    new_agumented_classes = do_pachner(class_entries, target_count=target_count, max_vertices=max_vertices, n_moves=n_moves, rng=rng)
+    augmented_classes = augmented_classes.union(new_agumented_classes)
 
     # Deduplicate the classes that gained augmented entries
     class_entries = _deduplicate(
