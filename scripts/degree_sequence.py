@@ -1,4 +1,5 @@
 import json
+import random
 import sys
 
 import numpy as np
@@ -120,13 +121,17 @@ if __name__ == "__main__":
         labels = []
         chi = []
 
+        data = list(
+            filter(
+                lambda manifold: manifold["name"]
+                in ["S^2", "T^2", "RP^2", "Klein bottle"],
+                data,
+            )
+        )
+
+        data = random.sample(data, 2000)
+
         for manifold in data:
-            if manifold["name"] not in ["S^2", "T^2", "RP^2", "Klein bottle"]:
-                continue
-
-            if len(degree_sequences) == 1000:
-                break
-
             K = manifold["triangulation"]
             K = barycentric_subdivision(K)
 
