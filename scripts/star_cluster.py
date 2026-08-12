@@ -54,19 +54,29 @@ if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         data = json.load(f)
 
-        for manifold in data[:10]:
-            K = build_complex(manifold["triangulation"])
+        print("n_facets,n_vertices,n_cone_vertices,x,y,z,name")
 
-            print(manifold["name"])
+        for manifold in data[:10]:
+            if manifold["name"] not in ["S^2", "Klein bottle", "T^2", "RP^2"]:
+                continue
+
+            K = build_complex(manifold["triangulation"])
 
             maybe_collapsible = 0
             not_collapsible = 0
 
-            for facet in facets(K):
+            num_facets = len(facets(K))
+            num_cone_vertices = 0
+
+            for facet in K:
+                if len(facet) != 1:
+                    continue
+
                 L = star_cluster(K, facet)
                 V = [s for s in facet]
 
                 allowed_vertices = vertices(L)
+
                 subcomplex = set()
                 for sigma in K:
                     if all(v in allowed_vertices for v in sigma):
@@ -77,9 +87,15 @@ if __name__ == "__main__":
                         ell = link(subcomplex, {v})
                         chi = euler_characteristic(ell)
 
+                        # TODO: Some magic here :-)
+
                         if chi != 1:
                             not_collapsible += 1
                         else:
                             maybe_collapsible += 1
 
-            print("\t", maybe_collapsible, not_collapsible)
+                        num_cone_vertices += 1
+
+            print(
+                f"{num_facets},{manifold['n_vertices']},{num_cone_vertices},{maybe_collapsible},{not_collapsible},{maybe_collapsible - not_collapsible},{manifold['name']}"
+            )
