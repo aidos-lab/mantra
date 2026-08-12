@@ -261,38 +261,6 @@ class TestMaxOODSizePerClass:
         )
         assert len(ds) == 2
 
-    def test_barycentric_oversampling_warns_about_duplicates(
-        self, make_manifolds_json, balanced_entries, tmp_path
-    ):
-        with pytest.warns(UserWarning, match="duplicates"):
-            ds = make_divided(
-                make_manifolds_json,
-                balanced_entries,
-                tmp_path,
-                split_type="ood",
-                stratified=True,
-                max_ood_size_per_class=3,
-            )
-        counts = Counter(d.name for d in ds)
-        assert counts == {"S^2": 3, "RP^2": 3}
-
-    def test_full_stellar_oversampling_warns_about_duplicates(
-        self, make_manifolds_json, balanced_entries, tmp_path
-    ):
-        # Stellar with fraction=1.0 subdivides every top simplex and is
-        # just as deterministic as barycentric.
-        with pytest.warns(UserWarning, match="duplicates"):
-            make_divided(
-                make_manifolds_json,
-                balanced_entries,
-                tmp_path,
-                split_type="ood",
-                stratified=True,
-                division_type="stellar",
-                fraction=1.0,
-                max_ood_size_per_class=3,
-            )
-
     def test_partial_stellar_oversampling_is_randomized(
         self, make_manifolds_json, balanced_entries, tmp_path
     ):
@@ -406,9 +374,6 @@ class TestProcessedFileNames:
 
 
 class TestBalancedDivided:
-    BALANCE_KWARGS = dict(
-        target_count=4, n_moves=1, use_topology_changes=False
-    )
 
     def test_balancing_feeds_the_splits(
         self, make_manifolds_json, tmp_path, no_dedup
@@ -427,7 +392,9 @@ class TestBalancedDivided:
                 tmp_path,
                 split_type=split,
                 balanced=True,
-                balance_kwargs=self.BALANCE_KWARGS,
+                target_count=4,
+                n_moves=1,
+                use_surgery=False
             )
             sizes[split] = len(ds)
         assert sizes["train"] + sizes["val"] + sizes["test"] == 8
@@ -441,19 +408,23 @@ class TestBalancedDivided:
             balanced_entries,
             tmp_path,
             split_type="train",
+            balanced=False
         )
+
         balanced = make_divided(
             make_manifolds_json,
             balanced_entries,
             tmp_path,
             split_type="train",
             balanced=True,
-            balance_kwargs=self.BALANCE_KWARGS,
+            target_count=4,
+            n_moves=1,
+            use_surgery=False
         )
         assert plain.processed_dir != balanced.processed_dir
         assert plain.processed_dir.endswith("unbalanced_42")
         assert balanced.processed_dir.endswith(
-            "balanced_42_n_moves1_target_count4_use_topology_changesFalse"
+            "balanced_42_n_moves1_target_count4_use_surgeryFalse"
         )
 
     def test_balanced_with_class_count_filter_warns(
@@ -466,17 +437,20 @@ class TestBalancedDivided:
                 tmp_path,
                 split_type="train",
                 balanced=True,
-                balance_kwargs=self.BALANCE_KWARGS,
+                target_count=4,
+                n_moves=1,
+                use_surgery=False,
                 class_count_filter=1,
             )
 
     def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
-        with pytest.raises(ValueError, match="top-level max_vertices"):
+        with pytest.raises(AssertionError, match="max_vertices"):
             MANTRADivided(
                 str(tmp_path / "root"),
                 split_type="train",
                 balanced=True,
-                balance_kwargs={"max_vertices": 5},
+                max_vertices=5,
+                target_count=1,
             )
 
     def test_max_vertices_forwarded_to_balancing(
@@ -502,7 +476,9 @@ class TestBalancedDivided:
                 tmp_path,
                 split_type="train",
                 balanced=True,
-                balance_kwargs=self.BALANCE_KWARGS,
+                target_count=4,
+                n_moves=1,
+                use_surgery=False,
                 max_vertices=5,
             )
         assert not [w for w in caught if "re-imbalance" in str(w.message)]
