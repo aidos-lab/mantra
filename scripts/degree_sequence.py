@@ -6,9 +6,6 @@ import numpy as np
 import networkx as nx
 import pandas as pd
 
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 from collections import Counter
 
 from itertools import combinations
@@ -17,8 +14,6 @@ from itertools import count
 from joblib import delayed
 from joblib import Parallel
 
-from scipy.cluster.hierarchy import linkage
-from scipy.spatial.distance import squareform
 from scipy.stats import wasserstein_distance
 from scipy.optimize import linear_sum_assignment
 
@@ -169,18 +164,3 @@ if __name__ == "__main__":
             pred = loo_nn_predict(D, labels)
             print(confusion_matrix(labels, pred))
             print(classification_report(labels, pred, zero_division=0.0))
-
-        C = squareform(D1, checks=False)
-        Z = linkage(C, method="average")
-
-        sns.clustermap(
-            D1,
-            row_linkage=Z,
-            col_linkage=Z,
-            xticklabels=labels,
-            yticklabels=labels,
-            annot=False,
-            fmt=".2f",
-        )
-
-        plt.show()
