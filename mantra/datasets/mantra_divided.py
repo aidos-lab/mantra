@@ -58,8 +58,11 @@ class MANTRADivided(ManifoldTriangulations):
         class_count_filter=None,
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified=False,
-        max_vertices=None,
-        max_ood_size_per_class=None,
+        max_vertices: int | None = None,
+        n_moves: int = 5,
+        target_count: int = 1000,
+        use_surgery: bool = True,
+        max_ood_size_per_class: int | None = None,
         **kwargs,
     ):
         """
@@ -162,6 +165,9 @@ class MANTRADivided(ManifoldTriangulations):
             force_reload,
             seed,
             max_vertices,
+            n_moves,
+            target_count,
+            use_surgery
         )
 
     def _load_index(self):
@@ -243,7 +249,7 @@ class MANTRADivided(ManifoldTriangulations):
 
     def _build_ood_split(self, test_entries: List[Data], rng: random.Random):
         """Build the OOD split by subdividing the test-set entries."""
-        k = self.max_ood_size_per_class
+        k = self.max_ood_size_per_class if self.max_ood_size_per_class is not None else int(1e9)
 
         # Construct class dict
         entries_by_class = defaultdict(list)
@@ -320,6 +326,7 @@ class MANTRADivided(ManifoldTriangulations):
             labels=labels,
         )
 
+        print(test_index)
         # Apply the selected subdivision algorithm to the test set
         ood_data_list = self._build_ood_split(
             test_entries=[data_list[idx] for idx in test_index], rng=rng

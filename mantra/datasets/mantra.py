@@ -36,6 +36,9 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload: bool = False,
         seed: int = 42,
         max_vertices: int | None = None,
+        n_moves: int = 5, 
+        target_count: int = 1000,
+        use_surgery: bool = True,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -97,6 +100,9 @@ class ManifoldTriangulations(InMemoryDataset):
         self.version = version
         self.seed = seed
         self.balanced = balanced
+        self.n_moves = n_moves
+        self.target_count = target_count
+        self.use_surgery = use_surgery
         self.name = name
         self.dimension = dimension
         self.version = version
@@ -149,23 +155,20 @@ class ManifoldTriangulations(InMemoryDataset):
         it does not change the data.
         """
         params = {
-            key: value
-            for key, value in self.balance_kwargs.items()
-            if key != "verbose"
+            "n_moves": self.n_moves,
+            "use_surgery": self.use_surgery,
+            "target_count": self.target_count,
+            "max_vertices": self.max_vertices
         }
-        if self.max_vertices is not None:
-            params["max_vertices"] = self.max_vertices
-        parts = [f"{key}{value}" for key, value in sorted(params.items())]
+        parts = [f"{key}{value}" for key, value in sorted(params.items()) if value is not None]
         return "_" + "_".join(parts) if parts else ""
 
     @property
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
-        balanced_suffix = "balanced" if self.balanced else "unbalanced"
-        balanced_suffix = (
-            f"{balanced_suffix}_{self.seed}{self._balance_dir_suffix()}"
-        )
+        balanced_suffix = f"balanced_{self.seed}{self._balance_dir_suffix()}" if self.balanced else f"unbalanced_{self.seed}"
+        
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
@@ -205,7 +208,9 @@ class ManifoldTriangulations(InMemoryDataset):
                 inputs,
                 seed=self.seed,
                 max_vertices=self.max_vertices,
-                **self.balance_kwargs,
+                target_count=self.target_count,
+                n_moves=self.n_moves,
+                use_surgery=self.use_surgery
             )
 
         return inputs

@@ -303,10 +303,10 @@ def do_pachner(
 
 def balance_dataset(
     dataset,
-    target_count: int = 1000,
-    n_moves: int = 5,
-    use_surgery: bool = True,
-    max_vertices: int | None = None,
+    target_count: int,
+    n_moves: int,
+    use_surgery: bool,
+    max_vertices: int | None,
     verbose: bool = False,
     seed: int = 42,
 ):
