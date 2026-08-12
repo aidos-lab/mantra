@@ -15,8 +15,8 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-from mantra.augmentations.balancing import balance_dataset
 from mantra.datasets.utils import _get_mantra_dataset_url
+from mantra.utils.balancing import balance_dataset
 
 
 class ManifoldTriangulations(InMemoryDataset):

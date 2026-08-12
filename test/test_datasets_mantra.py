@@ -6,7 +6,7 @@ from collections import Counter
 
 import pytest
 
-import mantra.augmentations.balancing as balancing_mod
+import mantra.utils.balancing as balancing_mod
 import mantra.datasets.mantra as mantra_mod
 from mantra.datasets import ManifoldTriangulations
 

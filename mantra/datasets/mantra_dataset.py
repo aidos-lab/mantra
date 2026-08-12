@@ -11,9 +11,9 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-from mantra.augmentations import Triangulation
 from mantra.datasets.mantra import ManifoldTriangulations
 from mantra.datasets.utils import filter_by_class_count, make_split_index
+from mantra.utils import Triangulation
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -35,7 +35,7 @@ class SubdivisionType(Enum):
         raise ValueError(f"There is no Subdivision with name {sub_name}")
 
 
-class MANTRADivided(ManifoldTriangulations):
+class MantraDataset(ManifoldTriangulations):
     """Dataset of manifold triangulations from the MANTRA benchmark
     with subdivisions of the test set as an additional OOD split.
     """
@@ -330,7 +330,6 @@ class MANTRADivided(ManifoldTriangulations):
             labels=labels,
         )
 
-        print(test_index)
         # Apply the selected subdivision algorithm to the test set
         ood_data_list = self._build_ood_split(
             test_entries=[data_list[idx] for idx in test_index], rng=rng

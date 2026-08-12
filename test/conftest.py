@@ -41,7 +41,7 @@ def no_dedup(monkeypatch):
     The shared fixtures reuse one tetrahedral sphere, so real
     deduplication would collapse them.
     """
-    import mantra.augmentations.balancing as balancing_mod
+    import mantra.utils.balancing as balancing_mod
 
     monkeypatch.setattr(balancing_mod, "find_duplicates", lambda *a, **k: [])
 

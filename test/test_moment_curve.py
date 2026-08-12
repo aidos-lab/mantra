@@ -6,7 +6,7 @@ import torch
 from torch_geometric.data import Data
 
 from mantra.transforms import MomentCurveEmbedding
-from mantra.transforms.moment_curve_embedding import (
+from mantra.transforms.encodings.moment_curve_embedding import (
     _calculate_moment_curve,
     _propagate_values,
     _sample_from_special_orthogonal_group,

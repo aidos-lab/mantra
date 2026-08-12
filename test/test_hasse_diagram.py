@@ -10,8 +10,8 @@ definition time, so the failure happened on import.
 from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 
-from mantra.representations.hasse_diagram import HasseDiagram
-from mantra.transforms.attribute_transform import (
+from mantra.representations import HasseDiagram
+from mantra.transforms import (
     SimplexRandomTransform,
 )
 

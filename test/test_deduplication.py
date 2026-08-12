@@ -1,14 +1,14 @@
 """Tests for ``mantra.deduplication``."""
 
-from mantra.utils.deduplication import (
+from mantra.utils.utils import (
     are_isomorphic,
     compute_degree_sequence,
     compute_edge_simplex_count_sequence,
     compute_f_vector,
     compute_invariant_key,
     compute_wl_hash,
-    find_duplicates,
 )
+from mantra.utils.deduplication import find_duplicates
 
 TRIANGLE = [[1, 2, 3]]
 # Same complex, relabelled vertices -> isomorphic to TRIANGLE.

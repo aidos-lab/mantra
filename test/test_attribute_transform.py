@@ -10,7 +10,7 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import FaceToEdge
 
-from mantra.transforms.attribute_transform import (
+from mantra.transforms.encodings import (
     NodeDegreeTransform,
     NodeRandomTransform,
     SimplexRandomTransform,

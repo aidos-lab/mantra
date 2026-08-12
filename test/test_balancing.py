@@ -4,8 +4,8 @@ import random
 
 import pytest
 
-from mantra.augmentations import balancing
-from mantra.augmentations.balancing import (
+from mantra.utils import balancing
+from mantra.utils.balancing import (
     _augment_triangulation,
     _augment_with_surgery,
     _find_topology_sources,

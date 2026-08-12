@@ -4,7 +4,7 @@ import pytest
 import torch
 from torch_geometric.data import Data
 
-from mantra.transforms.create_labels import CreateLabels
+from mantra.transforms import CreateLabels
 
 
 def test_bool_labels_map_to_zero_and_one():

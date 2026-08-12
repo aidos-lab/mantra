@@ -1,20 +1,28 @@
-from .attribute_transform import (
+from .encodings import (
+    EffectiveResistanceEmbedding,
+    EffectiveResistanceStatisticsEmbedding,
+    MomentCurveEmbedding,
     NodeDegreeTransform,
     NodeRandomTransform,
     SimplexRandomTransform,
 )
-from .create_labels import CreateLabels
-from .effective_resistance import (
-    EffectiveResistanceEmbedding,
-    EffectiveResistanceStatisticsEmbedding,
+from .task_transforms import (
+    BettiToClassTransform,
+    BinaryHomeomorphicTransform,
+    CreateLabels,
+    OrientableToClassTransform,
 )
-from .moment_curve_embedding import MomentCurveEmbedding
-from .select_attributes import SelectAttributes
-from .select_features import SelectFeatures
-from .util_transforms import PropagateConvexComb
+from .util_transforms import (
+    PropagateConvexComb,
+    SelectAttributes,
+    SelectFeatures,
+)
 
 __all__ = [
     "CreateLabels",
+    "BinaryHomeomorphicTransform",
+    "BettiToClassTransform",
+    "OrientableToClassTransform",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",

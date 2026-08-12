@@ -5,8 +5,8 @@ from collections import Counter
 
 import pytest
 
-from mantra.datasets import MANTRADivided
-from mantra.datasets.mantra_divided import SubdivisionType
+from mantra.datasets import MantraDataset
+from mantra.datasets.mantra_dataset import SubdivisionType
 
 from .conftest import manifold_entry
 
@@ -32,7 +32,7 @@ def octahedron_entry(id, **extra):
 def make_divided(make_manifolds_json, entries, tmp_path, **kwargs):
     path = make_manifolds_json(entries)
     kwargs.setdefault("dimension", 2)
-    return MANTRADivided(str(tmp_path / "root"), local_path=path, **kwargs)
+    return MantraDataset(str(tmp_path / "root"), local_path=path, **kwargs)
 
 
 class TestSubdivisionType:
@@ -48,11 +48,11 @@ class TestSubdivisionType:
 class TestValidation:
     def test_invalid_split_type_raises(self, tmp_path):
         with pytest.raises(ValueError, match="split_type"):
-            MANTRADivided(str(tmp_path / "root"), split_type="holdout")
+            MantraDataset(str(tmp_path / "root"), split_type="holdout")
 
     def test_invalid_split_proportions_raises(self, tmp_path):
         with pytest.raises(ValueError, match="split_proportions"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="train",
                 split_proportions=[0.5, 0.5, 0.5],
@@ -60,7 +60,7 @@ class TestValidation:
 
     def test_graded_without_vertex_number_raises(self, tmp_path):
         with pytest.raises(ValueError, match="graded_vertex_number"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="ood",
                 division_type="graded",
@@ -68,7 +68,7 @@ class TestValidation:
 
     def test_graded_vertex_number_below_max_vertices_raises(self, tmp_path):
         with pytest.raises(ValueError, match="strictly greater"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="ood",
                 division_type="graded",
@@ -329,7 +329,7 @@ class TestMaxVertices:
 
 class TestProcessedFileNames:
     def _names(self, **kwargs):
-        obj = MANTRADivided.__new__(MANTRADivided)
+        obj = MantraDataset.__new__(MantraDataset)
         obj.division_type = SubdivisionType.from_str(
             kwargs.pop("division_type", "barycentric")
         )
@@ -445,7 +445,7 @@ class TestBalancedDivided:
 
     def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
         with pytest.raises(AssertionError, match="max_vertices"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="train",
                 balanced=True,
