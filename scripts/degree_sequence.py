@@ -21,6 +21,9 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import classification_report
 from sklearn.metrics import silhouette_samples
 
+pd.options.styler.format.precision = 2
+pd.set_option("display.precision", 2)
+
 
 def loo_nn_predict(D, labels):
     labels = np.asarray(labels)
@@ -163,4 +166,19 @@ if __name__ == "__main__":
 
             pred = loo_nn_predict(D, labels)
             print(confusion_matrix(labels, pred))
-            print(classification_report(labels, pred, zero_division=0.0))
+
+            report = classification_report(
+                labels, pred, zero_division=0.0, output_dict=True
+            )
+
+            df = pd.DataFrame.from_dict(report).transpose()
+            df["support"] = df["support"].astype(int)
+
+            print(df)
+
+            print(
+                df.style.to_latex(
+                    hrules=True,
+                    column_format="lSSSS",
+                )
+            )
