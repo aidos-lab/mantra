@@ -10,6 +10,7 @@ from collections import Counter
 
 from itertools import combinations
 from itertools import count
+from itertools import permutations
 
 from joblib import delayed
 from joblib import Parallel
@@ -70,29 +71,30 @@ def pairwise_parallel(sequences, metric, n_jobs=-1):
     return D
 
 
-def one_skeleton(triangles):
+def one_skeleton(simplices):
     G = nx.Graph()
-    for t in triangles:
-        G.add_edges_from(combinations(t, 2))
+    for s in simplices:
+        G.add_edges_from(combinations(s, 2))
     return G
 
 
-def simplicial_complex(triangles):
-    K = {0: set(), 1: set(), 2: set()}
-    for t in triangles:
-        for d in (1, 2, 3):
-            for f in combinations(sorted(t), d):
+def simplicial_complex(simplices):
+    K = {}
+    for s in simplices:
+        for d in range(1, len(s) + 1):
+            K.setdefault(d - 1, set())
+            for f in combinations(sorted(s), d):
                 K[d - 1].add(f)
     return K
 
 
-def euler_characteristic(triangles):
-    K = simplicial_complex(triangles)
+def euler_characteristic(simplices):
+    K = simplicial_complex(simplices)
     return sum((-1) ** d * len(K[d]) for d in K)
 
 
-def barycentric_subdivision(triangles):
-    ctr = count(max((v for t in triangles for v in t), default=-1) + 1)
+def barycentric_subdivision(simplices):
+    ctr = count(max((v for s in simplices for v in s), default=-1) + 1)
     bary = {}
 
     def b(simplex):
@@ -102,11 +104,9 @@ def barycentric_subdivision(triangles):
         return bary[key]
 
     out = []
-    for a, b_, c in triangles:
-        f = b([a, b_, c])
-        for u, v in [(a, b_), (b_, c), (a, c)]:
-            m = b([u, v])
-            out += [[f, m, u], [f, m, v]]
+    for s in simplices:
+        for perm in permutations(s):
+            out.append([b(perm[: i + 1]) for i in range(len(perm))])
 
     return out
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
             )
         )
 
-        data = random.sample(data, 2000)
+        data = random.sample(data, 1000)
 
         for manifold in data:
             K = manifold["triangulation"]
