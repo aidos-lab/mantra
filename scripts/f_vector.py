@@ -55,7 +55,7 @@ def brenti_welker_matrix(dim):
 
     return np.asarray(
         [
-            [math.factorial(i + 1) * stirling2(j, i + 1) for j in range(d)]
+            [math.factorial(i + 1) * stirling2(j + 1, i + 1) for j in range(d)]
             for i in range(d)
         ],
         float,
@@ -86,3 +86,7 @@ if __name__ == "__main__":
             f_vector(L),
             euler_characteristic(L),
         )
+
+        x = f_vector(K)
+        M = brenti_welker_matrix(2)
+        print(np.dot(M, x))
