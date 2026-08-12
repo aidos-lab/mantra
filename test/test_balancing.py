@@ -7,7 +7,7 @@ import pytest
 from mantra.augmentations import balancing
 from mantra.augmentations.balancing import (
     _augment_triangulation,
-    _augment_with_topology_change,
+    _augment_with_surgery,
     _find_topology_sources,
     balance_dataset,
 )
@@ -33,7 +33,9 @@ def sphere_entry(id="s0", name="S^2", nv=4, **extra):
 class TestAugmentTriangulation:
     def test_2d_returns_new_entry(self):
         entry = sphere_entry()
-        out = _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
+        out = _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert isinstance(out["triangulation"], list)
         assert out["n_vertices"] == len(
             {v for s in out["triangulation"] for v in s}
@@ -42,7 +44,9 @@ class TestAugmentTriangulation:
     def test_does_not_mutate_input(self):
         entry = sphere_entry()
         before = [list(s) for s in entry["triangulation"]]
-        _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
+        _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert entry["triangulation"] == before
 
     def test_3d_path(self):
@@ -52,15 +56,17 @@ class TestAugmentTriangulation:
             "n_vertices": 5,
             "triangulation": [list(s) for s in TET_PAIR],
         }
-        out = _augment_triangulation(entry, n_moves=3, rng=random.Random(0))
+        out = _augment_triangulation(
+            entry, id_cnt=0, n_moves=3, rng=random.Random(0)
+        )
         assert isinstance(out["triangulation"], list)
 
 
 class TestAugmentWithTopologyChange:
     def test_torus_glue_with_genus(self):
         entry = sphere_entry(name="S^2", genus=0)
-        out = _augment_with_topology_change(
-            entry, "torus", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "torus", id_cnt=0, rng=random.Random(0)
         )
         assert out["name"] == "T^2"
         assert out["genus"] == 1
@@ -69,8 +75,8 @@ class TestAugmentWithTopologyChange:
     def test_torus_glue_without_genus_key(self):
         entry = sphere_entry(name="S^2")
         entry.pop("genus", None)
-        out = _augment_with_topology_change(
-            entry, "torus", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "torus", id_cnt=0, rng=random.Random(0)
         )
         assert "genus" not in out
 
@@ -78,15 +84,15 @@ class TestAugmentWithTopologyChange:
         # Gluing a torus to a non-orientable surface adds two
         # crosscaps: Klein bottle (genus 2) -> #^4 RP^2 (genus 4).
         entry = sphere_entry(name="Klein bottle", orientable=False, genus=2)
-        out = _augment_with_topology_change(
-            entry, "torus", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "torus", id_cnt=0, rng=random.Random(0)
         )
         assert out["genus"] == 4
 
     def test_crosscap_glue(self):
         entry = sphere_entry(name="S^2")
-        out = _augment_with_topology_change(
-            entry, "crosscap", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "crosscap", id_cnt=0, rng=random.Random(0)
         )
         assert out["name"] == "RP^2"
         assert out["orientable"] is False
@@ -96,24 +102,24 @@ class TestAugmentWithTopologyChange:
         # T^2 (orientable genus 1) + crosscap -> #^3 RP^2, which has
         # non-orientable genus 3 (= 2g + 1 crosscaps).
         entry = sphere_entry(name="T^2", betti_numbers=[1, 2, 1], genus=1)
-        out = _augment_with_topology_change(
-            entry, "crosscap", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "crosscap", id_cnt=0, rng=random.Random(0)
         )
         assert out["genus"] == 3
 
     def test_crosscap_glue_genus_nonorientable(self):
         # RP^2 (genus 1) + crosscap -> Klein bottle (genus 2).
         entry = sphere_entry(name="RP^2", orientable=False, genus=1)
-        out = _augment_with_topology_change(
-            entry, "crosscap", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "crosscap", id_cnt=0, rng=random.Random(0)
         )
         assert out["genus"] == 2
 
     def test_crosscap_glue_without_genus_key(self):
         entry = sphere_entry(name="S^2")
         entry.pop("genus", None)
-        out = _augment_with_topology_change(
-            entry, "crosscap", rng=random.Random(0)
+        out = _augment_with_surgery(
+            entry, "crosscap", id_cnt=0, rng=random.Random(0)
         )
         assert "genus" not in out
 
@@ -142,7 +148,8 @@ class TestBalanceDatasetCore:
             target_count=3,
             n_moves=2,
             seed=0,
-            use_topology_changes=False,
+            use_surgery=False,
+            max_vertices=None,
         )
         assert len(out) == 3
         assert sum("_aug_" in e["id"] for e in out) == 2
@@ -154,7 +161,8 @@ class TestBalanceDatasetCore:
             target_count=2,
             n_moves=5,
             seed=0,
-            use_topology_changes=True,
+            use_surgery=True,
+            max_vertices=None,
         )
         names = {e["name"] for e in out}
         assert "T^2" in names
@@ -173,7 +181,8 @@ class TestBalanceDatasetCore:
             target_count=2,
             n_moves=2,
             seed=0,
-            use_topology_changes=True,
+            use_surgery=True,
+            max_vertices=None,
         )
         assert len(out) == 2
 
@@ -194,8 +203,9 @@ class TestBalanceDatasetDedup:
             target_count=3,
             n_moves=2,
             seed=0,
-            use_topology_changes=False,
+            use_surgery=False,
             verbose=True,
+            max_vertices=None,
         )
         assert len(out) == 3
         # First round removed one and regenerated; second round clean.
@@ -214,29 +224,48 @@ class TestBalanceDatasetDedup:
             target_count=3,
             n_moves=2,
             seed=0,
-            use_topology_changes=False,
+            use_surgery=False,
             verbose=True,
+            max_vertices=None,
         )
         # Single (last) round only removes -> below target, no regen.
         assert len(out) == 3
 
-    def test_over_limit_entries_removed(self, monkeypatch, capsys):
-        # No isomorphic duplicates; removal is driven purely by the
-        # vertex limit (augmented copies grow past it). verbose=True
-        # exercises the over-limit branch of the progress message.
+    def test_over_limit_class_raises_value_error(self, monkeypatch):
+        # Every source would exceed the vertex limit after n_moves, so
+        # the class cannot be balanced and a clear error is raised.
         monkeypatch.setattr(
             balancing, "find_duplicates", lambda result, verbose=False: []
         )
         data = [sphere_entry("s0", nv=4)]
-        with pytest.raises(AssertionError):
+        with pytest.raises(ValueError, match="Deduplication left class"):
             balance_dataset(
                 data,
                 target_count=2,
                 n_moves=12,
                 seed=0,
-                use_topology_changes=False,
+                use_surgery=False,
                 max_vertices=4,
                 verbose=True,
+            )
+
+    def test_dedup_shortfall_raises_value_error(self, monkeypatch):
+        # Deduplication collapses all augmented copies onto the first
+        # entry, dropping the class below the target count.
+        def all_duplicates(result, verbose=True):
+            ids = [e["id"] for e in result]
+            return [(ids[0], other) for other in ids[1:]]
+
+        monkeypatch.setattr(balancing, "find_duplicates", all_duplicates)
+        data = [sphere_entry("s0")]
+        with pytest.raises(ValueError, match="Deduplication left class"):
+            balance_dataset(
+                data,
+                target_count=2,
+                n_moves=2,
+                seed=0,
+                use_surgery=False,
+                max_vertices=None,
             )
 
     def test_regeneration_skips_classes_without_originals(self, monkeypatch):
@@ -259,7 +288,8 @@ class TestBalanceDatasetDedup:
             target_count=2,
             n_moves=2,
             seed=0,
-            use_topology_changes=True,
+            use_surgery=True,
+            max_vertices=None,
         )
         assert isinstance(out, list)
 
@@ -276,11 +306,90 @@ class TestBalanceDatasetMaxVertices:
             data,
             target_count=1,
             seed=0,
-            use_topology_changes=False,
+            use_surgery=False,
             max_vertices=10,
+            n_moves=5,
         )
         assert all(e["n_vertices"] <= 10 for e in out)
         assert "drop" not in {e["id"] for e in out}
+
+    def test_only_undersized_sources_are_used(self, monkeypatch):
+        # Both sources survive the prefilter, but only the small one can
+        # be augmented without its copies exceeding the vertex limit.
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry("small", nv=4), sphere_entry("big", nv=6)]
+        out = balance_dataset(
+            data,
+            target_count=3,
+            n_moves=1,
+            seed=0,
+            use_surgery=False,
+            max_vertices=6,
+        )
+        augmented = [e for e in out if "_aug_" in e["id"]]
+        assert augmented
+
+    def test_augmented_copies_are_not_re_augmented(self, monkeypatch):
+        # Oversampling cycles through the original entries only; an
+        # augmented copy must never become the source of another
+        # augmentation (no chained '_aug_..._aug_...' ids).
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry("s0")]
+        out = balance_dataset(
+            data,
+            target_count=4,
+            n_moves=1,
+            seed=0,
+            use_surgery=False,
+            max_vertices=None,
+        )
+        assert len(out) == 4
+        assert all(e["id"].count("_aug_") <= 1 for e in out)
+
+    def test_truncation_is_a_random_subsample(self, monkeypatch):
+        # A class that already has more than 2x the target skips both
+        # augmentation and dedup; the survivors are a random subsample,
+        # not the smallest-n_vertices prefix.
+        def fail(result, verbose=False):  # pragma: no cover
+            raise AssertionError("dedup must skip never-augmented classes")
+
+        monkeypatch.setattr(balancing, "find_duplicates", fail)
+        data = [sphere_entry(f"s{i}", nv=4 + i) for i in range(10)]
+        out = balance_dataset(
+            data,
+            target_count=5,
+            seed=0,
+            use_surgery=False,
+            n_moves=1,
+            max_vertices=None,
+        )
+        assert len(out) == 5
+        assert {e["id"] for e in out} <= {f"s{i}" for i in range(10)}
+        assert sorted(e["n_vertices"] for e in out) != [4, 5, 6, 7, 8]
+
+    def test_glueing_stops_at_vertex_limit(self, monkeypatch):
+        # Torus gluing adds 3 vertices, pushing 4-vertex spheres past
+        # the limit, so no T^2 entries can be generated; crosscap
+        # gluing adds only 1 vertex and still fits.
+        monkeypatch.setattr(
+            balancing, "find_duplicates", lambda result, verbose=False: []
+        )
+        data = [sphere_entry(f"s{i}", nv=4) for i in range(2)]
+        out = balance_dataset(
+            data,
+            target_count=1,
+            n_moves=1,
+            seed=0,
+            use_surgery=True,
+            max_vertices=6,
+        )
+        names = {e["name"] for e in out}
+        assert "T^2" not in names
+        assert "RP^2" in names
 
 
 # class TestPrintStatistics:

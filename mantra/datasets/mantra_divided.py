@@ -1,4 +1,3 @@
-import json
 import math
 import random
 import warnings
@@ -45,22 +44,25 @@ class MANTRADivided(ManifoldTriangulations):
         self,
         root,
         split_type: str,
-        dimension=2,
-        version="latest",
-        balanced=False,
-        name=None,
+        dimension: int = 2,
+        version: str = "latest",
+        balanced: bool = False,
+        name: str | None = None,
         local_path=None,
         transform=None,
         pre_transform=None,
         pre_filter=None,
-        force_reload=False,
-        seed=42,
+        force_reload: bool = False,
+        seed: int = 42,
         division_type: str = "barycentric",
         class_count_filter=None,
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified=False,
-        max_vertices=None,
-        max_ood_size_per_class=None,
+        max_vertices: int | None = None,
+        n_moves: int = 5,
+        target_count: int = 1000,
+        use_surgery: bool = True,
+        max_ood_size_per_class: int | None = None,
         **kwargs,
     ):
         """
@@ -123,10 +125,15 @@ class MANTRADivided(ManifoldTriangulations):
         self.split_proportions = split_proportions
         self.class_count_filter = class_count_filter
         self.division_type = SubdivisionType.from_str(division_type)
-        self.max_vertices = max_vertices
         self.max_ood_size_per_class = max_ood_size_per_class
         self.kwargs = kwargs
 
+        if balanced and class_count_filter:
+            warnings.warn(
+                "balanced=True equalizes the classes before "
+                "class_count_filter is applied, so the filter can "
+                "re-imbalance or drop classes again."
+            )
         if self.division_type == SubdivisionType.GRADED:
             if "graded_vertex_number" not in kwargs:
                 raise ValueError(
@@ -157,6 +164,10 @@ class MANTRADivided(ManifoldTriangulations):
             pre_filter,
             force_reload,
             seed,
+            max_vertices,
+            n_moves,
+            target_count,
+            use_surgery,
         )
 
     def _load_index(self):
@@ -164,10 +175,12 @@ class MANTRADivided(ManifoldTriangulations):
         return SPLIT_TYPES.index(self.split_type)
 
     def _split_file_suffix(self):
-        """Suffix encoding parameters that change the train/val/test data."""
+        """Suffix encoding parameters that change the train/val/test data.
+
+        The vertex cap needs no entry here: the parent class encodes
+        ``max_vertices`` into the processed directory itself.
+        """
         parts = []
-        if self.max_vertices is not None:
-            parts.append(f"mv{self.max_vertices}")
         if self.class_count_filter:
             parts.append(f"ccf{self.class_count_filter}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
@@ -236,7 +249,11 @@ class MANTRADivided(ManifoldTriangulations):
 
     def _build_ood_split(self, test_entries: List[Data], rng: random.Random):
         """Build the OOD split by subdividing the test-set entries."""
-        k = self.max_ood_size_per_class
+        k = (
+            self.max_ood_size_per_class
+            if self.max_ood_size_per_class is not None
+            else int(1e9)
+        )
 
         # Construct class dict
         entries_by_class = defaultdict(list)
@@ -270,10 +287,8 @@ class MANTRADivided(ManifoldTriangulations):
 
     def process(self):
         """Processes dataset."""
+        inputs = self._load_raw_entries()
         rng = random.Random(self.seed)
-
-        with open(self.raw_paths[0]) as f:
-            inputs = json.load(f)
 
         data_list = [Data(**el) for el in inputs]
 
@@ -315,6 +330,7 @@ class MANTRADivided(ManifoldTriangulations):
             labels=labels,
         )
 
+        print(test_index)
         # Apply the selected subdivision algorithm to the test set
         ood_data_list = self._build_ood_split(
             test_entries=[data_list[idx] for idx in test_index], rng=rng

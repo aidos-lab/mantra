@@ -1,7 +1,7 @@
 """Base class for mutable triangulation data structures."""
 
 import random
-from abc import ABC
+from abc import ABC, abstractmethod
 from collections import defaultdict
 from itertools import combinations, permutations
 
@@ -112,6 +112,10 @@ class Triangulation(ABC):
             for face in combinations(s, k):
                 result[frozenset(face)].append(s)
         return result
+
+    @abstractmethod
+    def glue(self, glue_with, triangle=None):
+        raise NotImplementedError()
 
     def _all_faces(self, dim):
         """Return all faces of a given dimension as a set."""
@@ -529,6 +533,9 @@ class Triangulation3D(Triangulation):
 
     def __init__(self, top_simplices, rng=None):
         super().__init__(top_simplices, dimension=3, rng=rng)
+
+    def glue(self, glue_with, triangle=None):
+        raise NotImplementedError("No glueing exists for 3D yet")
 
     def move_1_4(self, tet=None):
         """Perform a 1-4 Pachner move (stellar subdivision).

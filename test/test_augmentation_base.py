@@ -7,8 +7,8 @@ import pytest
 from mantra.augmentations.triangulation import Triangulation
 
 
-def make(top_simplices, dimension=2, rng=None):
-    return Triangulation(top_simplices, dimension=dimension, rng=rng)
+def make(top_simplices, rng=None):
+    return Triangulation.from_list(top_simplices, rng=rng)
 
 
 class TestConstruction:
@@ -32,7 +32,7 @@ class TestConstruction:
 
 class TestProperties:
     def test_dimension(self):
-        assert make([[1, 2, 3]], dimension=2).dimension == 2
+        assert make([[1, 2, 3]]).dimension == 2
 
     def test_vertices(self):
         assert make([[1, 2, 3], [2, 3, 4]]).vertices == {1, 2, 3, 4}

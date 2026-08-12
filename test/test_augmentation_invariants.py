@@ -14,7 +14,7 @@ from itertools import combinations
 
 from mantra.augmentations.balancing import (
     _augment_triangulation,
-    _augment_with_topology_change,
+    _augment_with_surgery,
 )
 from mantra.augmentations.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
@@ -212,7 +212,7 @@ class TestGlueInvariants:
 
 
 class TestTopologyChangeMetadataConsistency:
-    """The metadata written by ``_augment_with_topology_change`` must
+    """The metadata written by ``_augment_with_surgery`` must
     agree with invariants computed from the produced triangulation."""
 
     @staticmethod
@@ -240,8 +240,8 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": True,
             "genus": 0,
         }
-        out = _augment_with_topology_change(
-            entry, glue_type="torus", rng=random.Random(42)
+        out = _augment_with_surgery(
+            entry, glue_type="torus", id_cnt=1, rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -255,8 +255,8 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": False,
             "genus": 1,
         }
-        out = _augment_with_topology_change(
-            entry, glue_type="crosscap", rng=random.Random(42)
+        out = _augment_with_surgery(
+            entry, glue_type="crosscap", id_cnt=0, rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -270,8 +270,8 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": True,
             "genus": 1,
         }
-        out = _augment_with_topology_change(
-            entry, glue_type="torus", rng=random.Random(42)
+        out = _augment_with_surgery(
+            entry, glue_type="torus", id_cnt=0, rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -288,8 +288,8 @@ class TestTopologyChangeMetadataConsistency:
             "orientable": False,
             "genus": 2,
         }
-        out = _augment_with_topology_change(
-            entry, glue_type="crosscap", rng=random.Random(42)
+        out = _augment_with_surgery(
+            entry, glue_type="crosscap", id_cnt=0, rng=random.Random(42)
         )
         self.assert_consistent(out)
 
@@ -387,5 +387,7 @@ class TestVertexLabeling:
             "n_vertices": 4,
             "triangulation": [list(s) for s in SPHERE],
         }
-        out = _augment_triangulation(entry, n_moves=8, rng=random.Random(42))
+        out = _augment_triangulation(
+            entry, n_moves=8, id_cnt=0, rng=random.Random(42)
+        )
         assert_canonical_labels(out["triangulation"], out["n_vertices"])
