@@ -394,7 +394,7 @@ class TestBalancedDivided:
                 balanced=True,
                 target_count=4,
                 n_moves=1,
-                use_surgery=False
+                use_surgery=False,
             )
             sizes[split] = len(ds)
         assert sizes["train"] + sizes["val"] + sizes["test"] == 8
@@ -408,7 +408,7 @@ class TestBalancedDivided:
             balanced_entries,
             tmp_path,
             split_type="train",
-            balanced=False
+            balanced=False,
         )
 
         balanced = make_divided(
@@ -419,7 +419,7 @@ class TestBalancedDivided:
             balanced=True,
             target_count=4,
             n_moves=1,
-            use_surgery=False
+            use_surgery=False,
         )
         assert plain.processed_dir != balanced.processed_dir
         assert plain.processed_dir.endswith("unbalanced_42")

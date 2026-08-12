@@ -37,7 +37,7 @@ def test_balanced_suffix(
         local_path=path,
         target_count=2,
         n_moves=1,
-        use_surgery=False
+        use_surgery=False,
     )
     assert ds.raw_file_names == ["2_manifolds.json"]
     assert ds.processed_file_names == ["full.pt"]
@@ -118,6 +118,7 @@ def test_add_version_to_root_branches():
     obj.version = "latest"
     assert obj._add_version_to_root() == "/mantra/2D"
 
+
 class TestBalancedProcessing:
     def test_balance_dataset_called_with_seed_and_kwargs(
         self, make_manifolds_json, balanced_entries, tmp_path, monkeypatch
@@ -139,7 +140,7 @@ class TestBalancedProcessing:
             seed=7,
             max_vertices=9,
             target_count=3,
-            n_moves=2
+            n_moves=2,
         )
         assert calls["n_entries"] == len(balanced_entries)
         assert calls["kwargs"] == dict(
@@ -176,7 +177,7 @@ class TestBalancedProcessing:
             local_path=path,
             target_count=3,
             n_moves=1,
-            use_surgery=False
+            use_surgery=False,
         )
         counts = Counter(d.name for d in ds)
         assert counts == {"S^2": 3, "RP^2": 3}
@@ -194,7 +195,7 @@ class TestBalancedProcessing:
             local_path=path,
             target_count=2,
             n_moves=1,
-            use_surgery=True
+            use_surgery=True,
         )
         counts = Counter(d.name for d in ds)
         # Gluing reaches classes absent from the input.
@@ -225,7 +226,7 @@ class TestBalancedProcessing:
             local_path=path,
             target_count=3,
             n_moves=1,
-            use_surgery=False
+            use_surgery=False,
         )
         # Dedup ran on the augmented class only; the untouched class is
         # skipped to avoid pointless isomorphism scans.
@@ -240,7 +241,7 @@ class TestBalancedProcessing:
             seed=3,
             target_count=4,
             n_moves=2,
-            use_surgery=False
+            use_surgery=False,
         )
         path = make_manifolds_json(balanced_entries)
         ids = [

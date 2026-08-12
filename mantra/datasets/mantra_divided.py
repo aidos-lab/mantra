@@ -167,7 +167,7 @@ class MANTRADivided(ManifoldTriangulations):
             max_vertices,
             n_moves,
             target_count,
-            use_surgery
+            use_surgery,
         )
 
     def _load_index(self):
@@ -249,7 +249,11 @@ class MANTRADivided(ManifoldTriangulations):
 
     def _build_ood_split(self, test_entries: List[Data], rng: random.Random):
         """Build the OOD split by subdividing the test-set entries."""
-        k = self.max_ood_size_per_class if self.max_ood_size_per_class is not None else int(1e9)
+        k = (
+            self.max_ood_size_per_class
+            if self.max_ood_size_per_class is not None
+            else int(1e9)
+        )
 
         # Construct class dict
         entries_by_class = defaultdict(list)

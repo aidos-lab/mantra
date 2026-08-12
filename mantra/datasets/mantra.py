@@ -36,7 +36,7 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload: bool = False,
         seed: int = 42,
         max_vertices: int | None = None,
-        n_moves: int = 5, 
+        n_moves: int = 5,
         target_count: int = 1000,
         use_surgery: bool = True,
     ):
@@ -158,17 +158,24 @@ class ManifoldTriangulations(InMemoryDataset):
             "n_moves": self.n_moves,
             "use_surgery": self.use_surgery,
             "target_count": self.target_count,
-            "max_vertices": self.max_vertices
+            "max_vertices": self.max_vertices,
         }
-        parts = [f"{key}{value}" for key, value in sorted(params.items()) if value is not None]
+        parts = [
+            f"{key}{value}"
+            for key, value in sorted(params.items())
+            if value is not None
+        ]
         return "_" + "_".join(parts) if parts else ""
 
     @property
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
-        balanced_suffix = f"balanced_{self.seed}{self._balance_dir_suffix()}" if self.balanced else f"unbalanced_{self.seed}"
-        
+        balanced_suffix = (
+            f"balanced_{self.seed}{self._balance_dir_suffix()}"
+            if self.balanced
+            else f"unbalanced_{self.seed}"
+        )
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
@@ -210,7 +217,7 @@ class ManifoldTriangulations(InMemoryDataset):
                 max_vertices=self.max_vertices,
                 target_count=self.target_count,
                 n_moves=self.n_moves,
-                use_surgery=self.use_surgery
+                use_surgery=self.use_surgery,
             )
 
         return inputs

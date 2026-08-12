@@ -149,7 +149,7 @@ class TestBalanceDatasetCore:
             n_moves=2,
             seed=0,
             use_surgery=False,
-            max_vertices=None
+            max_vertices=None,
         )
         assert len(out) == 3
         assert sum("_aug_" in e["id"] for e in out) == 2
@@ -162,7 +162,7 @@ class TestBalanceDatasetCore:
             n_moves=5,
             seed=0,
             use_surgery=True,
-            max_vertices=None
+            max_vertices=None,
         )
         names = {e["name"] for e in out}
         assert "T^2" in names
@@ -182,7 +182,7 @@ class TestBalanceDatasetCore:
             n_moves=2,
             seed=0,
             use_surgery=True,
-            max_vertices=None
+            max_vertices=None,
         )
         assert len(out) == 2
 
@@ -205,7 +205,7 @@ class TestBalanceDatasetDedup:
             seed=0,
             use_surgery=False,
             verbose=True,
-            max_vertices=None
+            max_vertices=None,
         )
         assert len(out) == 3
         # First round removed one and regenerated; second round clean.
@@ -226,7 +226,7 @@ class TestBalanceDatasetDedup:
             seed=0,
             use_surgery=False,
             verbose=True,
-            max_vertices=None
+            max_vertices=None,
         )
         # Single (last) round only removes -> below target, no regen.
         assert len(out) == 3
@@ -265,7 +265,7 @@ class TestBalanceDatasetDedup:
                 n_moves=2,
                 seed=0,
                 use_surgery=False,
-                max_vertices=None
+                max_vertices=None,
             )
 
     def test_regeneration_skips_classes_without_originals(self, monkeypatch):
@@ -289,7 +289,7 @@ class TestBalanceDatasetDedup:
             n_moves=2,
             seed=0,
             use_surgery=True,
-            max_vertices=None
+            max_vertices=None,
         )
         assert isinstance(out, list)
 
@@ -308,7 +308,7 @@ class TestBalanceDatasetMaxVertices:
             seed=0,
             use_surgery=False,
             max_vertices=10,
-            n_moves=5
+            n_moves=5,
         )
         assert all(e["n_vertices"] <= 10 for e in out)
         assert "drop" not in {e["id"] for e in out}
@@ -345,7 +345,7 @@ class TestBalanceDatasetMaxVertices:
             n_moves=1,
             seed=0,
             use_surgery=False,
-            max_vertices=None
+            max_vertices=None,
         )
         assert len(out) == 4
         assert all(e["id"].count("_aug_") <= 1 for e in out)
@@ -365,7 +365,7 @@ class TestBalanceDatasetMaxVertices:
             seed=0,
             use_surgery=False,
             n_moves=1,
-            max_vertices=None
+            max_vertices=None,
         )
         assert len(out) == 5
         assert {e["id"] for e in out} <= {f"s{i}" for i in range(10)}
