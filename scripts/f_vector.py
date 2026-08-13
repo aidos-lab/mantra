@@ -73,20 +73,34 @@ if __name__ == "__main__":
             )
         )
 
+    dim = [manifold["dimension"] for manifold in data]
+    assert min(dim) == max(dim), "Require same dimension"
+    dim = dim[0]
+
+    M = brenti_welker_matrix(dim)
+    eigenvalues, eigenvectors = np.linalg.eig(M.T)
+
     data = random.sample(data, 500)
 
     for manifold in data:
         K = manifold["triangulation"]
         L = barycentric_subdivision(K)
 
+        x = f_vector(K)
+        y = f_vector(L)
+
         print(
             manifold["name"],
-            f_vector(K),
+            x,
             euler_characteristic(K),
-            f_vector(L),
+            y,
             euler_characteristic(L),
         )
 
-        x = f_vector(K)
-        M = brenti_welker_matrix(2)
-        print(np.dot(M, x))
+        # Let's check that we are doing the right thing: The matrix
+        # helps us get the right f-vector of a *single* subdivision
+        # step.
+        assert np.allclose(np.dot(M, x) - y, 0)
+
+        c_K = eigenvectors @ x
+        c_L = eigenvectors @ x
