@@ -9,6 +9,7 @@ from itertools import combinations
 from itertools import permutations
 
 from scipy.special import stirling2
+from scipy.linalg import eig
 
 
 def faces(top_simplices):
@@ -62,6 +63,27 @@ def brenti_welker_matrix(dim):
     )
 
 
+def project(f_vector, eigenvalues, eigenvectors):
+    # Project the f-vector into the basis of eigenvectors. This will
+    # enable us to remove the subdivision bias essentially.
+    c = eigenvectors @ f_vector
+
+    # This stumped me for a bit: There are some eigenvectors that can
+    # get very small, effectively zero, which blow up the calculation
+    # later on.
+    #
+    # TODO: Switch to integer arithmetic? I will probably have to run
+    # the solver myself but should be easy for triangular matrices.
+    axes = (eigenvalues.real > 1+1e-8) & (np.abs(c) > 1e-8)
+
+    x = np.log(np.abs(c[axes]) + 10)
+    g = np.log(eigenvalues[axes].real)
+    ghat = g / np.linalg.norm(g)
+    proj = x - (x @ ghat) * ghat
+
+    return proj
+
+
 if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         data = json.load(f)
@@ -81,7 +103,8 @@ if __name__ == "__main__":
     dim = dim[0]
 
     M = brenti_welker_matrix(dim)
-    eigenvalues, eigenvectors = np.linalg.eig(M.T)
+    eigenvalues, eigenvectors = eig(M, left=True, right=False)
+    eigenvectors = eigenvectors.T
 
     data = random.sample(data, 500)
 
@@ -105,7 +128,7 @@ if __name__ == "__main__":
         # step.
         assert np.allclose(np.dot(M, x) - y, 0)
 
-        c_K = eigenvectors @ x
-        c_L = eigenvectors @ y
+        a = project(x, eigenvalues, eigenvectors)
+        b = project(y, eigenvalues, eigenvectors)
 
-        print(c_K, c_L)
+        print(np.linalg.norm(a - b))
