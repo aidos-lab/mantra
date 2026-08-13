@@ -65,6 +65,9 @@ def brenti_welker_matrix(dim):
 if __name__ == "__main__":
     with open(sys.argv[1]) as f:
         data = json.load(f)
+
+        # FIXME: Should make this configurable since it only applies to
+        # dimension 2. Maybe get a class count and only pick *some*?
         data = list(
             filter(
                 lambda manifold: manifold["name"]
@@ -103,4 +106,6 @@ if __name__ == "__main__":
         assert np.allclose(np.dot(M, x) - y, 0)
 
         c_K = eigenvectors @ x
-        c_L = eigenvectors @ x
+        c_L = eigenvectors @ y
+
+        print(c_K, c_L)
