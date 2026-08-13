@@ -11,9 +11,7 @@ __all__ = [
     "AdjacencySimplicialComplex",
     "CoadjacencySimplicialComplex",
     "IncidenceSimplicialComplex",
-    "DownLaplacianSimplicialComplex"
-    "HodgeLaplacianSimplicialComplex"
-    "UpLaplacianSimplicialComplex"
+    "DownLaplacianSimplicialComplex",
+    "HodgeLaplacianSimplicialComplex",
+    "UpLaplacianSimplicialComplex",
 ]
-
-

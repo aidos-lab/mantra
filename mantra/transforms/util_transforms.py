@@ -9,6 +9,7 @@ from torch_geometric.transforms import BaseTransform
 
 Representation: TypeAlias = Literal["graph", "sc"]
 
+
 class SelectAttributes(BaseTransform):
     """Select attributes to keep.
 
@@ -181,6 +182,7 @@ class SelectFeatures(BaseTransform):
             self._select_dst_single(src_tensor, data)
 
         return data
+
 
 class PropagateConvexComb(BaseTransform):
     """Propagates the features of a tensor `source` describing

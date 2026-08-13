@@ -75,6 +75,7 @@ def store_triangulations(triangulations, output=None):
 
         f.write(result)
 
+
 def compute_f_vector(triangulation):
     """Compute the f-vector of a triangulation.
 
@@ -125,6 +126,7 @@ def compute_degree_sequence(triangulation):
                 degree[v] += 1
 
     return tuple(sorted(degree.values()))
+
 
 def _build_incidence_graph(triangulation):
     """Build the incidence graph of a simplicial complex.

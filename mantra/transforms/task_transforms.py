@@ -18,6 +18,7 @@ NAME_TO_CLASS_2M = {
     manifold.value: index for index, manifold in enumerate(Manifold2Type)
 }
 
+
 class OrientableToClassTransform(T.BaseTransform):
     """
     Encode the orientability target as a binary target
@@ -84,6 +85,7 @@ class BinaryHomeomorphicTransform(T.BaseTransform):
         data.y = torch.tensor([data.name[0] == data.name[1]], dtype=torch.long)
 
         return data
+
 
 class CreateLabels(BaseTransform):
     """Create labels based on attributes.

@@ -1,5 +1,3 @@
 from .triangulation import Triangulation
 
-__all__ = [
-    "Triangulation"
-]
+__all__ = ["Triangulation"]
