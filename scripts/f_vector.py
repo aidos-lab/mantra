@@ -63,30 +63,6 @@ def brenti_welker_matrix(dim):
     )
 
 
-def project2(f_vector, eigenvalues, eigenvectors):
-    lam = eigenvalues.real
-    c = (eigenvectors @ f_vector).real
-
-    print("c2 = ", c)
-
-    chi = sum(
-        (-1) ** i * f_vector[i] for i in range(len(f_vector))
-    )  # exact, in a fixed slot
-
-    top = np.argmax(lam)
-    growing = np.where(lam > 1 + 1e-8)[0]
-    growing = growing[growing != top]
-
-    print("GROWING AXES", growing)
-
-    alpha = np.log(lam[growing]) / np.log(lam[top])
-    c_norm = c[growing] / (c[top] ** alpha)
-
-    print("c_norm", c_norm)
-
-    return np.concatenate([[chi], c_norm])
-
-
 def project3(f_vector, eigenvalues, eigenvectors):
     c = eigenvectors @ f_vector
 
@@ -161,11 +137,6 @@ if __name__ == "__main__":
         # helps us get the right f-vector of a *single* subdivision
         # step.
         assert np.allclose(np.dot(M, x) - y, 0)
-
-        a = project2(x, eigenvalues, eigenvectors)
-        b = project2(y, eigenvalues, eigenvectors)
-
-        print(np.linalg.norm(a - b))
 
         a = project3(x, eigenvalues, eigenvectors)
         b = project3(y, eigenvalues, eigenvectors)
