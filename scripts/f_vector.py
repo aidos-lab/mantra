@@ -63,37 +63,6 @@ def brenti_welker_matrix(dim):
     )
 
 
-def project1(f_vector, eigenvalues, eigenvectors):
-    # Project the f-vector into the basis of eigenvectors. This will
-    # enable us to remove the subdivision bias essentially.
-    c = eigenvectors @ f_vector
-
-    print("c1 = ", c)
-
-    # This stumped me for a bit: There are some eigenvectors that can
-    # get very small, effectively zero, which blow up the calculation
-    # later on.
-    #
-    # TODO: Switch to integer arithmetic? I will probably have to run
-    # the solver myself but should be easy for triangular matrices.
-    axes = (eigenvalues.real > 1 + 1e-8) & (np.abs(c) > 1e-8)
-
-    print("AXES", axes)
-
-    x = np.log(np.abs(c[axes]))
-
-    print("x = ", x)
-
-    g = np.log(eigenvalues[axes].real)
-
-    print("g = ", g)
-
-    ghat = g / np.linalg.norm(g)
-    proj = x - (x @ ghat) * ghat
-
-    return proj
-
-
 def project2(f_vector, eigenvalues, eigenvectors):
     lam = eigenvalues.real
     c = (eigenvectors @ f_vector).real
@@ -192,11 +161,6 @@ if __name__ == "__main__":
         # helps us get the right f-vector of a *single* subdivision
         # step.
         assert np.allclose(np.dot(M, x) - y, 0)
-
-        a = project1(x, eigenvalues, eigenvectors)
-        b = project1(y, eigenvalues, eigenvectors)
-
-        print(np.linalg.norm(a - b))
 
         a = project2(x, eigenvalues, eigenvectors)
         b = project2(y, eigenvalues, eigenvectors)
