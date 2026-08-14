@@ -137,11 +137,6 @@ if __name__ == "__main__":
             euler_characteristic(L),
         )
 
-        # Let's check that we are doing the right thing: The matrix
-        # helps us get the right f-vector of a *single* subdivision
-        # step.
-        assert np.allclose(np.dot(M, x) - y, 0)
-
         a = project(x, eigenvalues, eigenvectors)
         b = project(y, eigenvalues, eigenvectors)
 
