@@ -175,3 +175,9 @@ if __name__ == "__main__":
             "failures",
             f"({len(data) - 1} items)",
         )
+
+    print("")
+    print(
+        "Failure rate:",
+        f"{100.0 * confused_pairs.total() / (len(data) - 1):.2f}%",
+    )
