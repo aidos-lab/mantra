@@ -63,9 +63,15 @@ def brenti_welker_matrix(dim):
     )
 
 
-def project3(f_vector, eigenvalues, eigenvectors):
+def project(f_vector, eigenvalues, eigenvectors):
+    # Project the f-vector into eigencoordinates. This assumes that the
+    # eigenvectors are the *left* eigenvectors and that the i-th vector
+    # is in the i-th row.
     c = eigenvectors @ f_vector
 
+    # Since eigenvalues are sorted we know that the *last* one is the
+    # largest. We may now normalize all other values by this. The log
+    # below is safe since all eigenvalues are nonzero integers.
     top = eigenvalues.size - 1
     alpha = np.log(eigenvalues) / np.log(eigenvalues[top])
     c_normalized = c / (c[top] ** alpha)
@@ -138,7 +144,7 @@ if __name__ == "__main__":
         # step.
         assert np.allclose(np.dot(M, x) - y, 0)
 
-        a = project3(x, eigenvalues, eigenvectors)
-        b = project3(y, eigenvalues, eigenvectors)
+        a = project(x, eigenvalues, eigenvectors)
+        b = project(y, eigenvalues, eigenvectors)
 
         print(np.linalg.norm(a - b))
