@@ -79,7 +79,10 @@ def project(f_vector, eigenvalues, eigenvectors):
     alpha = np.log(eigenvalues) / np.log(eigenvalues[top])
     c_normalized = c / (c[top] ** alpha)
 
-    return c_normalized
+    # In case the Euler characteristic carries some signal, we can use
+    # it to distinguish things a bit better.
+    chi = sum((-1) ** i * f_vector[i] for i in range(len(f_vector)))
+    return np.concatenate([[chi], c_normalized])
 
 
 if __name__ == "__main__":
@@ -151,7 +154,7 @@ if __name__ == "__main__":
         ):
             out = "✅ " + out
         else:
-            out = "❌ " + out
+            out = "❌ " + out + f" (delta = {delta:.02f})"
 
             n1 = manifold1["name"]
             n2 = manifold2["name"]
