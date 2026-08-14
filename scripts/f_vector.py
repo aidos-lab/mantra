@@ -5,8 +5,11 @@ import sys
 
 import numpy as np
 
+from collections import Counter
+
 from itertools import combinations
 from itertools import permutations
+from itertools import pairwise
 
 from scipy.special import stirling2
 from scipy.linalg import eig
@@ -120,24 +123,52 @@ if __name__ == "__main__":
     eigenvectors = eigenvectors.T
     eigenvectors = eigenvectors / eigenvectors.max(axis=1, keepdims=1)
 
-    data = random.sample(data, 500)
+    confused_pairs = Counter()
 
-    for manifold in data:
-        K = manifold["triangulation"]
-        L = barycentric_subdivision(K)
+    for manifold1, manifold2 in pairwise(data):
+        K = manifold1["triangulation"]
+        L = manifold2["triangulation"]
 
         x = f_vector(K)
         y = f_vector(L)
 
-        print(
-            manifold["name"],
-            x,
-            euler_characteristic(K),
-            y,
-            euler_characteristic(L),
-        )
+        out = ""
+        out += f"{manifold1['name']} {x}"
+        out += " vs. "
+        out += f"{manifold2['name']} {y}"
 
         a = project(x, eigenvalues, eigenvectors)
         b = project(y, eigenvalues, eigenvectors)
 
-        print("-->", a, b, np.linalg.norm(a - b))
+        delta = np.linalg.norm(a - b)
+        expect_zero = False
+
+        if manifold1["name"] == manifold2["name"]:
+            expect_zero = True
+
+        if (expect_zero and np.isclose(delta, 0.0)) or (
+            not expect_zero and not np.isclose(delta, 0.0)
+        ):
+            out = "✅ " + out
+        else:
+            out = "❌ " + out
+
+            n1 = manifold1["name"]
+            n2 = manifold2["name"]
+
+            if n1 > n2:
+                n1, n2 = n2, n1
+
+            confused_pairs[(n1, n2)] += 1
+
+        print(out)
+
+    print("")
+
+    for n1, n2 in confused_pairs:
+        print(
+            f"{n1} vs. {n2}:",
+            confused_pairs[(n1, n2)],
+            "failures",
+            f"({len(data) - 1} items)",
+        )
