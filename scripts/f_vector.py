@@ -120,9 +120,7 @@ if __name__ == "__main__":
     eigenvectors = eigenvectors.T
     eigenvectors = eigenvectors / eigenvectors.max(axis=1, keepdims=1)
 
-    print("V = ", eigenvectors)
-
-    data = random.sample(data, 1)
+    data = random.sample(data, 500)
 
     for manifold in data:
         K = manifold["triangulation"]
@@ -147,4 +145,4 @@ if __name__ == "__main__":
         a = project(x, eigenvalues, eigenvectors)
         b = project(y, eigenvalues, eigenvectors)
 
-        print(np.linalg.norm(a - b))
+        print("-->", a, b, np.linalg.norm(a - b))
