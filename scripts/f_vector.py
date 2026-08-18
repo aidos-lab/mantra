@@ -1,6 +1,5 @@
 import math
 import json
-import random
 import sys
 
 import numpy as np
@@ -14,6 +13,19 @@ from itertools import pairwise
 from scipy.special import stirling2
 from scipy.linalg import eig
 
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.model_selection import cross_val_predict
+from sklearn.model_selection import StratifiedKFold
+
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import confusion_matrix
+
+
+def link(top_simplices, v):
+    return [set(s) - {v} for s in top_simplices if v in s and len(s) > 1]
+
 
 def faces(top_simplices):
     F = set()
@@ -24,6 +36,13 @@ def faces(top_simplices):
             F.update(combinations(s, k))
 
     return F
+
+
+def vertices(top_simplices):
+    result = set()
+    for s in top_simplices:
+        result |= set(s)
+    return result
 
 
 def f_vector(top_simplices):
@@ -181,3 +200,52 @@ if __name__ == "__main__":
         "Failure rate:",
         f"{100.0 * confused_pairs.total() / (len(data) - 1):.2f}%",
     )
+
+    print("")
+    print("Link-based approach")
+
+    signatures = []
+
+    for manifold in data:
+        signature = Counter()
+
+        K = manifold["triangulation"]
+        signature[euler_characteristic(K)] += 1
+
+        for v in vertices(L):
+            ell = link(L, v)
+            chi = euler_characteristic(ell)
+
+            # FIXME: Not sure whether this is smart :-)
+            # f2 = np.concatenate([f_vector(ell), [1]])
+            # x2 = project(f2, eigenvalues, eigenvectors)
+
+            # signature[tuple(np.round(x2, decimals=6).tolist())] += 1
+            signature[chi] += 1
+
+        total = sum(signature.values())
+        signature = {k: v / total for k, v in signature.items()}
+
+        signatures.append(signature)
+
+    vocab = sorted(set(key for sig in signatures for key in sig))
+
+    X = []
+
+    for sig in signatures:
+        vector = np.array([sig.get(k, 0.0) for k in vocab])
+        X.append(vector)
+
+    X = np.asarray(X)
+    y = [manifold["name"] for manifold in data]
+
+    clf = RandomForestClassifier(random_state=42)
+    y_pred = cross_val_predict(
+        clf, X, y, cv=StratifiedKFold(5, shuffle=True, random_state=42)
+    )
+
+    cm = confusion_matrix(y, y_pred, labels=sorted(set(y)))
+    print(sorted(set(y)))
+    print(cm)
+
+    print(accuracy_score(y, y_pred), balanced_accuracy_score(y, y_pred))
