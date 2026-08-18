@@ -144,7 +144,11 @@ class TestBalancedProcessing:
         )
         assert calls["n_entries"] == len(balanced_entries)
         assert calls["kwargs"] == dict(
-            seed=7, max_vertices=9, target_count=3, n_moves=2, use_surgery=True
+            seed=7,
+            max_vertices=9,
+            target_count=3,
+            n_moves=2,
+            use_surgery=False,
         )
         assert len(ds) == 4
 

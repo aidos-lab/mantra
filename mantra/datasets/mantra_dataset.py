@@ -195,8 +195,6 @@ class MantraDataset(ManifoldTriangulations):
     def _build_ood_str(self):
         base_str = str(self.division_type)
 
-        print(self.division_type)
-
         if self.division_type == SubdivisionType.NONE:
             return base_str
 
@@ -325,7 +323,6 @@ class MantraDataset(ManifoldTriangulations):
                 max([d.n_vertices for d in data_list]) <= self.max_vertices
             ), "The dataset contains triangulations with more vertices than `max_vertices`"
 
-        print(max([d.n_vertices for d in data_list]))
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(
             data_list, "name", self.min_sample_per_class

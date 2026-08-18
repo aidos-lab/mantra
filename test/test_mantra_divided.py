@@ -144,7 +144,7 @@ class TestSplits:
             counts = Counter(d.name for d in ds)
             assert counts == {"S^2": expected, "RP^2": expected}
 
-    def test_class_count_filter_drops_rare_classes(
+    def test_min_sample_per_class_drops_rare_classes(
         self, make_manifolds_json, tmp_path
     ):
         entries = [manifold_entry(f"s{i}", name="S^2") for i in range(9)] + [
@@ -155,7 +155,7 @@ class TestSplits:
             entries,
             tmp_path,
             split_type="train",
-            class_count_filter=1,
+            min_sample_per_class=1,
         )
         assert all(d.name == "S^2" for d in ds)
 
@@ -190,6 +190,7 @@ class TestOODSubdivision:
             balanced_entries,
             tmp_path,
             split_type="ood",
+            division_type="barycentric",
         )
         # One barycentric round of the tetrahedral sphere:
         # 4 vertices + 6 edges + 4 faces = 14 vertices, 24 triangles.
@@ -206,6 +207,7 @@ class TestOODSubdivision:
             balanced_entries,
             tmp_path,
             split_type="ood",
+            division_type="barycentric",
             round=2,
         )
         # Second round on (V=14, E=36, F=24): 14 + 36 + 24 = 74 vertices.
@@ -334,7 +336,7 @@ class TestProcessedFileNames:
             kwargs.pop("division_type", "barycentric")
         )
         obj.max_ood_size_per_class = kwargs.pop("max_ood_size_per_class", None)
-        obj.class_count_filter = kwargs.pop("class_count_filter", None)
+        obj.min_sample_per_class = kwargs.pop("min_sample_per_class", None)
         obj.split_proportions = kwargs.pop(
             "split_proportions", [0.6, 0.2, 0.2]
         )
@@ -355,7 +357,7 @@ class TestProcessedFileNames:
             division_type="graded",
             graded_vertex_number=50,
             max_ood_size_per_class=100,
-            class_count_filter=5,
+            min_sample_per_class=5,
         )
         assert names == [
             "train_ccf5.pt",
@@ -427,7 +429,7 @@ class TestBalancedDivided:
             "balanced_42_n_moves1_target_count4_use_surgeryFalse"
         )
 
-    def test_balanced_with_class_count_filter_warns(
+    def test_balanced_with_min_sample_per_class_warns(
         self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
     ):
         with pytest.warns(UserWarning, match="re-imbalance"):
@@ -440,7 +442,7 @@ class TestBalancedDivided:
                 target_count=4,
                 n_moves=1,
                 use_surgery=False,
-                class_count_filter=1,
+                min_sample_per_class=1,
             )
 
     def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
