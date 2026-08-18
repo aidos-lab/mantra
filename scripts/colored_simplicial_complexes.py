@@ -141,5 +141,6 @@ if __name__ == "__main__":
 
     print(
         f"{100 * accuracy_score(y, y_pred):.02f}%",
-        " / " f"{100 * balanced_accuracy_score(y, y_pred):.02f}%",
+        " / ",
+        f"{100 * balanced_accuracy_score(y, y_pred):.02f}%",
     )
