@@ -69,24 +69,6 @@ class BettiToClassTransform(T.BaseTransform):
         )
         return data
 
-
-class BinaryHomeomorphicTransform(T.BaseTransform):
-    """
-    Encode as a binary label if two triangulations are homeomorphic
-    to the same manifold.
-    """
-
-    def forward(self, data: Data):
-        assert "triangulation" in data, "No triangulation in this object"
-        assert (
-            data.triangulation.shape[0] == 2
-        ), "Need pairwise tensors of triangulations"
-
-        data.y = torch.tensor([data.name[0] == data.name[1]], dtype=torch.long)
-
-        return data
-
-
 class CreateLabels(BaseTransform):
     """Create labels based on attributes.
 

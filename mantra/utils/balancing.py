@@ -351,8 +351,6 @@ def balance_dataset(
     # Counts of each class
     class_entries = defaultdict(list)
     for entry in dataset:
-        if max_vertices is not None and entry["n_vertices"] > max_vertices:
-            continue
         class_entries[entry["name"]].append(entry)
 
     # Sort the entries based on name (ascending)

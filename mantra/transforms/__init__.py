@@ -8,9 +8,8 @@ from .encodings import (
 )
 from .task_transforms import (
     BettiToClassTransform,
-    BinaryHomeomorphicTransform,
-    CreateLabels,
     OrientableToClassTransform,
+    NameToClass2MTransform
 )
 from .util_transforms import (
     PropagateConvexComb,
@@ -19,10 +18,9 @@ from .util_transforms import (
 )
 
 __all__ = [
-    "CreateLabels",
-    "BinaryHomeomorphicTransform",
     "BettiToClassTransform",
     "OrientableToClassTransform",
+    "NameToClass2MTransform",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",

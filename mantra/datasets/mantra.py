@@ -36,9 +36,9 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload: bool = False,
         seed: int = 42,
         max_vertices: int | None = None,
-        n_moves: int = 5,
-        target_count: int = 1000,
-        use_surgery: bool = True,
+        n_moves: int = 1,
+        target_count: int = 10,
+        use_surgery: bool = False,
     ):
         """
         Create a new dataset of manifold triangulations.
