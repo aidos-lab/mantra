@@ -96,14 +96,14 @@ if __name__ == "__main__":
 
         # FIXME: Should make this configurable since it only applies to
         # dimension 2. Maybe get a class count and only pick *some*?
-        #if data[0]["dimension"] == 2:
-        #    data = list(
-        #        filter(
-        #            lambda manifold: manifold["name"]
-        #            in ["Klein bottle", "RP^2", "S^2", "T^2"],
-        #            data,
-        #        )
-        #    )
+        if data[0]["dimension"] == 2:
+            data = list(
+                filter(
+                    lambda manifold: manifold["name"]
+                    in ["Klein bottle", "RP^2", "S^2", "T^2"],
+                    data,
+                )
+            )
 
     dim = [manifold["dimension"] for manifold in data]
     assert min(dim) == max(dim), "Require same dimension"
