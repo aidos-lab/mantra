@@ -202,7 +202,7 @@ if __name__ == "__main__":
     )
 
     print("")
-    print("Link-based approach")
+    print("Link-based approach\n")
 
     signatures = []
 
@@ -210,18 +210,17 @@ if __name__ == "__main__":
         signature = Counter()
 
         K = manifold["triangulation"]
-        signature[euler_characteristic(K)] += 1
 
-        for v in vertices(L):
-            ell = link(L, v)
-            chi = euler_characteristic(ell)
+        for v in vertices(K):
+            ell = link(K, v)
+            eff = f_vector(ell)
+            eff = np.concatenate([eff, [1]])
 
-            # FIXME: Not sure whether this is smart :-)
-            # f2 = np.concatenate([f_vector(ell), [1]])
-            # x2 = project(f2, eigenvalues, eigenvectors)
+            x = project(eff, eigenvalues, eigenvectors)
 
-            # signature[tuple(np.round(x2, decimals=6).tolist())] += 1
-            signature[chi] += 1
+            # FIXME: We should probably make sure that we hash things
+            # correctly; maybe LSH would be appropriate?
+            signature[tuple(x)] += 1
 
         total = sum(signature.values())
         signature = {k: v / total for k, v in signature.items()}
@@ -248,4 +247,8 @@ if __name__ == "__main__":
     print(sorted(set(y)))
     print(cm)
 
-    print(accuracy_score(y, y_pred), balanced_accuracy_score(y, y_pred))
+    print(
+        f"{100 * accuracy_score(y, y_pred):.02f}%",
+        " / "
+        f"{100 * balanced_accuracy_score(y, y_pred):.02f}%",
+    )
