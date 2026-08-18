@@ -120,8 +120,6 @@ if __name__ == "__main__":
         K = manifold["triangulation"]
         top_simplices, coloring = colored_barycentric_subdivision(K)
 
-        print(manifold["name"])
-
         invariant = rank_selected_euler_characteristics(
             top_simplices, coloring
         )
@@ -130,5 +128,20 @@ if __name__ == "__main__":
         X.append(x)
 
     X = np.asarray(X)
+    y = [manifold["name"] for manifold in data]
 
+    clf = RandomForestClassifier(random_state=42)
+    y_pred = cross_val_predict(
+        clf, X, y, cv=StratifiedKFold(5, shuffle=True, random_state=42)
+    )
+
+    cm = confusion_matrix(y, y_pred, labels=sorted(set(y)))
+    print(sorted(set(y)))
+    print(cm)
+
+    print(
+        f"{100 * accuracy_score(y, y_pred):.02f}%",
+        " / "
+        f"{100 * balanced_accuracy_score(y, y_pred):.02f}%",
+    )
 
