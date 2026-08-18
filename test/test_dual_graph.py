@@ -5,22 +5,48 @@ branches (none vs. an attribute mapped onto the dual nodes), which is the
 path touched by the pyg>=2.7.0 feature-propagation fix.
 """
 
+import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 
 from mantra.representations import DualGraph
 from mantra.transforms import (
+    CoordinateEmbedding,
+    SelectFeatures,
     SimplexRandomTransform,
 )
 
 # Boundary of a tetrahedron: 4 triangles, each adjacent to the other 3.
 TETRAHEDRON_TRI = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
+# The same complex with the top simplices deliberately given in
+# non-lexicographic order (each tuple itself internally sorted, as in
+# the CY data): dict-insertion order then differs from the sorted order
+# the per-rank feature tensors use, so permutation bugs become visible.
+TETRAHEDRON_TRI_SCRAMBLED = [[2, 3, 4], [1, 2, 4], [1, 2, 3], [1, 3, 4]]
 # Two triangles sharing the edge (1, 2).
 TWO_TRIANGLES = [[1, 2, 3], [1, 2, 4]]
+
+# Vertex coordinates whose x-coordinates are powers of two: barycenters
+# of *distinct* vertex subsets are pairwise distinct, so a misindexed
+# feature lookup cannot produce the correct value by accident.
+VERTICES = torch.tensor([[1.0, 0.1], [2.0, 0.2], [4.0, 0.4], [8.0, 0.8]])
 
 
 def _data(triangulation):
     return Data(triangulation=triangulation, dimension=2)
+
+
+def _coordinate_data(triangulation):
+    """Attach per-rank barycentric coordinate features to a complex."""
+    data = Data(
+        triangulation=triangulation, dimension=2, vertices=VERTICES.clone()
+    )
+    data = CoordinateEmbedding(propagate=True)(data)
+    return SelectFeatures(
+        src="coordinate_embedding",
+        dst="coordinate_embedding_{d}",
+        representation="sc",
+    )(data)
 
 
 class TestDualGraphStructure:
@@ -57,3 +83,52 @@ class TestDualGraphFeaturePropagation:
 
         # One row per dual node (top simplex), ``dim`` columns.
         assert out.x.shape == (4, feature_dim)
+
+
+class TestDualGraphCoordinateValues:
+    """Exact feature values under barycentric coordinate propagation."""
+
+    def _dual(self):
+        return DualGraph(feature_propagation="coordinate_embedding")(
+            _coordinate_data(TETRAHEDRON_TRI_SCRAMBLED)
+        )
+
+    def test_node_features_are_top_simplex_barycenters(self):
+        out = self._dual()
+
+        # Dual nodes follow the lexicographic order of the top
+        # simplices, not the scrambled input order.
+        assert out.simplex.tolist() == [
+            [0, 1, 2],
+            [0, 1, 3],
+            [0, 2, 3],
+            [1, 2, 3],
+        ]
+
+        for i in range(4):
+            expected = VERTICES[out.simplex[i]].mean(dim=0)
+            assert torch.allclose(out.x[i], expected)
+
+        # All barycenters differ, so the check above is discriminating.
+        assert out.x.unique(dim=0).shape[0] == 4
+
+    def test_edge_features_are_shared_face_barycenters(self):
+        out = self._dual()
+
+        # K4 -> 12 directed edges, one feature row per edge.
+        assert out.edge_attr.shape == (12, 2)
+
+        # Walking the sorted top simplices inserts the shared faces as
+        # (1,2), (1,3), (2,3), (1,4), ... into the coface dictionary:
+        # *not* lexicographic order. An implementation that indexed the
+        # per-rank feature tensor by dictionary order instead of sorted
+        # order would therefore permute the rows checked below.
+        for col, attr in zip(out.edge_index.t().tolist(), out.edge_attr):
+            a, b = col
+            shared = sorted(
+                set(out.simplex[a].tolist()) & set(out.simplex[b].tolist())
+            )
+            # Adjacent top simplices share exactly one edge (2 vertices).
+            assert len(shared) == 2
+            expected = VERTICES[shared].mean(dim=0)
+            assert torch.allclose(attr, expected)

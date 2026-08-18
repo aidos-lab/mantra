@@ -7,16 +7,41 @@ defined`` because the type hint referenced ``Union`` while only
 definition time, so the failure happened on import.
 """
 
+import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import Compose
 
 from mantra.representations.hasse_diagram import HasseDiagram
+from mantra.transforms import CoordinateEmbedding, SelectFeatures
 from mantra.transforms.attribute_transform import (
     SimplexRandomTransform,
 )
 
 # Boundary of a tetrahedron: 4 vertices, 6 edges, 4 faces -> 14 nodes.
 TETRAHEDRON_TRI = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
+# The same complex with the top simplices deliberately given in
+# non-lexicographic order (each tuple itself internally sorted, as in
+# the CY data), pinning the alignment between node order and the
+# lexicographically ordered per-rank feature tensors.
+TETRAHEDRON_TRI_SCRAMBLED = [[2, 3, 4], [1, 2, 4], [1, 2, 3], [1, 3, 4]]
+
+# Vertex coordinates whose x-coordinates are powers of two: barycenters
+# of *distinct* vertex subsets are pairwise distinct, so a misindexed
+# feature lookup cannot produce the correct value by accident.
+VERTICES = torch.tensor([[1.0, 0.1], [2.0, 0.2], [4.0, 0.4], [8.0, 0.8]])
+
+
+def _coordinate_data(triangulation):
+    """Attach per-rank barycentric coordinate features to a complex."""
+    data = Data(
+        triangulation=triangulation, dimension=2, vertices=VERTICES.clone()
+    )
+    data = CoordinateEmbedding(propagate=True)(data)
+    return SelectFeatures(
+        src="coordinate_embedding",
+        dst="coordinate_embedding_{d}",
+        representation="sc",
+    )(data)
 
 
 def test_instantiation_does_not_raise():
@@ -50,3 +75,26 @@ def test_forward_propagates_per_rank_features_onto_nodes():
     # ``from_networkx`` groups the named node attribute into ``x``:
     # one row per Hasse node (14), ``dim`` columns.
     assert out.x.shape == (14, feature_dim)
+
+
+def test_forward_propagates_coordinate_barycenters_per_node():
+    # Value-level check with deterministic per-rank features: every
+    # Hasse node must carry the feature of the simplex it represents.
+    data = _coordinate_data(TETRAHEDRON_TRI_SCRAMBLED)
+    out = HasseDiagram(feature_propagation="coordinate_embedding")(data)
+
+    assert out.x.shape == (14, 2)
+    # ``simplex`` holds the (0-indexed) vertices of each node, aligned
+    # with the rows of ``x``; all ranks are present.
+    assert len(out.simplex) == 14
+    assert sorted(len(s) for s in out.simplex) == [1] * 4 + [2] * 6 + [3] * 4
+
+    for i, simplex in enumerate(out.simplex):
+        # Barycenter of the node's own vertices; for rank-0 nodes this
+        # is the raw vertex coordinate.
+        expected = VERTICES[simplex].mean(dim=0)
+        assert torch.allclose(out.x[i], expected)
+
+    # All 14 features are pairwise distinct (powers-of-two coordinates),
+    # so a misindexed lookup cannot pass the loop above.
+    assert out.x.unique(dim=0).shape[0] == 14

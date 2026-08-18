@@ -51,6 +51,18 @@ class TestCY:
         full = _load(tmp_path, make_cy_parquet, cy_rows)
         assert len(full) == len(cy_rows)
 
+    def test_name(self, tmp_path, make_cy_parquet, cy_rows):
+        dataset = _load(tmp_path, make_cy_parquet, cy_rows, name="variant_a")
+
+        assert "variant_a" in dataset.processed_dir
+        assert len(dataset) == len(cy_rows)
+
+        # The named variant lives in its own processed directory and
+        # must not shadow the default dataset.
+        full = _load(tmp_path, make_cy_parquet, cy_rows)
+        assert "variant_a" not in full.processed_dir
+        assert len(full) == len(cy_rows)
+
 
 class TestCoordinateEmbedding:
     def test_plain(self, tmp_path, make_cy_parquet, cy_rows):
@@ -77,6 +89,13 @@ class TestCoordinateEmbedding:
         # (1, 2, 3) is the mean of its vertex coordinates.
         expected = data.vertices[[0, 1, 2]].mean(dim=0)
         assert torch.allclose(embedding[2][0], expected)
+
+    def test_missing_vertices_raises(self):
+        import pytest
+        from torch_geometric.data import Data
+
+        with pytest.raises(AssertionError, match="vertices"):
+            CoordinateEmbedding()(Data(triangulation=[[1, 2, 3]]))
 
     def test_select_features_sc(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)

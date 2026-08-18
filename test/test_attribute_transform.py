@@ -10,6 +10,7 @@ import torch
 from torch_geometric.data import Data
 from torch_geometric.transforms import FaceToEdge
 
+from mantra.representations import IncidenceSimplicialComplex
 from mantra.transforms.attribute_transform import (
     NodeDegreeTransform,
     NodeRandomTransform,
@@ -42,6 +43,50 @@ class TestNodeRandomTransformPlain:
         data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
         with pytest.raises(AssertionError, match="No edge index"):
             NodeRandomTransform()(data)
+
+
+class TestNodeRandomTransformPropagate:
+    """``propagate=True`` derives per-rank features from the incidences."""
+
+    def _incidence_data(self):
+        data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
+        return IncidenceSimplicialComplex(signed=False)(data)
+
+    def test_one_tensor_per_rank_with_incidence_shapes(self):
+        data = self._incidence_data()
+        result = NodeRandomTransform(dim=7, propagate=True)(data)
+        features = result.random_features
+
+        # One tensor per rank, keyed by ascending rank.
+        assert isinstance(features, dict)
+        assert list(features.keys()) == [0, 1, 2]
+
+        # ``incidence_k`` maps rank-k simplices (columns) to their
+        # rank-(k-1) faces (rows): rank k gets ``incidence_k.shape[1]``
+        # rows, rank 0 gets ``incidence_1.shape[0]`` rows, i.e. one row
+        # per node.
+        assert features[0].shape == (4, 7)
+        assert features[0].shape[0] == result.incidence_1.shape[0]
+        assert features[1].shape == (6, 7)
+        assert features[1].shape[0] == result.incidence_1.shape[1]
+        assert features[2].shape == (4, 7)
+        assert features[2].shape[0] == result.incidence_2.shape[1]
+
+        assert all(v.dtype == torch.float32 for v in features.values())
+
+    def test_incidence_0_is_skipped(self):
+        # ``incidence_0`` has no rank below it and is skipped: a data
+        # object carrying only this matrix satisfies the incidence
+        # assertion but yields an empty feature dictionary.
+        data = self._incidence_data()
+        only_zero = Data(incidence_0=data.incidence_0)
+        result = NodeRandomTransform(dim=3, propagate=True)(only_zero)
+        assert result.random_features == {}
+
+    def test_requires_incidence_matrices(self):
+        data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
+        with pytest.raises(AssertionError, match="No incidence matrices"):
+            NodeRandomTransform(propagate=True)(data)
 
 
 class TestSimplexRandomTransform:
