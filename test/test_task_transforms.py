@@ -1,7 +1,6 @@
 """Tests for ``mantra.transforms.task_transforms``."""
 
 import pytest
-import torch
 from torch_geometric.data import Data
 
 from mantra.manifold_types import Manifold2Type

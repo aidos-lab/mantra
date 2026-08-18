@@ -69,6 +69,7 @@ class BettiToClassTransform(T.BaseTransform):
         )
         return data
 
+
 class CreateLabels(BaseTransform):
     """Create labels based on attributes.
 

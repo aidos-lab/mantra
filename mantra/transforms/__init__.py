@@ -8,8 +8,8 @@ from .encodings import (
 )
 from .task_transforms import (
     BettiToClassTransform,
+    NameToClass2MTransform,
     OrientableToClassTransform,
-    NameToClass2MTransform
 )
 from .util_transforms import (
     PropagateConvexComb,

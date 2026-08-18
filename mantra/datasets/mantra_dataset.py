@@ -23,7 +23,7 @@ class SubdivisionType(Enum):
     STELLAR = 1
     GRADED = 2
     BARYCENTRIC = 3
-    NONE=4
+    NONE = 4
 
     def __str__(self):
         return self.name.lower()
@@ -204,7 +204,7 @@ class MantraDataset(ManifoldTriangulations):
             arg_str = f"{self.kwargs.get('round', 1)}"
         elif self.division_type == SubdivisionType.STELLAR:
             arg_str = f"{self.kwargs.get('fraction', 1)}"
-        else: # self.division_type == SubdivisionType.GRADED:  # Graded
+        else:  # self.division_type == SubdivisionType.GRADED:  # Graded
             arg_str = f"{self.kwargs['graded_vertex_number']}"
 
         ood_str = base_str + f"_{arg_str}"
