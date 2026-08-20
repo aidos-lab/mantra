@@ -132,13 +132,6 @@ from mantra.datasets import ManifoldTriangulations
 from mantra.transforms import NodeRandomTransform, SelectFeatures
 from mantra.representations import OneSkeleton
 
-
-class MaxVertFilter:
-    def __init__(self, x):
-        self.x = x
-    def __call__(self, data):
-        return data.n_vertices <= self.x
-
 dataset = ManifoldTriangulations(
     root="./data",
     dimension=2,
@@ -157,7 +150,6 @@ dataset = ManifoldTriangulations(
         ]
     ),
     force_reload=True,
-    pre_filter=MaxVertFilter(10) # Pass the filter function to be used on all the triangulations of the dataset
 )
 ```
 
