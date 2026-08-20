@@ -208,17 +208,6 @@ class ManifoldTriangulations(InMemoryDataset):
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
-        if self.balanced:
-            # balance_dataset enforces the vertex cap itself, both as a
-            # prefilter and during augmentation.
-            inputs = balance_dataset(
-                inputs,
-                seed=self.seed,
-                max_vertices=self.max_vertices,
-                target_count=self.target_count,
-                n_moves=self.n_moves,
-                use_surgery=self.use_surgery,
-            )
 
         return inputs
 
@@ -234,6 +223,22 @@ class ManifoldTriangulations(InMemoryDataset):
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
             ]
+
+        # Make sure that max_vertices is enforced
+        if self.max_vertices is not None:
+            inputs = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+
+        if self.balanced:
+            # balance_dataset enforces the vertex cap itself, both as a
+            # prefilter and during augmentation.
+            inputs = balance_dataset(
+                data_list,
+                seed=self.seed,
+                max_vertices=self.max_vertices,
+                target_count=self.target_count,
+                n_moves=self.n_moves,
+                use_surgery=self.use_surgery,
+            )
 
         if self.pre_transform is not None:
             data_list = [

@@ -302,7 +302,7 @@ def do_pachner(
 
 
 def balance_dataset(
-    dataset,
+    dataset: List,
     target_count: int,
     n_moves: int,
     use_surgery: bool,
@@ -321,9 +321,8 @@ def balance_dataset(
 
     Parameters
     ----------
-    dataset : list of dict
-        Raw JSON entries with 'triangulation', 'name', etc. The
-        returned list shares entry dicts with the input.
+    dataset : list of Data
+        List of torch Data objcets.
     target_count : int
         Target count per class.
     n_moves : int

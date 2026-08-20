@@ -14,6 +14,7 @@ from tqdm import tqdm
 from mantra.datasets.mantra import ManifoldTriangulations
 from mantra.datasets.utils import filter_by_class_count, make_split_index
 from mantra.utils import Triangulation
+from mantra.utils.balancing import balance_dataset
 
 SPLIT_TYPES = ["train", "val", "test", "ood"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -309,6 +310,21 @@ class MantraDataset(ManifoldTriangulations):
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
             ]
+        # Make sure that max_vertices is enforced
+        if self.max_vertices is not None:
+            inputs = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+
+        if self.balanced:
+            # balance_dataset enforces the vertex cap itself, both as a
+            # prefilter and during augmentation.
+            inputs = balance_dataset(
+                data_list,
+                seed=self.seed,
+                max_vertices=self.max_vertices,
+                target_count=self.target_count,
+                n_moves=self.n_moves,
+                use_surgery=self.use_surgery,
+            )
 
         # Cap the vertex count of the in-distribution splits
         if self.division_type == SubdivisionType.GRADED:
@@ -317,19 +333,13 @@ class MantraDataset(ManifoldTriangulations):
                 < self.kwargs["graded_vertex_number"]
             ), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
 
-        # Cap the vertices
-        if self.max_vertices is not None:
-            assert (
-                max([d.n_vertices for d in data_list]) <= self.max_vertices
-            ), "The dataset contains triangulations with more vertices than `max_vertices`"
-
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(
             data_list, "name", self.min_sample_per_class
         )
 
         # Get the class labels
-        labels = np.array([data.name for data in data_list])
+        labels = np.array([data.name for data in data_list]) if self.stratified else None
 
         # Make index splits
         train_index, val_index, test_index = make_split_index(
