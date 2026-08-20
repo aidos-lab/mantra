@@ -1,7 +1,6 @@
 from itertools import combinations
 from typing import Dict, List, Literal, TypeAlias, Union
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
@@ -212,6 +211,8 @@ class PropagateConvexComb(BaseTransform):
         x = getattr(data, self.source)
         triangulation = getattr(data, "triangulation")
 
+        X = torch.as_tensor(x, dtype=torch.float32)
+
         simplices = set([tuple(s) for s in triangulation])
         max_dim = len(next(iter(simplices)))
 
@@ -226,24 +227,19 @@ class PropagateConvexComb(BaseTransform):
         simplices.sort(key=len)
 
         # Dictionary containing the new attribute keys
-        values = {"x_0": x}
+        values = {"x_0": X}
 
         for dim in range(1, max_dim):
             simplices_ = [s for s in simplices if len(s) == dim + 1]
-            M = []
 
-            for s in simplices_:
-                # View as an array to correct for the index shift; our
-                # triangulation is not zero-indexed.
-                s = np.asarray(s)
+            # Every simplex of this rank has `dim + 1` vertices, so the
+            # index tensor is rectangular; subtract one to map the
+            # 1-indexed vertex labels to tensor rows.
+            idx = torch.tensor(simplices_) - 1
 
-                # Calculate barycenter for the current simplex (i.e., one
-                # row of the result matrix).
-                # TODO: Change this to another type of combination function
-                M.append(np.mean(x[s - 1, :], axis=0))
-
-            M = np.asarray(M)
-            values[f"x_{dim}"] = torch.from_numpy(M).to(torch.float32)
+            # Calculate all barycenters of the current rank at once.
+            # TODO: Change this to another type of combination function
+            values[f"x_{dim}"] = X[idx].mean(dim=1)
 
         for k, v in values.items():
             data[k] = v

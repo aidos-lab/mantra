@@ -38,15 +38,9 @@ def _data(triangulation):
 def _coordinate_data(triangulation):
     """Attach per-rank barycentric coordinate features to a complex."""
     data = Data(
-        triangulation=triangulation,
-        dimension=2,
-        coords=VERTICES.numpy().copy(),
+        triangulation=triangulation, dimension=2, coords=VERTICES.clone()
     )
-    data = PropagateConvexComb(source="coords")(data)
-    # ``PropagateConvexComb`` returns rank 0 as the raw source array;
-    # normalise so all per-rank feature tensors are torch tensors.
-    data.x_0 = torch.as_tensor(data.x_0, dtype=torch.float32)
-    return data
+    return PropagateConvexComb(source="coords")(data)
 
 
 class TestDualGraphStructure:
