@@ -23,7 +23,12 @@ class TestCY:
 
         # Simplices are converted to the 1-indexed MANTRA convention,
         # `dimension` holds the topological dimension.
-        assert data.triangulation == [[1, 2, 3], [1, 3, 4], [1, 4, 5], [1, 5, 2]]
+        assert data.triangulation == [
+            [1, 2, 3],
+            [1, 3, 4],
+            [1, 4, 5],
+            [1, 5, 2],
+        ]
         assert int(data.dimension) == 2
         assert int(data.n_vertices) == 5
 

@@ -37,7 +37,7 @@ class CalabiYau(InMemoryDataset):
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
-        batch_size: int = 1000
+        batch_size: int = 1000,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -77,8 +77,8 @@ class CalabiYau(InMemoryDataset):
             subsets are stored in their own processed directory, so
             they can coexist with the full dataset and are cheap to
             precompute, e.g. for smoke tests or timing benchmarks.
-        batch_size : int 
-            Size of the batch to load from the parquet file of the 
+        batch_size : int
+            Size of the batch to load from the parquet file of the
             manifold triangulations.
         """
         self.version = version
@@ -148,18 +148,18 @@ class CalabiYau(InMemoryDataset):
         shutil.copy2(self.local_path, dst)
 
     def _process_parquet(self, parquet_file) -> List[Data]:
-        """ Processes the parquet file iteration process.
+        """Processes the parquet file iteration process.
 
-            Parameters
-            ----------
-            parquet_file : ParquetFile
-                Parquet file containing the dataset to parse.
+        Parameters
+        ----------
+        parquet_file : ParquetFile
+            Parquet file containing the dataset to parse.
 
-            Returns
-            ---------
-            List[Data]
-                List of Data object containing the triangulations.
-            
+        Returns
+        ---------
+        List[Data]
+            List of Data object containing the triangulations.
+
         """
         data_list = []
 
@@ -200,7 +200,9 @@ class CalabiYau(InMemoryDataset):
                         triangulation=triangulation,
                         coords=coords,
                         dimension=len(triangulation[0]) - 1,
-                        n_vertices=coords.shape[0], # We checked this was the number of vertices, i.e. len(used_vertices)
+                        n_vertices=coords.shape[
+                            0
+                        ],  # We checked this was the number of vertices, i.e. len(used_vertices)
                         **row_dict,
                     )
                 )
