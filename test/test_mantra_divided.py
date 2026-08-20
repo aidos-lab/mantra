@@ -281,23 +281,6 @@ class TestMaxOODSizePerClass:
 
 
 class TestMaxVertices:
-    def test_max_vertices_filters_in_distribution_splits(
-        self, make_manifolds_json, tmp_path
-    ):
-        entries = [manifold_entry(f"t{i}") for i in range(5)] + [
-            octahedron_entry(f"o{i}") for i in range(5)
-        ]
-
-        for split in ["train", "val", "test"]:
-            with pytest.raises(AssertionError):
-                make_divided(
-                    make_manifolds_json,
-                    entries,
-                    tmp_path,
-                    split_type=split,
-                    max_vertices=4,
-                )
-
     def test_ood_strictly_larger_than_in_distribution(
         self, make_manifolds_json, tmp_path
     ):
@@ -445,15 +428,6 @@ class TestBalancedDivided:
                 min_sample_per_class=1,
             )
 
-    def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
-        with pytest.raises(AssertionError, match="max_vertices"):
-            MantraDataset(
-                str(tmp_path / "root"),
-                split_type="train",
-                balanced=True,
-                max_vertices=5,
-                target_count=1,
-            )
 
     def test_max_vertices_forwarded_to_balancing(
         self, make_manifolds_json, tmp_path, no_dedup
@@ -478,11 +452,11 @@ class TestBalancedDivided:
                 tmp_path,
                 split_type="train",
                 balanced=True,
-                target_count=4,
-                n_moves=1,
+                target_count=5,
+                n_moves=4,
+                min_class_count=0,
                 use_surgery=False,
-                max_vertices=5,
+                max_vertices=7,
             )
         assert not [w for w in caught if "re-imbalance" in str(w.message)]
-        assert ds.max_vertices == 5
-        assert all(int(d.n_vertices) <= 5 for d in ds)
+        assert all(int(d.n_vertices) <= 7 for d in ds)

@@ -312,7 +312,7 @@ class MantraDataset(ManifoldTriangulations):
             ]
         # Make sure that max_vertices is enforced
         if self.max_vertices is not None:
-            inputs = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+            data_list = [data for data in data_list if data.n_vertices <= self.max_vertices ]
 
         if self.balanced:
             # balance_dataset enforces the vertex cap itself, both as a

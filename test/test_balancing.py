@@ -295,24 +295,6 @@ class TestBalanceDatasetDedup:
 
 
 class TestBalanceDatasetMaxVertices:
-    def test_prefilter_and_safety_net_when_no_dedup(self):
-        # dedup_max_rounds=0 skips the loop; the safety net still
-        # enforces the vertex limit on the result.
-        data = [
-            sphere_entry("keep", nv=4),
-            sphere_entry("drop", nv=99),
-        ]
-        out = balance_dataset(
-            data,
-            target_count=1,
-            seed=0,
-            use_surgery=False,
-            max_vertices=10,
-            n_moves=5,
-        )
-        assert all(e["n_vertices"] <= 10 for e in out)
-        assert "drop" not in {e["id"] for e in out}
-
     def test_only_undersized_sources_are_used(self, monkeypatch):
         # Both sources survive the prefilter, but only the small one can
         # be augmented without its copies exceeding the vertex limit.

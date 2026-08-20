@@ -226,12 +226,12 @@ class ManifoldTriangulations(InMemoryDataset):
 
         # Make sure that max_vertices is enforced
         if self.max_vertices is not None:
-            inputs = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+            data_list = [data for data in data_list if data.n_vertices <= self.max_vertices ]
 
         if self.balanced:
             # balance_dataset enforces the vertex cap itself, both as a
             # prefilter and during augmentation.
-            inputs = balance_dataset(
+            data_list = balance_dataset(
                 data_list,
                 seed=self.seed,
                 max_vertices=self.max_vertices,
