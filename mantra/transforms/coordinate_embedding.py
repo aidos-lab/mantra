@@ -8,7 +8,7 @@ class CoordinateEmbedding(BaseTransform):
 
     In contrast to :class:`MomentCurveEmbedding`, which synthesizes
     coordinates from the number of vertices, this transform uses *real*
-    vertex coordinates stored in the `vertices` attribute of a `Data`
+    vertex coordinates stored in the `coords` attribute of a `Data`
     object, e.g. the lattice coordinates of a Calabi-Yau triangulation.
     To propagate the coordinates to higher-order simplices, chain this
     with :class:`PropagateConvexComb`.
@@ -38,7 +38,7 @@ class CoordinateEmbedding(BaseTransform):
         Parameters
         ----------
         data : torch_geometric.data.Data
-            Input data object. Must contain a `vertices` attribute of
+            Input data object. Must contain a `coords` attribute of
             shape `(n_vertices, coord_dim)`; row `i` holds the
             coordinates of (1-indexed) vertex `i + 1`.
 
@@ -49,9 +49,9 @@ class CoordinateEmbedding(BaseTransform):
             The attribute will be overwritten if already present.
         """
         # the vertex coordinates must exist already
-        assert "vertices" in data, "Data object must contain `vertices`"
+        assert "coords" in data, "Data object must contain `coords`"
 
-        X = data["vertices"]
+        X = data["coords"]
         if isinstance(X, torch.Tensor):
             X = X.detach().cpu().numpy()
         X = np.asarray(X, dtype=np.float32)
@@ -68,8 +68,6 @@ class CoordinateEmbedding(BaseTransform):
             X = np.column_stack(
                 [X, np.full((X.shape[0], 1), float(value), dtype=np.float32)]
             )
-        data["coordinate_embedding"] = torch.from_numpy(X).to(
-            torch.float32
-        )
+        data["coordinate_embedding"] = torch.from_numpy(X).to(torch.float32)
 
         return data
