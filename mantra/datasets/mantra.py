@@ -208,7 +208,6 @@ class ManifoldTriangulations(InMemoryDataset):
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
-
         return inputs
 
     def process(self):
@@ -226,7 +225,11 @@ class ManifoldTriangulations(InMemoryDataset):
 
         # Make sure that max_vertices is enforced
         if self.max_vertices is not None:
-            data_list = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+            data_list = [
+                data
+                for data in data_list
+                if data.n_vertices <= self.max_vertices
+            ]
 
         if self.balanced:
             # balance_dataset enforces the vertex cap itself, both as a

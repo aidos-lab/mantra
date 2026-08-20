@@ -312,7 +312,11 @@ class MantraDataset(ManifoldTriangulations):
             ]
         # Make sure that max_vertices is enforced
         if self.max_vertices is not None:
-            data_list = [data for data in data_list if data.n_vertices <= self.max_vertices ]
+            data_list = [
+                data
+                for data in data_list
+                if data.n_vertices <= self.max_vertices
+            ]
 
         if self.balanced:
             # balance_dataset enforces the vertex cap itself, both as a
@@ -339,7 +343,11 @@ class MantraDataset(ManifoldTriangulations):
         )
 
         # Get the class labels
-        labels = np.array([data.name for data in data_list]) if self.stratified else None
+        labels = (
+            np.array([data.name for data in data_list])
+            if self.stratified
+            else None
+        )
 
         # Make index splits
         train_index, val_index, test_index = make_split_index(

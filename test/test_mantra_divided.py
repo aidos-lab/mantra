@@ -428,7 +428,6 @@ class TestBalancedDivided:
                 min_sample_per_class=1,
             )
 
-
     def test_max_vertices_forwarded_to_balancing(
         self, make_manifolds_json, tmp_path, no_dedup
     ):
