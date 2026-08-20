@@ -2,11 +2,11 @@
 
 import torch
 
-from mantra.datasets import CY
+from mantra.datasets import CalabiYau
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
-    return CY(
+    return CalabiYau(
         root=str(tmp_path / "data"),
         local_path=make_cy_parquet(cy_rows),
         **kwargs,
@@ -27,8 +27,8 @@ class TestCY:
         assert int(data.dimension) == 2
         assert int(data.n_vertices) == 5
 
-        assert data.vertices.dtype == torch.float32
-        assert data.vertices.shape == (5, 2)
+        assert data.coords.dtype == torch.float32
+        assert data.coords.shape == (5, 2)
 
         # Extra parquet columns become attributes.
         assert int(data.h11) == 6
