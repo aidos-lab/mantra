@@ -7,14 +7,14 @@ import sys
 from collections import defaultdict
 from typing import Dict, List, Tuple
 
-from mantra.augmentations.constants import (
+from mantra.manifold_types import Manifold2Type
+from mantra.utils.constants import (
     BETTI_NUMBERS,
     CROSSCAP_GLUE_MAP,
     TORUS_GLUE_MAP,
 )
-from mantra.augmentations.triangulation import Triangulation
-from mantra.manifold_types import Manifold2Type
 from mantra.utils.deduplication import find_duplicates
+from mantra.utils.triangulation import Triangulation
 
 GLUE_ADDS_N_VERTICES = {"torus": 3, "crosscap": 1}
 
@@ -302,7 +302,7 @@ def do_pachner(
 
 
 def balance_dataset(
-    dataset,
+    dataset: List,
     target_count: int,
     n_moves: int,
     use_surgery: bool,
@@ -321,9 +321,8 @@ def balance_dataset(
 
     Parameters
     ----------
-    dataset : list of dict
-        Raw JSON entries with 'triangulation', 'name', etc. The
-        returned list shares entry dicts with the input.
+    dataset : list of Data
+        List of torch Data objcets.
     target_count : int
         Target count per class.
     n_moves : int
@@ -351,8 +350,6 @@ def balance_dataset(
     # Counts of each class
     class_entries = defaultdict(list)
     for entry in dataset:
-        if max_vertices is not None and entry["n_vertices"] > max_vertices:
-            continue
         class_entries[entry["name"]].append(entry)
 
     # Sort the entries based on name (ascending)

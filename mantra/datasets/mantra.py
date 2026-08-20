@@ -15,8 +15,8 @@ from torch_geometric.data import (
 )
 from tqdm import tqdm
 
-from mantra.augmentations.balancing import balance_dataset
 from mantra.datasets.utils import _get_mantra_dataset_url
+from mantra.utils.balancing import balance_dataset
 
 
 class ManifoldTriangulations(InMemoryDataset):
@@ -36,9 +36,9 @@ class ManifoldTriangulations(InMemoryDataset):
         force_reload: bool = False,
         seed: int = 42,
         max_vertices: int | None = None,
-        n_moves: int = 5,
-        target_count: int = 1000,
-        use_surgery: bool = True,
+        n_moves: int = 1,
+        target_count: int = 10,
+        use_surgery: bool = False,
     ):
         """
         Create a new dataset of manifold triangulations.
@@ -208,18 +208,6 @@ class ManifoldTriangulations(InMemoryDataset):
         with open(self.raw_paths[0]) as f:
             inputs = json.load(f)
 
-        if self.balanced:
-            # balance_dataset enforces the vertex cap itself, both as a
-            # prefilter and during augmentation.
-            inputs = balance_dataset(
-                inputs,
-                seed=self.seed,
-                max_vertices=self.max_vertices,
-                target_count=self.target_count,
-                n_moves=self.n_moves,
-                use_surgery=self.use_surgery,
-            )
-
         return inputs
 
     def process(self):
@@ -234,6 +222,26 @@ class ManifoldTriangulations(InMemoryDataset):
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
             ]
+
+        # Make sure that max_vertices is enforced
+        if self.max_vertices is not None:
+            data_list = [
+                data
+                for data in data_list
+                if data.n_vertices <= self.max_vertices
+            ]
+
+        if self.balanced:
+            # balance_dataset enforces the vertex cap itself, both as a
+            # prefilter and during augmentation.
+            data_list = balance_dataset(
+                data_list,
+                seed=self.seed,
+                max_vertices=self.max_vertices,
+                target_count=self.target_count,
+                n_moves=self.n_moves,
+                use_surgery=self.use_surgery,
+            )
 
         if self.pre_transform is not None:
             data_list = [

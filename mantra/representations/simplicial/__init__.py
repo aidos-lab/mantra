@@ -1,5 +1,4 @@
-from .graph import DualGraph, HasseDiagram, LeviGraph, OneSkeleton
-from .simplicial import (
+from .simplicial_connectivity import (
     AdjacencySimplicialComplex,
     CoadjacencySimplicialComplex,
     DownLaplacianSimplicialComplex,
@@ -9,10 +8,6 @@ from .simplicial import (
 )
 
 __all__ = [
-    "OneSkeleton",
-    "DualGraph",
-    "HasseDiagram",
-    "LeviGraph",
     "AdjacencySimplicialComplex",
     "CoadjacencySimplicialComplex",
     "IncidenceSimplicialComplex",

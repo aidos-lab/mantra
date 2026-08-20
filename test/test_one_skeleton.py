@@ -2,7 +2,7 @@
 
 from torch_geometric.data import Data
 
-from mantra.representations.one_skeleton import OneSkeleton
+from mantra.representations import OneSkeleton
 
 
 def _edge_set(data):

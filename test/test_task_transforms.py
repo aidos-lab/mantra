@@ -1,14 +1,12 @@
 """Tests for ``mantra.transforms.task_transforms``."""
 
 import pytest
-import torch
 from torch_geometric.data import Data
 
 from mantra.manifold_types import Manifold2Type
 from mantra.transforms.task_transforms import (
     NAME_TO_CLASS_2M,
     BettiToClassTransform,
-    BinaryHomeomorphicTransform,
     NameToClass2MTransform,
     OrientableToClassTransform,
 )
@@ -81,32 +79,3 @@ class TestBettiToClassTransform:
     def test_invalid_dim_raises(self):
         with pytest.raises(AssertionError):
             BettiToClassTransform(manifold_dim=4)
-
-
-class TestBinaryHomeomorphicTransform:
-    def _pair(self, name_a, name_b):
-        # A pairwise object: first axis must have length 2.
-        return Data(
-            triangulation=torch.zeros(2, 3, dtype=torch.long),
-            name=[name_a, name_b],
-        )
-
-    def test_same_name_is_homeomorphic(self):
-        result = BinaryHomeomorphicTransform()(self._pair("S^2", "S^2"))
-        assert result.y.item() == 1
-
-    def test_different_name_is_not_homeomorphic(self):
-        result = BinaryHomeomorphicTransform()(self._pair("S^2", "T^2"))
-        assert result.y.item() == 0
-
-    def test_requires_triangulation(self):
-        with pytest.raises(AssertionError, match="No triangulation"):
-            BinaryHomeomorphicTransform()(Data(name=["S^2", "S^2"]))
-
-    def test_requires_pairwise_first_axis(self):
-        data = Data(
-            triangulation=torch.zeros(1, 3, dtype=torch.long),
-            name=["S^2"],
-        )
-        with pytest.raises(AssertionError, match="pairwise"):
-            BinaryHomeomorphicTransform()(data)

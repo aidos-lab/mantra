@@ -12,15 +12,15 @@ import random
 from collections import defaultdict
 from itertools import combinations
 
-from mantra.augmentations.balancing import (
+from mantra.utils.balancing import (
     _augment_triangulation,
     _augment_with_surgery,
 )
-from mantra.augmentations.constants import (
+from mantra.utils.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
 )
-from mantra.augmentations.triangulation import Triangulation, Triangulation2D
+from mantra.utils.triangulation import Triangulation, Triangulation2D
 
 # Boundary of a tetrahedron: the minimal 2-sphere (chi = 2).
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]

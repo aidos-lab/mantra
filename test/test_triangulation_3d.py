@@ -2,7 +2,7 @@
 
 import random
 
-from mantra.augmentations.triangulation import Triangulation
+from mantra.utils.triangulation import Triangulation
 
 # A single tetrahedron.
 SINGLE_TET = [[1, 2, 3, 4]]

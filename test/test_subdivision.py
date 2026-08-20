@@ -5,7 +5,7 @@ from itertools import combinations as combs
 
 import pytest
 
-from mantra.augmentations.triangulation import Triangulation
+from mantra.utils.triangulation import Triangulation
 
 
 class TestBarycentricSubdivisionRaw:
