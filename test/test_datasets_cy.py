@@ -5,6 +5,7 @@ import torch
 from mantra.datasets import CalabiYau
 from mantra.transforms import (
     CoordinateEmbedding,
+    PropagateConvexComb,
 )
 
 
@@ -69,28 +70,28 @@ class TestCY:
 class TestCoordinateEmbedding:
     def test_plain(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
-        data = CoordinateEmbedding(propagate=False)(dataset[0])
+        data = CoordinateEmbedding()(dataset[0])
 
         assert torch.equal(data.coordinate_embedding, data.vertices)
 
     def test_propagate(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
-        data = CoordinateEmbedding(propagate=True)(dataset[0])
+        data = CoordinateEmbedding()(dataset[0])
+        data = PropagateConvexComb(source="coordinate_embedding")(data)
 
-        embedding = data.coordinate_embedding
-        assert set(embedding.keys()) == {0, 1, 2}
-
-        assert torch.equal(embedding[0], data.vertices)
+        # Rank-0 features are the coordinates themselves.
+        assert torch.equal(data.x_0, data.vertices)
 
         # 8 edges (4 boundary + 4 to the apex), 4 triangles; barycenters
         # live in coordinate space.
-        assert embedding[1].shape == (8, 2)
-        assert embedding[2].shape == (4, 2)
+        assert data.x_1.shape == (8, 2)
+        assert data.x_2.shape == (4, 2)
+        assert "x_3" not in data
 
         # The barycenter of the lexicographically first triangle
         # (1, 2, 3) is the mean of its vertex coordinates.
         expected = data.vertices[[0, 1, 2]].mean(dim=0)
-        assert torch.allclose(embedding[2][0], expected)
+        assert torch.allclose(data.x_2[0], expected)
 
     def test_missing_vertices_raises(self):
         import pytest
@@ -99,22 +100,36 @@ class TestCoordinateEmbedding:
         with pytest.raises(AssertionError, match="vertices"):
             CoordinateEmbedding()(Data(triangulation=[[1, 2, 3]]))
 
-    def test_select_features_sc(self, tmp_path, make_cy_parquet, cy_rows):
+    def test_accepts_non_tensor_inputs(self):
+        import numpy as np
+        from torch_geometric.data import Data
+
+        data = Data(
+            vertices=np.array([[0.0, 0.0], [1.0, 0.0]]),
+            h11=6,
+        )
+        data = CoordinateEmbedding(append_attributes=["h11"])(data)
+
+        embedding = data.coordinate_embedding
+        assert embedding.dtype == torch.float32
+        assert embedding.shape == (2, 3)
+        assert torch.all(embedding[:, 2] == 6.0)
+
+    def test_select_features_graph(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
-        data = CoordinateEmbedding(propagate=True)(dataset[0])
+        data = CoordinateEmbedding()(dataset[0])
         data = SelectFeatures(
-            src="coordinate_embedding", dst=None, representation="sc"
+            src="coordinate_embedding", dst=None, representation="graph"
         )(data)
 
-        for rank, count in enumerate([5, 8, 4]):
-            assert data[f"x_{rank}"].shape == (count, 2)
+        assert torch.equal(data.x, data.vertices)
 
 
 class TestCoordinateEmbeddingAppend:
     def test_append_plain(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
         data = CoordinateEmbedding(
-            propagate=False, append_attributes=["h11", "h12"]
+            append_attributes=["h11", "h12"]
         )(dataset[0])
 
         embedding = data.coordinate_embedding
@@ -127,12 +142,11 @@ class TestCoordinateEmbeddingAppend:
         self, tmp_path, make_cy_parquet, cy_rows
     ):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
-        data = CoordinateEmbedding(
-            propagate=True, append_attributes=["h11"]
-        )(dataset[0])
+        data = CoordinateEmbedding(append_attributes=["h11"])(dataset[0])
+        data = PropagateConvexComb(source="coordinate_embedding")(data)
 
         for rank, count in enumerate([5, 8, 4]):
-            values = data.coordinate_embedding[rank]
+            values = data[f"x_{rank}"]
             assert values.shape == (count, 3)
             # Barycenters of a constant column stay constant.
             assert torch.all(values[:, 2] == 6.0)
