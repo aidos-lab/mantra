@@ -346,6 +346,20 @@ dataset = ManifoldTriangulations(
 
 `NameToClass2MTransform` stores the manifold's `name` (homeomorphism type) encoded as an integer in `data.y`. `SelectFeatures` assigns the computed degree values to `data.x`, and `SelectAttributes` keeps only the specified attributes, in this case `x`, `y`, `edge_index` and `n_vertices`.
 
+All task transforms are *stateless*: the target of a sample is a pure function of its stored attributes, so it never depends on the order in which samples are visited or on the subset that is loaded. Class indices come from fixed mappings (`NAME_TO_CLASS_2M`, `NAME_TO_CLASS_3M`, exported from `mantra.transforms`) or, for integer-valued attributes, are the attribute values themselves. `AttributeToClassTransform(source, mapping=None)` covers both cases (`NameToClass2MTransform` and `NameToClass3MTransform` are shorthands for the name mappings), and `AttributeToRegressionTransform(sources, sum_sources=False)` stacks scalar attributes into a float target vector. Remapping canonical class indices to a contiguous range over the classes present in a training split is left to the training code.
+
+```python
+from mantra.transforms import (
+    AttributeToClassTransform,
+    AttributeToRegressionTransform,
+)
+
+# Class index = the integer attribute itself (e.g. a Hodge number).
+AttributeToClassTransform("h11")
+# Vector regression target from several scalar attributes.
+AttributeToRegressionTransform(["h11", "h12"])
+```
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)
