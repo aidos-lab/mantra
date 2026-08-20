@@ -24,11 +24,14 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 authors = [
+  {name = "Martin Carrasco", email = "martin.carrascocastaneda@unifr.ch"},
+  {name = "Johannes S. Schmidt", email = "johannes.schmidt@unifr.ch"},
   {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
   {name = "Bastian Rieck", email = "bastian.grossenbacher@unifr.ch"},
 ]
 maintainers = [
-  {name = "Ernst Röell", email = "ernst.roeell@helmholtz-munich.de"},
+  {name = "Martin Carrasco", email = "martin.carrascocastaneda@unifr.ch"},
+  {name = "Johannes S. Schmidt", email = "johannes.schmidt@unifr.ch"},
   {name = "Bastian Rieck", email = "bastian.grossenbacher@unifr.ch"},
 ]
 description = "A package for working with higher-order datasets like manifold triangulations."
@@ -65,6 +68,7 @@ dev = [
     "ruff>=0.14.06",
     "pytest>=8.0",
     "coverage>=7.0",
+    "pre-commit>=4.0",
 ]
 
 [project.urls]

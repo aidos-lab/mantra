@@ -1,0 +1,27 @@
+# Local hooks that mirror the CI checks:
+#   .github/workflows/check_coding_style.yaml -> black --check
+#   .github/workflows/check_ruff_merge.yaml   -> ruff check ./mantra
+#   .github/workflows/run_tests.yaml          -> pytest (via uv)
+#
+# All hooks run through `uv run` so they use the tool versions pinned in
+# the project's dev dependency group.
+repos:
+  - repo: local
+    hooks:
+      - id: black-check
+        name: black (check)
+        # CI passes `--exclude docs/`; locally we use `--extend-exclude`
+        # so black's default exclusions (.venv, .git, ...) stay active.
+        entry: uv run black --check --extend-exclude docs/ --target-version py312 .
+        language: system
+        pass_filenames: false
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check mantra
+        language: system
+        pass_filenames: false
+      - id: pytest
+        name: pytest
+        entry: uv run pytest
+        language: system
+        pass_filenames: false
