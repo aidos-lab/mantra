@@ -1,3 +1,4 @@
+from .coordinate_embedding import CoordinateEmbedding
 from .encodings import (
     EffectiveResistanceEmbedding,
     EffectiveResistanceStatisticsEmbedding,
@@ -6,7 +7,6 @@ from .encodings import (
     NodeRandomTransform,
     SimplexRandomTransform,
 )
-from .coordinate_embedding import CoordinateEmbedding
 from .task_transforms import (
     BettiToClassTransform,
     NameToClass2MTransform,
