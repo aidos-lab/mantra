@@ -6,6 +6,7 @@ from .encodings import (
     NodeRandomTransform,
     SimplexRandomTransform,
 )
+from .coordinate_embedding import CoordinateEmbedding
 from .task_transforms import (
     BettiToClassTransform,
     NameToClass2MTransform,
@@ -18,6 +19,7 @@ from .util_transforms import (
 )
 
 __all__ = [
+    "CoordinateEmbedding",
     "BettiToClassTransform",
     "OrientableToClassTransform",
     "NameToClass2MTransform",
