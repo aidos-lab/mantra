@@ -3,15 +3,14 @@
 A set of transforms for MANTRA that serve the purpose of specifying
 the prediction target (`data.y`) of the possible tasks.
 
-All transforms in this module are stateless: the target is a pure
-function of the attributes stored on a sample, so a sample always
+All transforms in this module are stateless: a sample always
 receives the same target regardless of the order in which, or the
 subset with which, the dataset is traversed. Class indices of
 categorical attributes come from fixed mappings such as
 `NAME_TO_CLASS_2M`; integer-valued attributes are used as class
 indices directly. Remapping these canonical indices to a contiguous
-range over the classes present in a particular training split is left
-to the training code.
+range over the classes present in a particular training split needs 
+to be performed in the training code.
 """
 
 import numbers
