@@ -14,8 +14,8 @@ from mantra.representations import LeviGraph
 from mantra.transforms import PropagateConvexComb
 
 # Boundary of a tetrahedron with the top simplices deliberately given in
-# non-lexicographic order (each tuple itself internally sorted, as in
-# the CY data), pinning the index alignment of the simplex partition.
+# non-lexicographic order (each tuple itself internally sorted), pinning
+# the index alignment of the simplex partition.
 TETRAHEDRON_TRI_SCRAMBLED = [[2, 3, 4], [1, 2, 4], [1, 2, 3], [1, 3, 4]]
 # The same top simplices, 0-indexed and lexicographically sorted: the
 # order the Levi graph must use for the maximal-simplex partition.
