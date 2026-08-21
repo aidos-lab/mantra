@@ -370,6 +370,15 @@ AttributeToClassTransform(
 AttributeToRegressionTransform("genus")
 ```
 
+Node-level targets are supported by `AttributeToNodeRegressionTransform(source, mask_first=False)` and `AttributeToNodeClassTransform(source, mapping, mask_first=False)`, which turn an attribute holding one tensor value per vertex (e.g. the second Chern class paired with each toric divisor of a Calabi-Yau triangulation) into `data.y` of shape `(n_vertices, 1)` (float regression target) or `(n_vertices,)` (class indices from a fixed `mapping`). Both also store a boolean `data.node_mask` selecting the supervised vertices; with `mask_first=True` the first vertex (e.g. the origin of the polytope, which carries no target) is excluded.
+
+```python
+from mantra.transforms import AttributeToNodeRegressionTransform
+
+# Regress one value per vertex, ignoring the first vertex in the loss.
+AttributeToNodeRegressionTransform("c2", mask_first=True)
+```
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)
