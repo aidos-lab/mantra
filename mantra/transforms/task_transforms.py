@@ -13,11 +13,11 @@ range over the classes present in a particular training split needs
 to be performed in the training code.
 """
 
+from typing import Dict
 
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.data import Data
-from typing import Dict 
 
 from mantra.manifold_types import Manifold2Type, Manifold3Type
 
@@ -30,6 +30,7 @@ NAME_TO_CLASS_3M = {
     manifold.value: index for index, manifold in enumerate(Manifold3Type)
 }
 """Canonical class index of every 3-manifold homeomorphism type."""
+
 
 class AttributeToClassTransform(T.BaseTransform):
     """Encode a stored attribute as a class index in `data.y`.
@@ -76,8 +77,12 @@ class AttributeToClassTransform(T.BaseTransform):
         value = data[self.source]
 
         if isinstance(value, torch.Tensor):
-            assert len(value.shape) == 0 or (len(value.shape) == 1 and value.shape[0] == 1), "Needs to be a 1 element tensor, i.e. scalar"
-            assert not torch.is_floating_point(value), "Tensor needs to be of type int"
+            assert len(value.shape) == 0 or (
+                len(value.shape) == 1 and value.shape[0] == 1
+            ), "Needs to be a 1 element tensor, i.e. scalar"
+            assert not torch.is_floating_point(
+                value
+            ), "Tensor needs to be of type int"
             value = value.item()
 
         if value not in self.mapping:
@@ -167,7 +172,6 @@ class AttributeToRegressionTransform(T.BaseTransform):
         super().__init__()
         self.source = source
 
-
     def forward(self, data: Data):
         """Assign the regression target of a given `data` object.
 
@@ -177,5 +181,7 @@ class AttributeToRegressionTransform(T.BaseTransform):
             Data object with the target stored in `y` as a float tensor
             of shape `(1, k)`, with `k` the number of sources.
         """
-        data.y = torch.tensor(getattr(data, self.source), dtype=torch.float32).unsqueeze(dim=0)
+        data.y = torch.tensor(
+            getattr(data, self.source), dtype=torch.float32
+        ).unsqueeze(dim=0)
         return data

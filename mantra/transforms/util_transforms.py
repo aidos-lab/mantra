@@ -1,7 +1,6 @@
 from itertools import combinations
 from typing import Dict, List, Literal, TypeAlias, Union
 
-import numpy as np
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
@@ -211,11 +210,12 @@ class PropagateConvexComb(BaseTransform):
             self.source in data
         ), f"Data object is missing source tensor `{self.source}`"
 
-        assert isinstance(getattr(data, self.source), torch.Tensor), f"Input {self.source} is not a torch.Tensor"
+        assert isinstance(
+            getattr(data, self.source), torch.Tensor
+        ), f"Input {self.source} is not a torch.Tensor"
 
         x = getattr(data, self.source)
         triangulation = getattr(data, "triangulation")
-
 
         simplices = set([tuple(s) for s in triangulation])
         max_dim = len(next(iter(simplices)))
