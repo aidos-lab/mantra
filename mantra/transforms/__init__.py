@@ -1,22 +1,28 @@
-from .attribute_transform import (
+from .coordinate_embedding import CoordinateEmbedding
+from .encodings import (
+    EffectiveResistanceEmbedding,
+    EffectiveResistanceStatisticsEmbedding,
+    MomentCurveEmbedding,
     NodeDegreeTransform,
     NodeRandomTransform,
     SimplexRandomTransform,
 )
-from .coordinate_embedding import CoordinateEmbedding
-from .create_labels import CreateLabels
-from .effective_resistance import (
-    EffectiveResistanceEmbedding,
-    EffectiveResistanceStatisticsEmbedding,
+from .task_transforms import (
+    BettiToClassTransform,
+    NameToClass2MTransform,
+    OrientableToClassTransform,
 )
-from .moment_curve_embedding import MomentCurveEmbedding
-from .select_attributes import SelectAttributes
-from .select_features import SelectFeatures
-from .util_transforms import PropagateConvexComb
+from .util_transforms import (
+    PropagateConvexComb,
+    SelectAttributes,
+    SelectFeatures,
+)
 
 __all__ = [
     "CoordinateEmbedding",
-    "CreateLabels",
+    "BettiToClassTransform",
+    "OrientableToClassTransform",
+    "NameToClass2MTransform",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",

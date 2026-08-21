@@ -2,7 +2,7 @@
 
 import torch
 
-from mantra.datasets import CY
+from mantra.datasets import CalabiYau
 from mantra.transforms import (
     CoordinateEmbedding,
     PropagateConvexComb,
@@ -11,7 +11,7 @@ from mantra.transforms import (
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
-    return CY(
+    return CalabiYau(
         root=str(tmp_path / "data"),
         local_path=make_cy_parquet(cy_rows),
         **kwargs,
@@ -28,12 +28,17 @@ class TestCY:
 
         # Simplices are converted to the 1-indexed MANTRA convention,
         # `dimension` holds the topological dimension.
-        assert data.triangulation == [[1, 2, 3], [1, 3, 4], [1, 4, 5], [1, 5, 2]]
+        assert data.triangulation == [
+            [1, 2, 3],
+            [1, 3, 4],
+            [1, 4, 5],
+            [1, 5, 2],
+        ]
         assert int(data.dimension) == 2
         assert int(data.n_vertices) == 5
 
-        assert data.vertices.dtype == torch.float32
-        assert data.vertices.shape == (5, 2)
+        assert data.coords.dtype == torch.float32
+        assert data.coords.shape == (5, 2)
 
         # Extra parquet columns become attributes.
         assert int(data.h11) == 6
@@ -68,7 +73,7 @@ class TestCoordinateEmbedding:
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
         data = CoordinateEmbedding()(dataset[0])
 
-        assert torch.equal(data.coordinate_embedding, data.vertices)
+        assert torch.equal(data.coordinate_embedding, data.coords)
 
     def test_propagate(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
@@ -76,7 +81,7 @@ class TestCoordinateEmbedding:
         data = PropagateConvexComb(source="coordinate_embedding")(data)
 
         # Rank-0 features are the coordinates themselves.
-        assert torch.equal(data.x_0, data.vertices)
+        assert torch.equal(data.x_0, data.coords)
 
         # 8 edges (4 boundary + 4 to the apex), 4 triangles; barycenters
         # live in coordinate space.
@@ -86,14 +91,14 @@ class TestCoordinateEmbedding:
 
         # The barycenter of the lexicographically first triangle
         # (1, 2, 3) is the mean of its vertex coordinates.
-        expected = data.vertices[[0, 1, 2]].mean(dim=0)
+        expected = data.coords[[0, 1, 2]].mean(dim=0)
         assert torch.allclose(data.x_2[0], expected)
 
-    def test_missing_vertices_raises(self):
+    def test_missing_coords_raises(self):
         import pytest
         from torch_geometric.data import Data
 
-        with pytest.raises(AssertionError, match="vertices"):
+        with pytest.raises(AssertionError, match="coords"):
             CoordinateEmbedding()(Data(triangulation=[[1, 2, 3]]))
 
     def test_accepts_non_tensor_inputs(self):
@@ -101,7 +106,7 @@ class TestCoordinateEmbedding:
         from torch_geometric.data import Data
 
         data = Data(
-            vertices=np.array([[0.0, 0.0], [1.0, 0.0]]),
+            coords=np.array([[0.0, 0.0], [1.0, 0.0]]),
             h11=6,
         )
         data = CoordinateEmbedding(append_attributes=["h11"])(data)
@@ -118,19 +123,19 @@ class TestCoordinateEmbedding:
             src="coordinate_embedding", dst=None, representation="graph"
         )(data)
 
-        assert torch.equal(data.x, data.vertices)
+        assert torch.equal(data.x, data.coords)
 
 
 class TestCoordinateEmbeddingAppend:
     def test_append_plain(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows)
-        data = CoordinateEmbedding(
-            append_attributes=["h11", "h12"]
-        )(dataset[0])
+        data = CoordinateEmbedding(append_attributes=["h11", "h12"])(
+            dataset[0]
+        )
 
         embedding = data.coordinate_embedding
         assert embedding.shape == (5, 4)
-        assert torch.equal(embedding[:, :2], data.vertices)
+        assert torch.equal(embedding[:, :2], data.coords)
         assert torch.all(embedding[:, 2] == 6.0)
         assert torch.all(embedding[:, 3] == 46.0)
 

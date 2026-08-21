@@ -1,5 +1,6 @@
 import os
 import shutil
+from typing import List
 
 import numpy as np
 import pyarrow.parquet as pq
@@ -8,7 +9,7 @@ from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
 
 
-class CY(InMemoryDataset):
+class CalabiYau(InMemoryDataset):
     """Dataset of Calabi-Yau manifold triangulations.
 
     Each sample is a fine star triangulation of a 4-dimensional
@@ -36,6 +37,7 @@ class CY(InMemoryDataset):
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
+        batch_size: int = 1000,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -75,11 +77,15 @@ class CY(InMemoryDataset):
             subsets are stored in their own processed directory, so
             they can coexist with the full dataset and are cheap to
             precompute, e.g. for smoke tests or timing benchmarks.
+        batch_size : int
+            Size of the batch to load from the parquet file of the
+            manifold triangulations.
         """
         self.version = version
         self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.limit = limit
+        self.batch_size = batch_size
 
         root += self._add_version_to_root()
 
@@ -95,9 +101,9 @@ class CY(InMemoryDataset):
 
     def _add_version_to_root(self):
         if self.version == "latest":
-            return "/cy/"
+            return "/calabi_yau/"
         else:
-            return f"/cy/{self.version}/"
+            return f"/calabi_yau/{self.version}/"
 
     @property
     def raw_file_names(self):
@@ -141,13 +147,23 @@ class CY(InMemoryDataset):
         dst = os.path.join(self.raw_dir, self.raw_file_names[0])
         shutil.copy2(self.local_path, dst)
 
-    def process(self):
-        """Processes dataset."""
-        parquet_file = pq.ParquetFile(self.raw_paths[0])
+    def _process_parquet(self, parquet_file) -> List[Data]:
+        """Processes the parquet file iteration process.
 
+        Parameters
+        ----------
+        parquet_file : ParquetFile
+            Parquet file containing the dataset to parse.
+
+        Returns
+        ---------
+        List[Data]
+            List of Data object containing the triangulations.
+
+        """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(batch_size=1000):
+        for pq_batch in parquet_file.iter_batches(batch_size=self.batch_size):
             parquet_df = pq_batch.to_pandas()
             for _, row in parquet_df.iterrows():
                 row_dict = row.to_dict()
@@ -161,14 +177,15 @@ class CY(InMemoryDataset):
 
                 # Convert vertex coordinates to a float tensor; row `i`
                 # holds the coordinates of vertex `i + 1`.
-                vertices = torch.as_tensor(
+                coords = torch.as_tensor(
                     np.vstack(row_dict.pop("vertices")), dtype=torch.float32
                 )
 
                 used_vertices = {v for s in triangulation for v in s}
+
                 assert used_vertices == set(
-                    range(1, vertices.shape[0] + 1)
-                ), "Triangulation does not use all vertices consecutively"
+                    range(1, coords.shape[0] + 1)
+                ), "Not all vertices in the triangulation have a coordinate"
 
                 # Numpy scalars (e.g. labels like `h11`) are converted to
                 # Python scalars so that they collate like the fields of
@@ -181,18 +198,26 @@ class CY(InMemoryDataset):
                 data_list.append(
                     Data(
                         triangulation=triangulation,
-                        vertices=vertices,
+                        coords=coords,
                         dimension=len(triangulation[0]) - 1,
-                        n_vertices=vertices.shape[0],
+                        n_vertices=coords.shape[
+                            0
+                        ],  # We checked this was the number of vertices, i.e. len(used_vertices)
                         **row_dict,
                     )
                 )
 
                 if self.limit is not None and len(data_list) >= self.limit:
-                    break
-
+                    return data_list
             if self.limit is not None and len(data_list) >= self.limit:
-                break
+                return data_list
+        return data_list
+
+    def process(self):
+        """Processes dataset."""
+        parquet_file = pq.ParquetFile(self.raw_paths[0])
+
+        data_list = self._process_parquet(parquet_file)
 
         if self.pre_filter is not None:
             data_list = [

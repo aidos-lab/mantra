@@ -138,6 +138,13 @@ class EffectiveResistanceEmbedding(BaseTransform):
 
         data.er = X
 
+        # Also expose each dimension's resistances as a flattened
+        # `er_{dim}` attribute. `DualGraph.feature_propagation` looks
+        # these up directly via `getattr(data, f"er_{dim}")` rather than
+        # indexing into the `er` dict.
+        for dim, values in X.items():
+            data[f"er_{dim}"] = values
+
         return data
 
 

@@ -23,7 +23,7 @@ import json
 import re
 import sys
 
-from mantra.utils import store_triangulations
+from mantra.utils.utils import store_triangulations
 
 
 def maybe_coerce(s):

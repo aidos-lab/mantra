@@ -1,11 +1,11 @@
 import json
 import sys
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
+import numpy as np
 import pandas as pd
 import seaborn as sns
-import numpy as np
-from collections import defaultdict
 
 
 # TODO: Looka at what this does

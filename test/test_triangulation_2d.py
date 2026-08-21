@@ -2,11 +2,11 @@
 
 import random
 
-from mantra.augmentations.constants import (
+from mantra.utils.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
 )
-from mantra.augmentations.triangulation import (
+from mantra.utils.triangulation import (
     Triangulation,
 )
 

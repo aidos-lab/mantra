@@ -15,6 +15,14 @@ additional code to reproduce all experiments.
 Please use the following citation for our work:
 
 ```bibtex
+@unpublished{Schmidt26a,
+  title         = {No Triangulation Without Representation: Generalization in Topological Deep Learning},
+  author        = {Johannes S. Schmidt and Martin Carrasco and Ernst Röell and Guy Wolf and Nello Blaser and Bastian Rieck},
+  year          = 2026,
+  eprint        = {2605.06467},
+  archiveprefix = {arXiv},
+  primaryclass  = {cs.LG},
+}
 @inproceedings{Ballester25a,
   title         = {{MANTRA}: {T}he {M}anifold {T}riangulations {A}ssemblage},
   author        = {Rubén Ballester and Ernst Röell and Daniel Bīn Schmid and Mathieu Alain and Sergio Escalera and Carles Casacuberta and Bastian Rieck},
@@ -48,34 +56,295 @@ dataset = ManifoldTriangulations(
 ```
 
 Provided you have [`pytorch-geometric`](https://github.com/pyg-team/pytorch_geometric) installed,
-here is a more comprehensive example, showing the use of *random node features* and how to transform it
-for using graph neural networks:
+here is a simple example, showing the use of *random node features* on the one-skeleton
+of a triangulation and how to transform it for using graph neural networks. Note that each *encoding*, in this case `NodeRandomTransform`, does not automatically assign to the `x` feature tensor but creates a tensor with that name. To make the assigned to `x` we need `SelectFeatures` which takes a `src` an `dst` (by default `x`) and a representation (in this case `graph`). More advanced usage can be seen in the examples.
 
 ```python
 from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
 
 from mantra.datasets import ManifoldTriangulations
-from mantra.transforms import NodeIndex
-from mantra.transforms import RandomNodeFeatures
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
 
 
 dataset = ManifoldTriangulations(
-    root="./data",
-    dimension=2,
-    version="latest",
-    transform=Compose(
+    root="./data", # Root of the dataset
+    dimension=2, # Dimension of the manifolds in question
+    version="latest", # Which version of the dataset to load
+    pre_transform=Compose( # Set of transforms to be applied during preprocessing
         [
-            NodeIndex(),
-            RandomNodeFeatures(),
-            # Converts face indices to edge indices, thus essentially
-            # making the 1-skeleton available to a model.
-            FaceToEdge(remove_faces=False),
+            OneSkeleton(),
+            NodeRandomTransform(), # Assigns random features (default dim=8) on the attribute `random_features`
+            SelectFeatures(src="random_features", dst=None, representation="graph"), # Assing `x = random_features`
         ]
     ),
     force_reload=True,
 )
 ```
+
+You can find all the available representations of a traingulation in `mantra.representations`. So far, the supported types are:
+1. One Skeleton
+2. Dual Graph
+3. Hasse Diagram
+4. Levi Graph
+5. Simplicial Complex (represented with matrices of the boundary operators, Hodge Laplacians and more!)
+
+
+The dataset also provides an option to "balance" the distribution of homeomorphic types and even the distribution of triangulations. It does
+this through Pachner moves and, in 2D, through gluing of manifolds applied to triangulations. An example follows:
+
+
+```python
+from torch_geometric.transforms import Compose
+
+from mantra.datasets import ManifoldTriangulations
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
+
+
+dataset = ManifoldTriangulations(
+    root="./data",
+    dimension=2,
+    version="latest",    
+    balanced=True,      # Wether to perform balancing or not, False by default 
+    target_count=10,     # Target number of samples per homeomorphic class
+    n_moves=5,           # Number of moves to use for adding additional samples
+    use_surgery=True,     # If topological surgery, i.e. gluing should be used during augmentation (only 2D)
+    seed=0,               # Seed for random sampling of moves
+    max_vertices=10,       # Vertex cap for the balancing operation, only applied to new triangulation (None is no cap)
+    pre_transform=Compose(
+        [
+            OneSkeleton(),
+            NodeRandomTransform(),
+            SelectFeatures(src="random_features", dst=None, representation="graph"),
+        ]
+    ),
+    force_reload=True,
+)
+```
+
+Additionally you can add a pre-filter to guarantee that all your triangulations have at most $x$ number of vertices.
+
+```python
+from torch_geometric.transforms import Compose
+
+from mantra.datasets import ManifoldTriangulations
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
+
+dataset = ManifoldTriangulations(
+    root="./data",
+    dimension=2,
+    version="latest",    
+    balanced=True,      # Wether to perform balancing or not, False by default 
+    target_count=10,     # Target number of samples per homeomorphic class
+    n_moves=5,           # Number of moves to use for adding additional samples
+    use_surgery=True,     # If topological surgery, i.e. gluing should be used during augmentation (only 2D)
+    seed=0,               # Seed for random sampling of moves
+    max_vertices=10,       # Vertex cap for the balancing operation, only applied to new triangulation (None is no cap)
+    pre_transform=Compose(
+        [
+            OneSkeleton(),
+            NodeRandomTransform(),
+            SelectFeatures(src="random_features", dst=None, representation="graph"),
+        ]
+    ),
+    force_reload=True,
+)
+```
+
+
+## Using the Dataset - Homeomorphism classification Task
+
+The extended version of MANTRA provides a way to construct ready-to-train versions of the dataset for the homeomorphism type classification task. 
+This includes the new out-of-distribution task, all packaged in a single`MantraDataset` class. 
+
+### Simple training split 
+
+The `MantraDataset` class functions similarly to PyG's ZINC dataset. You specify the split you want and it returns the dataset for
+that particular split (train, val, test, ood). The first time a fixed configuration of the dataset is called, all the splits are 
+constructed and subsequent calls just load from file as long as `force_reload=False`. 
+
+```python
+from torch_geometric.transforms import Compose
+
+from mantra.datasets import MantraDataset
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
+
+dataset_train =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="train", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20, # Required by the default "graded" division_type: vertex count every OOD sample is grown to
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+
+dataset_val =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="val", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20,
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+
+dataset_test =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="test", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20,
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+```
+You can now use these for a training pipeline. Balancing, encodings and representations can be combined here as well.
+
+### Training Split + OOD
+
+The out-of-distribution (OOD) task is constructed at the same time the dataset is constructed. By default, it will be empty
+```python
+from torch_geometric.transforms import Compose
+
+from mantra.datasets import MantraDataset
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
+
+dataset_train =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="train", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20, # Required by the default "graded" division_type: vertex count every OOD sample is grown to
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+
+dataset_val =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="val", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20,
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+
+dataset_test =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="test", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20,
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+dataset_ood =  MantraDataset(
+    root="./data",
+    dimension=2,
+    balanced=False,
+    version="latest",
+    split_type="ood", # Split to load 
+    split_proportions=[0.6, 0.2, 0.2], # The split proportion to create
+    stratified = False, # Wether to perform stratified splitting, i.e. keep proportions equivalent in each split
+    min_sample_per_class = 100, # Minimum amount of samples per homeomorphism type
+    seed = 0,
+    graded_vertex_number = 20,
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeRandomTransform(),
+        SelectFeatures(src="random_features", dst=None, representation="graph"),
+    ]),
+)
+```
+
+## Specifying the task
+The main task of MANTRA is predicting the homeomorphism type class of a triangulation, i.e. which manifold it triangulates. However, each triangulation has additional labels related to the properties of the manifold it represents, whichwhich together determine its homeomorphic class. These are a.) orientable, b.) Betti numbers. The former is a binary label that denotes wether the manifold is orientable. The latter is a sequence of integers that count the different dimensional holes.
+
+Task transforms specify the prediction target, while `SelectFeatures` and `SelectAttributes` prepare the final model inputs. For example, the following pipeline creates a Betti-number prediction dataset using node degrees as features:
+
+```python
+from torch_geometric.transforms import Compose
+
+from mantra.datasets import ManifoldTriangulations
+from mantra.representations import OneSkeleton
+from mantra.transforms import (
+    NameToClass2MTransform,
+    NodeDegreeTransform,
+    SelectAttributes,
+    SelectFeatures,
+)
+
+dataset = ManifoldTriangulations(
+    root="./data",
+    dimension=2,
+    version="latest",
+    name="betti_numbers_degree",
+    pre_transform=Compose([
+        OneSkeleton(),
+        NodeDegreeTransform(),
+        SelectFeatures(src="degree", dst=None, representation="graph"),
+    ]),
+    transform=Compose([
+        NameToClass2MTransform(),
+        SelectAttributes(keep_keys=['x', 'y', 'edge_index', 'n_vertices'])
+    ])
+)
+```
+
+`NameToClass2MTransform` stores the manifold's `name` (homeomorphism type) encoded as an integer in `data.y`. `SelectFeatures` assigns the computed degree values to `data.x`, and `SelectAttributes` keeps only the specified attributes, in this case `x`, `y`, `edge_index` and `n_vertices`.
 
 ## More Examples 
 
@@ -96,7 +365,21 @@ A: Topology forms a fundamental theoretical foundation for natural sciences like
 
 
 #### Q: Which are the main functions and classes implemented in this dataset?
-A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTriangulations` allows the user to load the MANTRA dataset using a `InMemoryDataset` format from [`torch_geometric`]([`torch_geometric`](https://pytorch-geometric.readthedocs.io/en/latest/)). The transforms `NodeIndex`, `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot`are also provided in this package. Concretely, `NodeIndex` transforms the original triangulation format in a torch-like tensor, and `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot` assign input feature vectors to vertices in a the `x` attribute of the input `Data` representing a triangulation based either on random features or on the degree of each vertex, respectively.
+A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTriangulations` allows the user to load the MANTRA dataset using a `InMemoryDataset` format from [`torch_geometric`]([`torch_geometric`](https://pytorch-geometric.readthedocs.io/en/latest/)). Additionally, the `MantraDataset` class allows loading a dataset split.
+
+#### Q: What representations are available in this dataset?
+A: The available representations are:
+
+| Type | Representations |
+| --- | --- |
+| Graph | `OneSkeleton`, `DualGraph`, `HasseDiagram`, `LeviGraph` |
+| Simplicial complex | `IncidenceSimplicialComplex`, `AdjacencySimplicialComplex`, `CoadjacencySimplicialComplex`, `UpLaplacianSimplicialComplex`, `DownLaplacianSimplicialComplex`, `HodgeLaplacianSimplicialComplex` |
+
+#### Q: What encodings are available in this dataset?
+A: `NodeRandomTransform` assigns random feature vectors to graph nodes, while `SimplexRandomTransform` assigns them to simplices of a chosen dimension. `NodeDegreeTransform` uses each graph node's degree as its feature. `MomentCurveEmbedding` gives vertices canonical coordinates on a moment curve, with optional rotation and normalization. `EffectiveResistanceEmbedding` computes effective-resistance features for simplices from incidence matrices, and `EffectiveResistanceStatisticsEmbedding` summarizes these features using statistics such as the mean, standard deviation, extrema, median, and quartiles.
+
+#### Q: What tasks are available in this dataset?
+A: MANTRA supports **homeomorphism-type classification**, where a model predicts the manifold represented by a triangulation; **orientability classification**, a binary task that determines whether a manifold is orientable; and **Betti-number prediction**, which predicts the ranks of the manifold's homology groups. 
 
 *Have a question that's not answered here? Please open an issue on our GitHub repository.*
 

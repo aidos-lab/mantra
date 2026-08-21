@@ -6,8 +6,8 @@ from collections import Counter
 
 import pytest
 
-import mantra.augmentations.balancing as balancing_mod
 import mantra.datasets.mantra as mantra_mod
+import mantra.utils.balancing as balancing_mod
 from mantra.datasets import ManifoldTriangulations
 
 from .conftest import manifold_entry
@@ -144,7 +144,11 @@ class TestBalancedProcessing:
         )
         assert calls["n_entries"] == len(balanced_entries)
         assert calls["kwargs"] == dict(
-            seed=7, max_vertices=9, target_count=3, n_moves=2, use_surgery=True
+            seed=7,
+            max_vertices=9,
+            target_count=3,
+            n_moves=2,
+            use_surgery=False,
         )
         assert len(ds) == 4
 

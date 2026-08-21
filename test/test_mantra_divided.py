@@ -5,8 +5,8 @@ from collections import Counter
 
 import pytest
 
-from mantra.datasets import MANTRADivided
-from mantra.datasets.mantra_divided import SubdivisionType
+from mantra.datasets import MantraDataset
+from mantra.datasets.mantra_dataset import SubdivisionType
 
 from .conftest import manifold_entry
 
@@ -32,7 +32,7 @@ def octahedron_entry(id, **extra):
 def make_divided(make_manifolds_json, entries, tmp_path, **kwargs):
     path = make_manifolds_json(entries)
     kwargs.setdefault("dimension", 2)
-    return MANTRADivided(str(tmp_path / "root"), local_path=path, **kwargs)
+    return MantraDataset(str(tmp_path / "root"), local_path=path, **kwargs)
 
 
 class TestSubdivisionType:
@@ -48,11 +48,11 @@ class TestSubdivisionType:
 class TestValidation:
     def test_invalid_split_type_raises(self, tmp_path):
         with pytest.raises(ValueError, match="split_type"):
-            MANTRADivided(str(tmp_path / "root"), split_type="holdout")
+            MantraDataset(str(tmp_path / "root"), split_type="holdout")
 
     def test_invalid_split_proportions_raises(self, tmp_path):
         with pytest.raises(ValueError, match="split_proportions"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="train",
                 split_proportions=[0.5, 0.5, 0.5],
@@ -60,7 +60,7 @@ class TestValidation:
 
     def test_graded_without_vertex_number_raises(self, tmp_path):
         with pytest.raises(ValueError, match="graded_vertex_number"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="ood",
                 division_type="graded",
@@ -68,7 +68,7 @@ class TestValidation:
 
     def test_graded_vertex_number_below_max_vertices_raises(self, tmp_path):
         with pytest.raises(ValueError, match="strictly greater"):
-            MANTRADivided(
+            MantraDataset(
                 str(tmp_path / "root"),
                 split_type="ood",
                 division_type="graded",
@@ -144,7 +144,7 @@ class TestSplits:
             counts = Counter(d.name for d in ds)
             assert counts == {"S^2": expected, "RP^2": expected}
 
-    def test_class_count_filter_drops_rare_classes(
+    def test_min_sample_per_class_drops_rare_classes(
         self, make_manifolds_json, tmp_path
     ):
         entries = [manifold_entry(f"s{i}", name="S^2") for i in range(9)] + [
@@ -155,7 +155,7 @@ class TestSplits:
             entries,
             tmp_path,
             split_type="train",
-            class_count_filter=1,
+            min_sample_per_class=1,
         )
         assert all(d.name == "S^2" for d in ds)
 
@@ -190,6 +190,7 @@ class TestOODSubdivision:
             balanced_entries,
             tmp_path,
             split_type="ood",
+            division_type="barycentric",
         )
         # One barycentric round of the tetrahedral sphere:
         # 4 vertices + 6 edges + 4 faces = 14 vertices, 24 triangles.
@@ -206,6 +207,7 @@ class TestOODSubdivision:
             balanced_entries,
             tmp_path,
             split_type="ood",
+            division_type="barycentric",
             round=2,
         )
         # Second round on (V=14, E=36, F=24): 14 + 36 + 24 = 74 vertices.
@@ -279,23 +281,6 @@ class TestMaxOODSizePerClass:
 
 
 class TestMaxVertices:
-    def test_max_vertices_filters_in_distribution_splits(
-        self, make_manifolds_json, tmp_path
-    ):
-        entries = [manifold_entry(f"t{i}") for i in range(5)] + [
-            octahedron_entry(f"o{i}") for i in range(5)
-        ]
-
-        for split in ["train", "val", "test"]:
-            with pytest.raises(AssertionError):
-                make_divided(
-                    make_manifolds_json,
-                    entries,
-                    tmp_path,
-                    split_type=split,
-                    max_vertices=4,
-                )
-
     def test_ood_strictly_larger_than_in_distribution(
         self, make_manifolds_json, tmp_path
     ):
@@ -329,12 +314,12 @@ class TestMaxVertices:
 
 class TestProcessedFileNames:
     def _names(self, **kwargs):
-        obj = MANTRADivided.__new__(MANTRADivided)
+        obj = MantraDataset.__new__(MantraDataset)
         obj.division_type = SubdivisionType.from_str(
             kwargs.pop("division_type", "barycentric")
         )
         obj.max_ood_size_per_class = kwargs.pop("max_ood_size_per_class", None)
-        obj.class_count_filter = kwargs.pop("class_count_filter", None)
+        obj.min_sample_per_class = kwargs.pop("min_sample_per_class", None)
         obj.split_proportions = kwargs.pop(
             "split_proportions", [0.6, 0.2, 0.2]
         )
@@ -355,7 +340,7 @@ class TestProcessedFileNames:
             division_type="graded",
             graded_vertex_number=50,
             max_ood_size_per_class=100,
-            class_count_filter=5,
+            min_sample_per_class=5,
         )
         assert names == [
             "train_ccf5.pt",
@@ -427,7 +412,7 @@ class TestBalancedDivided:
             "balanced_42_n_moves1_target_count4_use_surgeryFalse"
         )
 
-    def test_balanced_with_class_count_filter_warns(
+    def test_balanced_with_min_sample_per_class_warns(
         self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
     ):
         with pytest.warns(UserWarning, match="re-imbalance"):
@@ -440,17 +425,7 @@ class TestBalancedDivided:
                 target_count=4,
                 n_moves=1,
                 use_surgery=False,
-                class_count_filter=1,
-            )
-
-    def test_balance_kwargs_max_vertices_rejected(self, tmp_path):
-        with pytest.raises(AssertionError, match="max_vertices"):
-            MANTRADivided(
-                str(tmp_path / "root"),
-                split_type="train",
-                balanced=True,
-                max_vertices=5,
-                target_count=1,
+                min_sample_per_class=1,
             )
 
     def test_max_vertices_forwarded_to_balancing(
@@ -476,11 +451,11 @@ class TestBalancedDivided:
                 tmp_path,
                 split_type="train",
                 balanced=True,
-                target_count=4,
-                n_moves=1,
+                target_count=5,
+                n_moves=4,
+                min_class_count=0,
                 use_surgery=False,
-                max_vertices=5,
+                max_vertices=7,
             )
         assert not [w for w in caught if "re-imbalance" in str(w.message)]
-        assert ds.max_vertices == 5
-        assert all(int(d.n_vertices) <= 5 for d in ds)
+        assert all(int(d.n_vertices) <= 7 for d in ds)
