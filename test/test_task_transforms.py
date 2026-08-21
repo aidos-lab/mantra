@@ -101,13 +101,13 @@ class TestAttributeToClassTransform:
             (7, 7),
             (True, 1),
             (False, 0),
-            (np.int64(43), 43),
+            (np.int64(12), 12),
             (torch.tensor(6), 6),
-            (torch.tensor([46]), 46),
+            (torch.tensor([9]), 9),
         ],
     )
     def test_integer_values_are_their_own_index(self, value, expected):
-        result = AttributeToClassTransform("h11")(Data(h11=value))
+        result = AttributeToClassTransform("genus")(Data(genus=value))
         assert result.y.item() == expected
         assert result.y.dtype == torch.long
         assert result.y.shape == ()
@@ -116,8 +116,8 @@ class TestAttributeToClassTransform:
         # Statelessness: the same value yields the same index no matter
         # which samples were seen before (unlike encounter-order
         # enumeration, which would yield [0, 1, 0, 2, 1] here).
-        transform = AttributeToClassTransform("h11")
-        ys = [transform(Data(h11=v)).y.item() for v in (7, 3, 7, 11, 3)]
+        transform = AttributeToClassTransform("genus")
+        ys = [transform(Data(genus=v)).y.item() for v in (7, 3, 7, 11, 3)]
         assert ys == [7, 3, 7, 11, 3]
 
     def test_explicit_mapping(self):
@@ -126,8 +126,8 @@ class TestAttributeToClassTransform:
         assert transform.num_classes == 2
 
     def test_mapping_with_tensor_value(self):
-        transform = AttributeToClassTransform("h11", mapping={6: 0, 7: 1})
-        assert transform(Data(h11=torch.tensor(7))).y.item() == 1
+        transform = AttributeToClassTransform("genus", mapping={2: 0, 3: 1})
+        assert transform(Data(genus=torch.tensor(3))).y.item() == 1
 
     def test_unknown_mapping_value_raises(self):
         transform = AttributeToClassTransform("kind", mapping={"a": 0})
@@ -135,11 +135,11 @@ class TestAttributeToClassTransform:
             transform(Data(kind="c"))
 
     def test_non_integer_without_mapping_raises(self):
-        transform = AttributeToClassTransform("h11")
+        transform = AttributeToClassTransform("genus")
         with pytest.raises(TypeError, match="integer-valued"):
-            transform(Data(h11=1.5))
+            transform(Data(genus=1.5))
         with pytest.raises(TypeError, match="integer-valued"):
-            transform(Data(h11="S^2"))
+            transform(Data(genus="S^2"))
 
     def test_non_scalar_tensor_raises(self):
         transform = AttributeToClassTransform("betti_numbers")
@@ -148,10 +148,10 @@ class TestAttributeToClassTransform:
 
     def test_missing_source_raises(self):
         with pytest.raises(AssertionError, match="not present"):
-            AttributeToClassTransform("h11")(Data())
+            AttributeToClassTransform("genus")(Data())
 
     def test_num_classes_without_mapping(self):
-        assert AttributeToClassTransform("h11").num_classes is None
+        assert AttributeToClassTransform("genus").num_classes is None
 
 
 class TestOrientableToClassTransform:
@@ -184,32 +184,26 @@ class TestBettiToClassTransform:
 
 class TestAttributeToRegressionTransform:
     def test_vector_target(self):
-        transform = AttributeToRegressionTransform(["h11", "h12"])
-        result = transform(Data(h11=6, h12=46))
+        transform = AttributeToRegressionTransform(["genus", "n_vertices"])
+        result = transform(Data(genus=2, n_vertices=10))
         assert result.y.dtype == torch.float32
         assert result.y.shape == (1, 2)
-        assert result.y.tolist() == [[6.0, 46.0]]
+        assert result.y.tolist() == [[2.0, 10.0]]
 
     def test_scalar_source(self):
-        result = AttributeToRegressionTransform("h12")(
-            Data(h12=torch.tensor(46))
+        result = AttributeToRegressionTransform("n_vertices")(
+            Data(n_vertices=torch.tensor(10))
         )
         assert result.y.shape == (1, 1)
-        assert result.y.item() == 46.0
-
-    def test_sum_sources(self):
-        transform = AttributeToRegressionTransform(
-            ["h11", "h12"], sum_sources=True
-        )
-        result = transform(Data(h11=7, h12=43))
-        assert result.y.shape == (1, 1)
-        assert result.y.item() == 50.0
+        assert result.y.item() == 10.0
 
     def test_accepts_numpy_scalars(self):
-        result = AttributeToRegressionTransform("c2")(Data(c2=np.float64(2.5)))
+        result = AttributeToRegressionTransform("value")(
+            Data(value=np.float64(2.5))
+        )
         assert result.y.item() == 2.5
 
     def test_missing_source_raises(self):
-        transform = AttributeToRegressionTransform(["h11", "h99"])
+        transform = AttributeToRegressionTransform(["genus", "missing"])
         with pytest.raises(AssertionError, match="not present"):
-            transform(Data(h11=6))
+            transform(Data(genus=2))

@@ -9,7 +9,7 @@ subset with which, the dataset is traversed. Class indices of
 categorical attributes come from fixed mappings such as
 `NAME_TO_CLASS_2M`; integer-valued attributes are used as class
 indices directly. Remapping these canonical indices to a contiguous
-range over the classes present in a particular training split needs 
+range over the classes present in a particular training split needs
 to be performed in the training code.
 """
 
@@ -170,12 +170,12 @@ class AttributeToRegressionTransform(T.BaseTransform):
     """Assemble a float regression target from scalar attributes.
 
     The target vector `y` is built from one or more scalar attributes
-    present in a sample, e.g. the Hodge numbers of a Calabi-Yau
-    triangulation. Attribute values are used directly, so the target
-    of a sample never depends on other samples.
+    present in a sample, e.g. `genus` or `n_vertices`. Attribute
+    values are used directly, so the target of a sample never depends
+    on other samples.
     """
 
-    def __init__(self, sources, sum_sources=False):
+    def __init__(self, sources):
         """Create a new regression-target transform.
 
         Parameters
@@ -183,16 +183,10 @@ class AttributeToRegressionTransform(T.BaseTransform):
         sources : str or list of str
             Attribute(s) used to build the target. Each attribute must
             be a scalar present in the data.
-
-        sum_sources : bool
-            If set, the values of all sources are summed into a single
-            scalar target (e.g. `h11 + h12`) instead of being stacked
-            into a vector.
         """
         super().__init__()
 
         self.sources = [sources] if isinstance(sources, str) else list(sources)
-        self.sum_sources = sum_sources
 
     def forward(self, data: Data):
         """Assign the regression target of a given `data` object.
@@ -201,8 +195,7 @@ class AttributeToRegressionTransform(T.BaseTransform):
         -------
         torch_geometric.data.Data
             Data object with the target stored in `y` as a float tensor
-            of shape `(1, k)`, with `k` the number of sources (or `1`
-            if `sum_sources`).
+            of shape `(1, k)`, with `k` the number of sources.
         """
         values = []
         for source in self.sources:
@@ -211,10 +204,5 @@ class AttributeToRegressionTransform(T.BaseTransform):
             ), f"Source attribute '{source}' is not present in data"
             values.append(float(_as_scalar(data[source])))
 
-        y = torch.tensor(values, dtype=torch.float32).view(1, -1)
-
-        if self.sum_sources:
-            y = y.sum(dim=1, keepdim=True)
-
-        data.y = y
+        data.y = torch.tensor(values, dtype=torch.float32).view(1, -1)
         return data
