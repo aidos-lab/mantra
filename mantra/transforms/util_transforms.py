@@ -217,8 +217,6 @@ class PropagateConvexComb(BaseTransform):
         x = getattr(data, self.source)
         triangulation = getattr(data, "triangulation")
 
-        X = torch.as_tensor(x, dtype=torch.float32)
-
         simplices = set([tuple(s) for s in triangulation])
         max_dim = len(next(iter(simplices)))
 
@@ -233,7 +231,7 @@ class PropagateConvexComb(BaseTransform):
         simplices.sort(key=len)
 
         # Dictionary containing the new attribute keys
-        values = {"x_0": X}
+        values = {"x_0": x}
 
         for dim in range(1, max_dim):
             simplices_ = [s for s in simplices if len(s) == dim + 1]
