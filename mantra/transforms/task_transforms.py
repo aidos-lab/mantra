@@ -1,22 +1,128 @@
 """Task transforms module
 
-A set of transforms for MANTRA that serve the purpouse of
-specifying different targets for the possible tasks.
+A set of transforms for MANTRA that serve the purpose of specifying
+the prediction target (`data.y`) of the possible tasks.
 
+All transforms in this module are stateless: a sample always
+receives the same target regardless of the order in which, or the
+subset with which, the dataset is traversed. Class indices come from
+fixed mappings: `NAME_TO_CLASS_2M` and `NAME_TO_CLASS_3M` for the
+homeomorphism types, or a caller-supplied `{value: index}` mapping
+for any other attribute (for integer-valued attributes such as
+`genus`, build it once from the values present in the full dataset).
+Remapping these canonical indices to a contiguous range over the
+classes present in a particular training split needs to be performed
+in the training code.
 """
 
-import copy
+from typing import Dict
 
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.data import Data
-from torch_geometric.transforms import BaseTransform
 
-from mantra.manifold_types import Manifold2Type
+from mantra.manifold_types import Manifold2Type, Manifold3Type
 
 NAME_TO_CLASS_2M = {
     manifold.value: index for index, manifold in enumerate(Manifold2Type)
 }
+"""Canonical class index of every 2-manifold homeomorphism type."""
+
+NAME_TO_CLASS_3M = {
+    manifold.value: index for index, manifold in enumerate(Manifold3Type)
+}
+"""Canonical class index of every 3-manifold homeomorphism type."""
+
+
+class AttributeToClassTransform(T.BaseTransform):
+    """Encode a stored attribute as a class index in `data.y`.
+
+    The class index is looked up in a fixed `mapping` from attribute
+    values to indices, so the same attribute value always yields the
+    same index, independent of the samples seen before. Scalar
+    attributes arrive as Python values when the transform runs as a
+    `pre_transform` and as one-element integer tensors after the
+    dataset has been collated; tensors are unwrapped before the lookup.
+    """
+
+    # Used in error messages; subclasses override it with a more
+    # specific description of the attribute.
+    _value_description = "value"
+
+    def __init__(self, source, mapping: Dict):
+        """Create a new class-index transform.
+
+        Parameters
+        ----------
+        source : str
+            Attribute used as the label. Must be present in the data.
+
+        mapping : Dict
+            Fixed mapping from attribute values to class indices, e.g.
+            `NAME_TO_CLASS_2M`. For integer-valued attributes such as
+            `genus`, build it once from the values present in the full
+            dataset, e.g. `{v: i for i, v in enumerate(sorted(values))}`,
+            so that it does not depend on a split or traversal order.
+        """
+        super().__init__()
+
+        self.source = source
+        self.mapping = mapping
+
+    @property
+    def num_classes(self):
+        """Number of classes of the mapping."""
+        return len(self.mapping)
+
+    def forward(self, data: Data):
+        assert (
+            self.source in data
+        ), f"Source attribute '{self.source}' is not present in data"
+
+        value = data[self.source]
+
+        if isinstance(value, torch.Tensor):
+            assert len(value.shape) == 0 or (
+                len(value.shape) == 1 and value.shape[0] == 1
+            ), "Needs to be a 1 element tensor, i.e. scalar"
+            assert not torch.is_floating_point(
+                value
+            ), "Tensor needs to be of type int"
+            value = value.item()
+
+        if value not in self.mapping:
+            raise KeyError(
+                f"Unknown {self._value_description} {value!r}; "
+                f"expected one of {sorted(self.mapping, key=str)}."
+            )
+
+        index = self.mapping[value]
+        data.y = torch.tensor(index, dtype=torch.long)
+        return data
+
+
+class NameToClass2MTransform(AttributeToClassTransform):
+    """
+    Encode the homeomorphism type (`name`) of a 2-manifold as a class
+    index using `NAME_TO_CLASS_2M`.
+    """
+
+    _value_description = "2-manifold name"
+
+    def __init__(self):
+        super().__init__(source="name", mapping=NAME_TO_CLASS_2M)
+
+
+class NameToClass3MTransform(AttributeToClassTransform):
+    """
+    Encode the homeomorphism type (`name`) of a 3-manifold as a class
+    index using `NAME_TO_CLASS_3M`.
+    """
+
+    _value_description = "3-manifold name"
+
+    def __init__(self):
+        super().__init__(source="name", mapping=NAME_TO_CLASS_3M)
 
 
 class OrientableToClassTransform(T.BaseTransform):
@@ -28,26 +134,6 @@ class OrientableToClassTransform(T.BaseTransform):
     def forward(self, data: Data):
         data.orientable = torch.tensor(data.betti_numbers)[..., -1]
         data.y = data.orientable.long()
-        return data
-
-
-class NameToClass2MTransform(T.BaseTransform):
-    """
-    Encode the homemorphism type (`name`) as a nominal target for 2-manifolds.
-    """
-
-    def __init__(self):
-        super().__init__()
-        self.class_dict = NAME_TO_CLASS_2M
-
-    def forward(self, data: Data):
-        assert "name" in data
-        if data.name not in self.class_dict:
-            raise KeyError(
-                f"Unknown 2-manifold name {data.name!r}; expected one of "
-                f"{sorted(self.class_dict)}."
-            )
-        data.y = torch.tensor(self.class_dict[data.name])
         return data
 
 
@@ -70,87 +156,43 @@ class BettiToClassTransform(T.BaseTransform):
         return data
 
 
-class CreateLabels(BaseTransform):
-    """Create labels based on attributes.
+class AttributeToRegressionTransform(T.BaseTransform):
+    """Assemble a float regression target from a stored attribute.
 
-    This transform creates labels based on attributes present in
-    a dataset. Depending on the type of attribute, labels may be
-    binary or multi-class.
+    The target `y` is the attribute `source`, a scalar such as `genus`
+    or `n_vertices` or a fixed-length vector such as `betti_numbers`,
+    converted to a float tensor of shape `(1, k)`. Attribute values
+    are used directly, so the target of a sample never depends on
+    other samples.
     """
 
-    def __init__(self, source):
-        """Create new label creator transform.
+    def __init__(self, source: str):
+        """Create a new regression-target transform.
 
         Parameters
         ----------
         source : str
-            Denotes attribute that is used to create labels. If not
-            present in the data, the `forward()` function will just
-            fail with an exception.
+            Attribute used as the target. Must be a scalar or a
+            fixed-length vector present in the data.
         """
         super().__init__()
-
         self.source = source
-        self.label_to_index = {}
-        self.index_remap = {}
 
-    def _assign_precompute(self, data):
-        assert (
-            self.source in data
-        ), f"Source attribute '{self.source}' is not present in data"
-
-        label = data[self.source]
-
-        if isinstance(label, bool):
-            # Booleans map directly: ``False = 0`` and ``True = 1``.
-            data.y = torch.tensor([int(label)])
-        else:
-            if isinstance(label, torch.Tensor):
-                label = label.item()
-            if label not in self.label_to_index:
-                self.label_to_index[label] = self.index_remap[label] = len(
-                    self.label_to_index
-                )
-            data.y = torch.tensor([self.label_to_index[label]])
-
-        data.label = label
-
-        return data
-
-    def forward(self, data):
-        """Assign label for a given `data` object.
-
-        Given a source attribute to create a label, assign a numerical
-        index to be used for downstream classification tasks. There is
-        one interesting thing happening here: The class assigns labels
-        based on the data type. If a boolean property is detected, the
-        mapping will default to `False = 0` and `True = 1`. Otherwise,
-        for string-based attributes, indices will be assigned based on
-        the order in which they are encountered.
-
-        Parameters
-        ----------
-        data : torch_geometric.data.Data
-            Input data object. The source attribute, which is used to
-            create labels, must be present.
+    def forward(self, data: Data):
+        """Assign the regression target of a given `data` object.
 
         Returns
         -------
         torch_geometric.data.Data
-            Data object with a label attached to it, stored in the `y`
-            attribute of the tensor.
+            Data object with the target stored in `y` as a float tensor
+            of shape `(1, k)`, with `k` the number of elements of the
+            attribute (`1` for scalars).
         """
-        # In this case, we are performing a remapping in either
-        # 1) Dataset was already preprocessed but we filtered,
-        # or, 2) we are loading the dataset
-        if "label" in data:
-            remap = copy.copy(data.y.item())
-
-            if remap not in self.index_remap:
-                self.index_remap[remap] = len(self.index_remap)
-
-            data.y = torch.tensor([self.index_remap[remap]])
-        else:
-            data = self._assign_precompute(data)
-
+        # `as_tensor` accepts Python scalars and lists (`pre_transform`
+        # path) as well as the one-element tensors produced by the
+        # collated dataset (`transform` path); `reshape` gives the same
+        # `(1, k)` shape on both paths.
+        data.y = torch.as_tensor(
+            getattr(data, self.source), dtype=torch.float32
+        ).reshape(1, -1)
         return data

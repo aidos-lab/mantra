@@ -120,6 +120,8 @@ class SelectFeatures(BaseTransform):
         assert isinstance(
             src_tensor, Dict
         ), f"The attribute {self.src} is not of type dict"
+        assert self.dst is not None, "`dst` is None"
+
         assert len(self.dst) == len(
             src_tensor.keys()
         ), f"There is a mismatch between num of `src` keys ( {len(src_tensor.keys())} ) and `dst` targets ( { len(self.dst) } )"
@@ -208,6 +210,10 @@ class PropagateConvexComb(BaseTransform):
             self.source in data
         ), f"Data object is missing source tensor `{self.source}`"
 
+        assert isinstance(
+            getattr(data, self.source), torch.Tensor
+        ), f"Input {self.source} is not a torch.Tensor"
+
         x = getattr(data, self.source)
         triangulation = getattr(data, "triangulation")
 
@@ -232,15 +238,14 @@ class PropagateConvexComb(BaseTransform):
         for dim in range(1, max_dim):
             simplices_ = [s for s in simplices if len(s) == dim + 1]
 
-            # Every simplex of this rank has `dim + 1` vertices, so the
-            # index tensor is rectangular; subtract one to map the
-            # 1-indexed vertex labels to tensor rows.
             idx = torch.tensor(simplices_) - 1
 
             # Calculate all barycenters of the current rank at once.
             # TODO: Change this to another type of combination function
-            values[f"x_{dim}"] = X[idx].mean(dim=1)
+            values[f"x_{dim}"] = x[idx].mean(dim=1)
 
+        # Assignment to data object
         for k, v in values.items():
             data[k] = v
+
         return data

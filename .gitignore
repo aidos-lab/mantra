@@ -19,3 +19,6 @@ scratch_**
 docs/build
 
 site/
+
+# Coverage data
+.coverage

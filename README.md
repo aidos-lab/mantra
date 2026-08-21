@@ -346,6 +346,30 @@ dataset = ManifoldTriangulations(
 
 `NameToClass2MTransform` stores the manifold's `name` (homeomorphism type) encoded as an integer in `data.y`. `SelectFeatures` assigns the computed degree values to `data.x`, and `SelectAttributes` keeps only the specified attributes, in this case `x`, `y`, `edge_index` and `n_vertices`.
 
+All task transforms are *stateless*: the target of a sample is a pure function of its stored attributes, so it never depends on the order in which samples are visited or on the subset that is loaded. Class indices come from fixed mappings: `NAME_TO_CLASS_2M` and `NAME_TO_CLASS_3M` (exported from `mantra.transforms`) for the homeomorphism types, used by the shorthands `NameToClass2MTransform` and `NameToClass3MTransform`, or a `{value: index}` mapping passed to `AttributeToClassTransform(source, mapping)` for any other attribute. For integer-valued attributes such as `genus`, build that mapping once from the values present in the *full* dataset, not from a split. `AttributeToRegressionTransform(source)` converts a scalar or fixed-length attribute to a float target of shape `(1, k)`. Remapping canonical class indices to a contiguous range over the classes present in a training split needs to be performed in the training code.
+
+```python
+from mantra.transforms import (
+    NAME_TO_CLASS_2M,
+    AttributeToClassTransform,
+    AttributeToRegressionTransform,
+)
+
+# Class index from a fixed mapping (NameToClass2MTransform() is the
+# shorthand for exactly this).
+AttributeToClassTransform("name", mapping=NAME_TO_CLASS_2M)
+
+# Integer-valued attribute: build the mapping once from the values
+# present in the full dataset, so that it is independent of the split.
+genus_values = sorted({int(data.genus) for data in dataset})
+AttributeToClassTransform(
+    "genus", mapping={v: i for i, v in enumerate(genus_values)}
+)
+
+# Float regression target of shape (1, 1) from a scalar attribute.
+AttributeToRegressionTransform("genus")
+```
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)

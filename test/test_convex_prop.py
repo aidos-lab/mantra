@@ -18,7 +18,7 @@ class TestComb:
 
     def test_correct_key_1(self):
         """Tests if it contains the correct tensors"""
-        x = np.zeros((4, 2), dtype=np.float32)
+        x = torch.zeros((4, 2), dtype=torch.float32)
         triangulation = [[1, 2, 3, 4]]
         data = self.make_data(x, triangulation)
         data = self.trans(data)
@@ -38,15 +38,15 @@ class TestComb:
         """Tests if it contains the corect
         shapes
         """
-        x = np.zeros((4, 2), dtype=np.float32)
+        x = torch.zeros((4, 2), dtype=torch.float32)
         triangulation = [[1, 2, 3, 4]]
         data = self.make_data(x, triangulation)
         data = self.trans(data)
 
-        assert getattr(data, "x_0", None).shape[0] == 4
-        assert getattr(data, "x_1", None).shape[0] == 6
-        assert getattr(data, "x_2", None).shape[0] == 4
-        assert getattr(data, "x_3", None).shape[0] == 1
+        assert getattr(data, "x_0").shape[0] == 4
+        assert getattr(data, "x_1").shape[0] == 6
+        assert getattr(data, "x_2").shape[0] == 4
+        assert getattr(data, "x_3").shape[0] == 1
 
     def test_share_edge(self):
         """Tests if shared edges get
@@ -56,6 +56,7 @@ class TestComb:
         x = np.array(
             [[0.0, 0.0], [2.0, 0.0], [0.0, 2.0], [2.0, 2.0]], dtype=np.float32
         )
+        x = torch.from_numpy(x)
         out = self.trans(self.make_data(x, [[1, 2, 3], [2, 3, 4]]))
 
         expected_edges = np.array(
