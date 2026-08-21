@@ -2,7 +2,6 @@ import os
 import shutil
 from typing import List
 
-import numpy as np
 import pyarrow.parquet as pq
 import torch
 from torch_geometric.data import Data, InMemoryDataset
@@ -165,53 +164,29 @@ class CalabiYau(InMemoryDataset):
         shutil.copy2(self.local_path, dst)
 
     @staticmethod
-    def _list_column_to_tensor(value):
-        """Convert the entry of a parquet list column to a tensor.
+    def _to_attribute(key, value):
+        """Convert a parquet cell to a `Data` attribute.
 
-        Plain ``list<T>`` columns arrive from pandas as 1-D numpy
-        arrays. Nested ``list<list<T>>`` columns (e.g. the ``(nnz, 4)``
-        COO block of ``intersection_numbers``) arrive as object arrays
-        of arrays, which ``torch.as_tensor`` rejects; their rows are
-        stacked explicitly. Ragged rows have no tensor form and raise
-        instead of being silently mangled. Floating point values are
-        stored as ``float32``.
+        pyarrow hands out Python scalars, which collate like the fields
+        of the JSON-based MANTRA datasets, and Python lists. Lists --
+        including nested ones such as the `(nnz, 4)` COO block of
+        `intersection_numbers` -- become tensors, with floats stored as
+        `float32`. Ragged nested lists have no tensor form and raise.
         """
-        array = np.asarray(value)
+        if not isinstance(value, list):
+            return value
 
-        if array.dtype == object:
-            rows = [np.asarray(row) for row in value]
-            if not rows:
-                array = np.zeros((0,), dtype=np.int64)
-            else:
-                shapes = {row.shape for row in rows}
-                if len(shapes) != 1:
-                    raise ValueError(
-                        "Cannot convert a list column with ragged rows "
-                        f"(shapes {sorted(shapes)}) to a tensor"
-                    )
-                array = np.stack(rows)
+        try:
+            tensor = torch.tensor(value)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"Column '{key}' cannot be converted to a tensor "
+                "(ragged or non-numeric rows)"
+            ) from error
 
-        # `torch.tensor` copies: the arrays handed out by pyarrow are
-        # read-only, which `as_tensor` would carry over with a warning.
-        tensor = torch.tensor(array)
         if tensor.is_floating_point():
             tensor = tensor.to(torch.float32)
         return tensor
-
-    @classmethod
-    def _to_attribute(cls, value):
-        """Convert a parquet cell to a `Data` attribute.
-
-        Numpy scalars (e.g. labels like `h11`) become Python scalars so
-        that they collate like the fields of the JSON-based MANTRA
-        datasets; list columns become tensors. Everything else (e.g.
-        strings) is attached as is.
-        """
-        if isinstance(value, np.generic):
-            return value.item()
-        if isinstance(value, (np.ndarray, list, tuple)):
-            return cls._list_column_to_tensor(value)
-        return value
 
     def _process_parquet(self, parquet_file) -> List[Data]:
         """Processes the parquet file iteration process.
@@ -229,13 +204,9 @@ class CalabiYau(InMemoryDataset):
         """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(
-            batch_size=self.parquet_batch_size
-        ):
-            parquet_df = pq_batch.to_pandas()
-            for _, row in parquet_df.iterrows():
-                row_dict = row.to_dict()
-
+        for pq_batch in parquet_file.iter_batches(batch_size=self.batch_size):
+            # Python scalars and (nested) lists, no numpy in between.
+            for row_dict in pq_batch.to_pylist():
                 # Convert to the MANTRA convention: plain (nested) lists
                 # of 1-indexed vertices, named `triangulation`. The
                 # vertices of each simplex are sorted and the simplices
@@ -249,8 +220,8 @@ class CalabiYau(InMemoryDataset):
 
                 # Convert vertex coordinates to a float tensor; row `i`
                 # holds the coordinates of vertex `i + 1`.
-                coords = torch.as_tensor(
-                    np.vstack(row_dict.pop("vertices")), dtype=torch.float32
+                coords = torch.tensor(
+                    row_dict.pop("vertices"), dtype=torch.float32
                 )
 
                 used_vertices = {v for s in triangulation for v in s}
@@ -260,7 +231,7 @@ class CalabiYau(InMemoryDataset):
                 ), "Not all vertices in the triangulation have a coordinate"
 
                 attributes = {
-                    k: self._to_attribute(v) for k, v in row_dict.items()
+                    k: self._to_attribute(k, v) for k, v in row_dict.items()
                 }
 
                 data_list.append(
