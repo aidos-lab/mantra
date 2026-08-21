@@ -2,8 +2,7 @@
 
 A set of transforms for MANTRA that specify a node-level prediction
 target (`data.y`) from an attribute holding one value per vertex of
-the triangulation, e.g. the second Chern class paired with each prime
-toric divisor of a Calabi-Yau triangulation.
+the triangulation.
 
 Like the graph-level task transforms, these transforms are stateless:
 the target of a sample is a pure function of its stored attributes.
