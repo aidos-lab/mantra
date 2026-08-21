@@ -1,4 +1,3 @@
-from .coordinate_embedding import CoordinateEmbedding
 from .encodings import (
     EffectiveResistanceEmbedding,
     EffectiveResistanceStatisticsEmbedding,
@@ -19,7 +18,6 @@ from .util_transforms import (
 )
 
 __all__ = [
-    "CoordinateEmbedding",
     "BettiToClassTransform",
     "OrientableToClassTransform",
     "NameToClass2MTransform",
