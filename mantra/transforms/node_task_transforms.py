@@ -6,12 +6,16 @@ the triangulation.
 
 Like the graph-level task transforms, these transforms are stateless:
 the target of a sample is a pure function of its stored attributes.
-Per-vertex attributes must be stored as 1-D tensors.
+The per-vertex attribute may be a 1-D tensor (the `transform` path,
+after the dataset has been collated) or a list of scalars (the
+`pre_transform` path).
 
 In addition to `data.y`, both transforms store a boolean
 `data.node_mask` of shape `(n_vertices,)` that selects the supervised
 vertices, so that losses and metrics can be restricted to them.
 """
+
+from typing import Dict
 
 import torch
 import torch_geometric.transforms as T
@@ -19,7 +23,7 @@ from torch_geometric.data import Data
 
 
 class _NodeAttributeTransform(T.BaseTransform):
-    """Shared validation of a per-vertex attribute and node masking."""
+    """Shared handling of the per-vertex attribute and the node mask."""
 
     def __init__(self, source, mask_first=False):
         super().__init__()
@@ -33,22 +37,15 @@ class _NodeAttributeTransform(T.BaseTransform):
             self.source in data
         ), f"Source attribute '{self.source}' is not present in data"
 
-        values = data[self.source]
+        # `as_tensor` accepts lists (`pre_transform` path) as well as
+        # the tensors produced by the collated dataset (`transform`
+        # path).
+        values = torch.as_tensor(data[self.source])
 
-        assert isinstance(
-            values, torch.Tensor
-        ), f"Attribute '{self.source}' must be a tensor, got {type(values).__name__}"
         assert values.dim() == 1, (
             f"Attribute '{self.source}' must hold one value per vertex, "
             f"got shape {tuple(values.shape)}"
         )
-
-        if "n_vertices" in data:
-            n_vertices = int(data.n_vertices)
-            assert values.numel() == n_vertices, (
-                f"Attribute '{self.source}' holds {values.numel()} values "
-                f"for {n_vertices} vertices"
-            )
 
         return values
 
@@ -75,14 +72,13 @@ class AttributeToNodeRegressionTransform(_NodeAttributeTransform):
         ----------
         source : str
             Per-vertex attribute used as the target. Must be present in
-            the data as a 1-D tensor with one value per vertex.
+            the data with one value per vertex.
 
         mask_first : bool
             If set, the first vertex is excluded from supervision via
-            `node_mask`. This is meant for vertices that carry no
-            target of their own, such as the origin of the polytope in
-            a Calabi-Yau triangulation, which corresponds to no toric
-            divisor.
+            `node_mask`. This is meant for datasets in which the first
+            vertex is a distinguished point that carries no target of
+            its own.
         """
         super().__init__(source, mask_first)
 
@@ -104,17 +100,20 @@ class AttributeToNodeClassTransform(_NodeAttributeTransform):
     the supervised vertices.
     """
 
-    def __init__(self, source, mapping, mask_first=False):
+    def __init__(self, source, mapping: Dict, mask_first=False):
         """Create a new node-level class-index transform.
 
         Parameters
         ----------
         source : str
             Per-vertex attribute used as the label. Must be present in
-            the data as a 1-D tensor with one value per vertex.
+            the data with one integer value per vertex.
 
-        mapping : dict
-            Fixed mapping from attribute values to class indices.
+        mapping : Dict
+            Fixed mapping from attribute values to class indices. As
+            for `AttributeToClassTransform`, build it once from the
+            values present in the full dataset, so that it does not
+            depend on a split or traversal order.
 
         mask_first : bool
             If set, the first vertex is excluded from supervision via
@@ -122,7 +121,7 @@ class AttributeToNodeClassTransform(_NodeAttributeTransform):
         """
         super().__init__(source, mask_first)
 
-        self.mapping = dict(mapping)
+        self.mapping = mapping
 
     @property
     def num_classes(self):
@@ -132,9 +131,19 @@ class AttributeToNodeClassTransform(_NodeAttributeTransform):
     def forward(self, data: Data):
         values = self._node_values(data)
 
-        data.y = torch.tensor(
-            [self.mapping[value] for value in values.tolist()],
-            dtype=torch.long,
-        )
+        assert not torch.is_floating_point(
+            values
+        ), "Tensor needs to be of type int"
+
+        indices = []
+        for value in values.tolist():
+            if value not in self.mapping:
+                raise KeyError(
+                    f"Unknown value {value!r}; "
+                    f"expected one of {sorted(self.mapping, key=str)}."
+                )
+            indices.append(self.mapping[value])
+
+        data.y = torch.tensor(indices, dtype=torch.long)
         data.node_mask = self._node_mask(values.numel())
         return data
