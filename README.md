@@ -370,14 +370,8 @@ AttributeToClassTransform(
 AttributeToRegressionTransform("genus")
 ```
 
-Node-level targets are supported by `AttributeToNodeRegressionTransform(source, mask_first=False)` and `AttributeToNodeClassTransform(source, mapping, mask_first=False)`, which turn an attribute holding one tensor value per vertex (e.g. the second Chern class paired with each toric divisor of a Calabi-Yau triangulation) into `data.y` of shape `(n_vertices, 1)` (float regression target) or `(n_vertices,)` (class indices from a fixed `mapping`). Both also store a boolean `data.node_mask` selecting the supervised vertices; with `mask_first=True` the first vertex (e.g. the origin of the polytope, which carries no target) is excluded.
+Node-level targets are supported by `AttributeToNodeRegressionTransform(source, mask_first=False)` and `AttributeToNodeClassTransform(source, mapping, mask_first=False)`, which turn an attribute holding one tensor value per vertex into `data.y` of shape `(n_vertices, 1)` (float regression target) or `(n_vertices,)` (class indices from a fixed `mapping`). Both also store a boolean `data.node_mask` selecting the supervised vertices; with `mask_first=True` the first vertex is excluded.
 
-```python
-from mantra.transforms import AttributeToNodeRegressionTransform
-
-# Regress one value per vertex, ignoring the first vertex in the loss.
-AttributeToNodeRegressionTransform("c2", mask_first=True)
-```
 
 ## More Examples 
 
@@ -406,7 +400,7 @@ A: The available representations are:
 | Type | Representations |
 | --- | --- |
 | Graph | `OneSkeleton`, `DualGraph`, `HasseDiagram`, `LeviGraph` |
-| Simplicial complex | `IncidenceSimplicialComplex`, `AdjacencySimplicialComplex`, `CoadjacencySimplicialComplex`, `UpLaplacianSimplicialComplex`, `DownLaplacianSimplicialComplex`, `HodgeLaplacianSimplicialComplex` |
+| Simplicial complex | `IncidenceSimplicialComplex`, `AdjacenSimplicialComplex`, `CoadjacencySimplicialComplex`, `UpLaplacianSimplicialComplex`, `DownLaplacianSimplicialComplex`, `HodgeLaplacianSimplicialComplex` |
 
 #### Q: What encodings are available in this dataset?
 A: `NodeRandomTransform` assigns random feature vectors to graph nodes, while `SimplexRandomTransform` assigns them to simplices of a chosen dimension. `NodeDegreeTransform` uses each graph node's degree as its feature. `MomentCurveEmbedding` gives vertices canonical coordinates on a moment curve, with optional rotation and normalization. `EffectiveResistanceEmbedding` computes effective-resistance features for simplices from incidence matrices, and `EffectiveResistanceStatisticsEmbedding` summarizes these features using statistics such as the mean, standard deviation, extrema, median, and quartiles.
