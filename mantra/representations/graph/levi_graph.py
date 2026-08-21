@@ -11,12 +11,6 @@ from mantra.representations.graph.hasse_diagram import simplex_feature_index
 class LeviGraph(BaseTransform):
     def __init__(self, feature_propagation: Optional[str] = None):
         super().__init__()
-        # Name of a propagated feature (e.g. `x`, as written by
-        # `PropagateConvexComb`) whose per-rank tensors `<name>_0` ...
-        # `<name>_d` supply the node features of the Levi graph:
-        # vertices carry their rank-0 feature, maximal simplices the
-        # feature of their own rank. Mirrors the interface of
-        # `HasseDiagram` / `DualGraph`.
         self.feature_propagation = feature_propagation
 
     def forward(self, data: Data):
