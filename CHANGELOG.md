@@ -7,9 +7,20 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `AttributeToClassTransform`, `AttributeToRegressionTransform` and
+  `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
+  transforms whose targets are fixed functions of the stored
+  attributes.
+
   `MANTRADivided` for tuning the on-the-fly balancing
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).
+
+## Removed
+
+- `CreateLabels`, which assigned class indices in encounter order and
+  therefore depended on dataset traversal; use
+  `AttributeToClassTransform` or a name transform instead.
 
 ## Changed
 

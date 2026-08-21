@@ -7,8 +7,13 @@ from .encodings import (
     SimplexRandomTransform,
 )
 from .task_transforms import (
+    NAME_TO_CLASS_2M,
+    NAME_TO_CLASS_3M,
+    AttributeToClassTransform,
+    AttributeToRegressionTransform,
     BettiToClassTransform,
     NameToClass2MTransform,
+    NameToClass3MTransform,
     OrientableToClassTransform,
 )
 from .util_transforms import (
@@ -18,9 +23,14 @@ from .util_transforms import (
 )
 
 __all__ = [
+    "NAME_TO_CLASS_2M",
+    "NAME_TO_CLASS_3M",
+    "AttributeToClassTransform",
+    "AttributeToRegressionTransform",
     "BettiToClassTransform",
     "OrientableToClassTransform",
     "NameToClass2MTransform",
+    "NameToClass3MTransform",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",
