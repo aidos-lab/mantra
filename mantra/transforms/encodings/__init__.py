@@ -5,6 +5,7 @@ from .effective_resistance import (
 from .misc_encoding import (
     NodeDegreeTransform,
     NodeRandomTransform,
+    ScalarFeatures,
     SimplexRandomTransform,
 )
 from .moment_curve_embedding import MomentCurveEmbedding
@@ -16,4 +17,5 @@ __all__ = [
     "SimplexRandomTransform",
     "NodeRandomTransform",
     "NodeDegreeTransform",
+    "ScalarFeatures",
 ]

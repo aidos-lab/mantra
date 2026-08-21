@@ -80,3 +80,60 @@ class NodeDegreeTransform(T.BaseTransform):
         deg = degree(data.edge_index[0], dtype=torch.float)
         data.degree = deg.view(-1, 1)
         return data
+
+
+class ScalarFeatures(T.BaseTransform):
+    """Collect scalar attributes into a single feature vector.
+
+    This transform assembles per-sample scalar attributes (e.g.
+    `n_vertices` and `genus` of a triangulation, or any other
+    per-sample count) into a `scalar_features` tensor
+    of shape `(1, k)`. It provides a graph-level input for baseline
+    models that do not consume the triangulation itself; assign it to
+    `x` with `SelectFeatures(src="scalar_features")`.
+    """
+
+    def __init__(self, sources):
+        """Create new scalar feature transform.
+
+        Parameters
+        ----------
+        sources : str or list of str
+            Scalar attributes to collect, in order. Each attribute must
+            be present in the data, either as a Python scalar (the
+            `pre_transform` path) or as a one-element tensor (the
+            `transform` path after collation).
+        """
+        super().__init__()
+
+        self.sources = [sources] if isinstance(sources, str) else list(sources)
+
+    def forward(self, data):
+        """Assign scalar feature vector for a given `data` object.
+
+        Parameters
+        ----------
+        data : torch_geometric.data.Data
+            Input data object. All source attributes must be present.
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Data object with a new `scalar_features` key of shape
+            `(1, k)` and dtype `float32`.
+        """
+        values = []
+        for source in self.sources:
+            assert (
+                source in data
+            ), f"Source attribute '{source}' is not present in data"
+
+            value = data[source]
+            if isinstance(value, torch.Tensor):
+                value = value.item()
+            values.append(float(value))
+
+        data.scalar_features = torch.tensor(values, dtype=torch.float32).view(
+            1, -1
+        )
+        return data

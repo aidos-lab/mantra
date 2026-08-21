@@ -12,6 +12,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   transforms whose targets are fixed functions of the stored
   attributes.
 
+- `ScalarFeatures`: collects scalar attributes into a `(1, k)`
+  `scalar_features` vector, the input of count-based baselines.
+
   `MANTRADivided` for tuning the on-the-fly balancing
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).

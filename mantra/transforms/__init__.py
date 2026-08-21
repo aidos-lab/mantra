@@ -4,6 +4,7 @@ from .encodings import (
     MomentCurveEmbedding,
     NodeDegreeTransform,
     NodeRandomTransform,
+    ScalarFeatures,
     SimplexRandomTransform,
 )
 from .task_transforms import (
@@ -32,6 +33,7 @@ __all__ = [
     "NameToClass2MTransform",
     "NameToClass3MTransform",
     "MomentCurveEmbedding",
+    "ScalarFeatures",
     "SelectAttributes",
     "SelectFeatures",
     "SimplexRandomTransform",
