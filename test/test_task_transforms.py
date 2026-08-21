@@ -104,7 +104,7 @@ class TestAttributeToClassTransform:
         transform = AttributeToClassTransform("genus", mapping={2: 0, 3: 1})
         assert transform(Data(genus=torch.tensor(3))).y.item() == 1
 
-    def test_non_integer_without_mapping_raises(self):
+    def test_float_tensor_raises(self):
         transform = AttributeToClassTransform("genus", mapping={})
         with pytest.raises(AssertionError, match="type int"):
             transform(Data(genus=torch.tensor(1.5)))
@@ -118,7 +118,7 @@ class TestAttributeToClassTransform:
         with pytest.raises(AssertionError, match="not present"):
             AttributeToClassTransform(source="genus", mapping={})(Data())
 
-    def test_num_classes_without_mapping(self):
+    def test_num_classes_empty_mapping(self):
         assert AttributeToClassTransform("genus", mapping={}).num_classes == 0
 
 
@@ -155,8 +155,25 @@ class TestAttributeToRegressionTransform:
         result = AttributeToRegressionTransform("n_vertices")(
             Data(n_vertices=torch.tensor(10))
         )
-        assert result.y.shape[0] == 1
+        assert result.y.shape == (1, 1)
         assert result.y.item() == 10.0
+
+    def test_same_shape_on_pre_transform_and_transform_path(self):
+        # As a `pre_transform` the attribute is a Python int; after the
+        # dataset has been collated it is a one-element tensor. Both
+        # must yield the same target shape so that batches agree.
+        transform = AttributeToRegressionTransform("genus")
+        raw = transform(Data(genus=2)).y
+        collated = transform(Data(genus=torch.tensor([2]))).y
+        assert raw.shape == collated.shape == (1, 1)
+        assert raw.dtype == collated.dtype == torch.float32
+
+    def test_vector_attribute(self):
+        result = AttributeToRegressionTransform("betti_numbers")(
+            Data(betti_numbers=[1, 0, 1])
+        )
+        assert result.y.shape == (1, 3)
+        assert result.y.tolist() == [[1.0, 0.0, 1.0]]
 
     def test_accepts_numpy_scalars(self):
         result = AttributeToRegressionTransform("value")(

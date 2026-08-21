@@ -5,12 +5,14 @@ the prediction target (`data.y`) of the possible tasks.
 
 All transforms in this module are stateless: a sample always
 receives the same target regardless of the order in which, or the
-subset with which, the dataset is traversed. Class indices of
-categorical attributes come from fixed mappings such as
-`NAME_TO_CLASS_2M`; integer-valued attributes are used as class
-indices directly. Remapping these canonical indices to a contiguous
-range over the classes present in a particular training split needs
-to be performed in the training code.
+subset with which, the dataset is traversed. Class indices come from
+fixed mappings: `NAME_TO_CLASS_2M` and `NAME_TO_CLASS_3M` for the
+homeomorphism types, or a caller-supplied `{value: index}` mapping
+for any other attribute (for integer-valued attributes such as
+`genus`, build it once from the values present in the full dataset).
+Remapping these canonical indices to a contiguous range over the
+classes present in a particular training split needs to be performed
+in the training code.
 """
 
 from typing import Dict
@@ -35,11 +37,12 @@ NAME_TO_CLASS_3M = {
 class AttributeToClassTransform(T.BaseTransform):
     """Encode a stored attribute as a class index in `data.y`.
 
-    The class index is determined statically: either through a fixed
-    `mapping` from attribute values to indices or, for integer-valued
-    attributes, by using the value itself as the index. Either way the
-    same attribute value always yields the same index, independent of
-    the samples seen before.
+    The class index is looked up in a fixed `mapping` from attribute
+    values to indices, so the same attribute value always yields the
+    same index, independent of the samples seen before. Scalar
+    attributes arrive as Python values when the transform runs as a
+    `pre_transform` and as one-element integer tensors after the
+    dataset has been collated; tensors are unwrapped before the lookup.
     """
 
     # Used in error messages; subclasses override it with a more
@@ -56,9 +59,10 @@ class AttributeToClassTransform(T.BaseTransform):
 
         mapping : Dict
             Fixed mapping from attribute values to class indices, e.g.
-            `NAME_TO_CLASS_2M`. If `None`, the attribute must be
-            integer-valued (`int`, `bool` or a one-element integer
-            tensor) and is used as the class index directly.
+            `NAME_TO_CLASS_2M`. For integer-valued attributes such as
+            `genus`, build it once from the values present in the full
+            dataset, e.g. `{v: i for i, v in enumerate(sorted(values))}`,
+            so that it does not depend on a split or traversal order.
         """
         super().__init__()
 
@@ -67,6 +71,7 @@ class AttributeToClassTransform(T.BaseTransform):
 
     @property
     def num_classes(self):
+        """Number of classes of the mapping."""
         return len(self.mapping)
 
     def forward(self, data: Data):
@@ -152,12 +157,13 @@ class BettiToClassTransform(T.BaseTransform):
 
 
 class AttributeToRegressionTransform(T.BaseTransform):
-    """Assemble a float regression target from scalar attributes.
+    """Assemble a float regression target from a stored attribute.
 
-    The target vector `y` is built from a scalar attribute
-    present in a sample, e.g. `genus` or `n_vertices`. Attribute
-    values are used directly, so the target of a sample never depends
-    on other samples.
+    The target `y` is the attribute `source`, a scalar such as `genus`
+    or `n_vertices` or a fixed-length vector such as `betti_numbers`,
+    converted to a float tensor of shape `(1, k)`. Attribute values
+    are used directly, so the target of a sample never depends on
+    other samples.
     """
 
     def __init__(self, source: str):
@@ -165,9 +171,9 @@ class AttributeToRegressionTransform(T.BaseTransform):
 
         Parameters
         ----------
-        sources : str or list of str
-            Attribute(s) used to build the target. Each attribute must
-            be a scalar present in the data.
+        source : str
+            Attribute used as the target. Must be a scalar or a
+            fixed-length vector present in the data.
         """
         super().__init__()
         self.source = source
@@ -179,9 +185,14 @@ class AttributeToRegressionTransform(T.BaseTransform):
         -------
         torch_geometric.data.Data
             Data object with the target stored in `y` as a float tensor
-            of shape `(1, k)`, with `k` the number of sources.
+            of shape `(1, k)`, with `k` the number of elements of the
+            attribute (`1` for scalars).
         """
-        data.y = torch.tensor(
+        # `as_tensor` accepts Python scalars and lists (`pre_transform`
+        # path) as well as the one-element tensors produced by the
+        # collated dataset (`transform` path); `reshape` gives the same
+        # `(1, k)` shape on both paths.
+        data.y = torch.as_tensor(
             getattr(data, self.source), dtype=torch.float32
-        ).unsqueeze(dim=0)
+        ).reshape(1, -1)
         return data
