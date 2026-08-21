@@ -12,6 +12,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   transforms whose targets are fixed functions of the stored
   attributes.
 
+- `LeviGraph(feature_propagation=...)`: like `HasseDiagram` and
+  `DualGraph`, the Levi graph can now carry propagated per-rank
+  features (e.g. `x_0 ... x_d` from `PropagateConvexComb`) as node
+  features, vertices their rank-0 feature and maximal simplices the
+  feature of their own rank.
+
   `MANTRADivided` for tuning the on-the-fly balancing
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).

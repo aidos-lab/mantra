@@ -1,12 +1,23 @@
+from typing import Optional
+
 import networkx as nx
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
+from mantra.representations.graph.hasse_diagram import simplex_feature_index
+
 
 class LeviGraph(BaseTransform):
-    def __init__(self):
+    def __init__(self, feature_propagation: Optional[str] = None):
         super().__init__()
+        # Name of a propagated feature (e.g. `x`, as written by
+        # `PropagateConvexComb`) whose per-rank tensors `<name>_0` ...
+        # `<name>_d` supply the node features of the Levi graph:
+        # vertices carry their rank-0 feature, maximal simplices the
+        # feature of their own rank. Mirrors the interface of
+        # `HasseDiagram` / `DualGraph`.
+        self.feature_propagation = feature_propagation
 
     def forward(self, data: Data):
         """Retrieves the Levi Graph[1] of a triangulation
@@ -29,8 +40,14 @@ class LeviGraph(BaseTransform):
             `edge_index` tensor for representing the Levi graph being
             present.
         """
-        G = self._build_levi(data["triangulation"])
-        data_ = from_networkx(G)
+        G = self._build_levi(data["triangulation"], data)
+
+        if self.feature_propagation:
+            data_ = from_networkx(
+                G, group_node_attrs=[self.feature_propagation]
+            )
+        else:
+            data_ = from_networkx(G)
 
         for k, v in data_.items():
             assert k not in data
@@ -39,7 +56,7 @@ class LeviGraph(BaseTransform):
         data["n_vertices"] = G.number_of_nodes()
         return data
 
-    def _build_levi(self, top_simplices):
+    def _build_levi(self, top_simplices, data):
         """Constructs the Levi graph.
 
         The Levi graph of a triangulation $T$ of dimension $d$ is a
@@ -52,6 +69,12 @@ class LeviGraph(BaseTransform):
         top_simplices = list(set([tuple(s) for s in top_simplices]))
         top_simplices.sort()
         top_simplices.sort(key=len)
+
+        feat_index = (
+            simplex_feature_index(top_simplices)
+            if self.feature_propagation
+            else None
+        )
 
         G = nx.Graph()
 
@@ -66,11 +89,21 @@ class LeviGraph(BaseTransform):
         # integers aligned with the original (zero-indexed) vertex
         # order.
         for v in vertices:
-            G.add_node(v - 1, simplex=[v - 1])
+            attrs = {"simplex": [v - 1]}
+            if self.feature_propagation:
+                feat_tensor = getattr(data, f"{self.feature_propagation}_0")
+                attrs[self.feature_propagation] = feat_tensor[v - 1]
+            G.add_node(v - 1, **attrs)
 
         # For each maximal simplex
         for i, simp in enumerate(top_simplices):
-            G.add_node(n + i, simplex=[v - 1 for v in simp])
+            attrs = {"simplex": [v - 1 for v in simp]}
+            if self.feature_propagation:
+                feat_tensor = getattr(
+                    data, f"{self.feature_propagation}_{len(simp) - 1}"
+                )
+                attrs[self.feature_propagation] = feat_tensor[feat_index[simp]]
+            G.add_node(n + i, **attrs)
             # Connect the maximal simplex to the 0-simplices it contains
             for v in simp:
                 G.add_edge(v - 1, n + i)
