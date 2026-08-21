@@ -13,11 +13,11 @@ range over the classes present in a particular training split needs
 to be performed in the training code.
 """
 
-import numbers
 
 import torch
 import torch_geometric.transforms as T
 from torch_geometric.data import Data
+from typing import Dict 
 
 from mantra.manifold_types import Manifold2Type, Manifold3Type
 
@@ -30,21 +30,6 @@ NAME_TO_CLASS_3M = {
     manifold.value: index for index, manifold in enumerate(Manifold3Type)
 }
 """Canonical class index of every 3-manifold homeomorphism type."""
-
-
-def _as_scalar(value):
-    """Unwrap a one-element tensor into a Python scalar.
-
-    Non-tensor values (Python or numpy scalars, strings) are returned
-    unchanged.
-    """
-    if isinstance(value, torch.Tensor):
-        assert (
-            value.numel() == 1
-        ), f"Expected a scalar attribute, got {value.numel()} elements"
-        return value.item()
-    return value
-
 
 class AttributeToClassTransform(T.BaseTransform):
     """Encode a stored attribute as a class index in `data.y`.
@@ -60,7 +45,7 @@ class AttributeToClassTransform(T.BaseTransform):
     # specific description of the attribute.
     _value_description = "value"
 
-    def __init__(self, source, mapping=None):
+    def __init__(self, source, mapping: Dict):
         """Create a new class-index transform.
 
         Parameters
@@ -68,7 +53,7 @@ class AttributeToClassTransform(T.BaseTransform):
         source : str
             Attribute used as the label. Must be present in the data.
 
-        mapping : dict or None
+        mapping : Dict
             Fixed mapping from attribute values to class indices, e.g.
             `NAME_TO_CLASS_2M`. If `None`, the attribute must be
             integer-valued (`int`, `bool` or a one-element integer
@@ -77,7 +62,7 @@ class AttributeToClassTransform(T.BaseTransform):
         super().__init__()
 
         self.source = source
-        self.mapping = None if mapping is None else dict(mapping)
+        self.mapping = mapping
 
     @property
     def num_classes(self):
@@ -89,24 +74,14 @@ class AttributeToClassTransform(T.BaseTransform):
             self.source in data
         ), f"Source attribute '{self.source}' is not present in data"
 
-        value = _as_scalar(data[self.source])
+        value = data[self.source]
+        if value not in self.mapping:
+            raise KeyError(
+                f"Unknown {self._value_description} {value!r}; "
+                f"expected one of {sorted(self.mapping, key=str)}."
+            )
 
-        if self.mapping is None:
-            if not isinstance(value, numbers.Integral):
-                raise TypeError(
-                    f"Attribute '{self.source}' must be integer-valued to "
-                    f"serve as a class index, got {type(value).__name__}; "
-                    "pass an explicit `mapping` instead."
-                )
-            index = int(value)
-        else:
-            if value not in self.mapping:
-                raise KeyError(
-                    f"Unknown {self._value_description} {value!r}; "
-                    f"expected one of {sorted(self.mapping, key=str)}."
-                )
-            index = self.mapping[value]
-
+        index = self.mapping[value]
         data.y = torch.tensor(index, dtype=torch.long)
         return data
 
@@ -169,13 +144,13 @@ class BettiToClassTransform(T.BaseTransform):
 class AttributeToRegressionTransform(T.BaseTransform):
     """Assemble a float regression target from scalar attributes.
 
-    The target vector `y` is built from one or more scalar attributes
+    The target vector `y` is built from a scalar attribute
     present in a sample, e.g. `genus` or `n_vertices`. Attribute
     values are used directly, so the target of a sample never depends
     on other samples.
     """
 
-    def __init__(self, sources):
+    def __init__(self, source: str):
         """Create a new regression-target transform.
 
         Parameters
@@ -185,8 +160,8 @@ class AttributeToRegressionTransform(T.BaseTransform):
             be a scalar present in the data.
         """
         super().__init__()
+        self.source = source
 
-        self.sources = [sources] if isinstance(sources, str) else list(sources)
 
     def forward(self, data: Data):
         """Assign the regression target of a given `data` object.
@@ -197,12 +172,6 @@ class AttributeToRegressionTransform(T.BaseTransform):
             Data object with the target stored in `y` as a float tensor
             of shape `(1, k)`, with `k` the number of sources.
         """
-        values = []
-        for source in self.sources:
-            assert (
-                source in data
-            ), f"Source attribute '{source}' is not present in data"
-            values.append(float(_as_scalar(data[source])))
+        data.y = torch.tensor(getattr(data, self.source), dtype=torch.float32)
 
-        data.y = torch.tensor(values, dtype=torch.float32).view(1, -1)
         return data
