@@ -28,6 +28,12 @@ class TestComb:
         assert getattr(data, "x_2", None) is not None
         assert getattr(data, "x_3", None) is not None
 
+        # Even for a numpy source, all ranks come out as float tensors.
+        for rank in range(4):
+            values = getattr(data, f"x_{rank}")
+            assert isinstance(values, torch.Tensor)
+            assert values.dtype == torch.float32
+
     def test_correct_key_2(self):
         """Tests if it contains the corect
         shapes
