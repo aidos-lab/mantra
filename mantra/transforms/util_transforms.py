@@ -235,12 +235,8 @@ class PropagateConvexComb(BaseTransform):
 
         for dim in range(1, max_dim):
             simplices_ = [s for s in simplices if len(s) == dim + 1]
-            M = []
 
-            for s in simplices_:
-                # View as an array to correct for the index shift; our
-                # triangulation is not zero-indexed.
-                s = np.asarray(s)
+            idx = torch.tensor(simplices_) - 1
 
             # Calculate all barycenters of the current rank at once.
             # TODO: Change this to another type of combination function
