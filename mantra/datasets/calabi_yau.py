@@ -16,12 +16,17 @@ class CalabiYau(InMemoryDataset):
     reflexive lattice polytope, stored in a parquet file with columns
     `simplices` (top-level simplices, 0-indexed vertex lists) and
     `vertices` (integer lattice coordinates, one row per vertex). All
-    remaining columns (e.g. Hodge numbers `h11`, `h12`) are attached to
-    the resulting :class:`~torch_geometric.data.Data` objects verbatim.
+    remaining columns are attached to the resulting
+    :class:`~torch_geometric.data.Data` objects: scalar columns (e.g.
+    the Hodge numbers `h11`, `h12`) as Python scalars, list columns
+    (e.g. the per-vertex second Chern class `c2` or the sparse
+    `intersection_numbers` block) as tensors, so that they collate and
+    cache like any other per-sample attribute.
 
     To stay compatible with the MANTRA conventions used by the
     transforms and representations of this library, `process()` converts
-    the simplices to 1-indexed lists and stores the *topological*
+    the simplices to 1-indexed lists, sorted within each simplex and
+    lexicographically across simplices, and stores the *topological*
     dimension of the complex (number of vertices per top simplex minus
     one) in the `dimension` attribute.
 
@@ -159,6 +164,55 @@ class CalabiYau(InMemoryDataset):
         dst = os.path.join(self.raw_dir, self.raw_file_names[0])
         shutil.copy2(self.local_path, dst)
 
+    @staticmethod
+    def _list_column_to_tensor(value):
+        """Convert the entry of a parquet list column to a tensor.
+
+        Plain ``list<T>`` columns arrive from pandas as 1-D numpy
+        arrays. Nested ``list<list<T>>`` columns (e.g. the ``(nnz, 4)``
+        COO block of ``intersection_numbers``) arrive as object arrays
+        of arrays, which ``torch.as_tensor`` rejects; their rows are
+        stacked explicitly. Ragged rows have no tensor form and raise
+        instead of being silently mangled. Floating point values are
+        stored as ``float32``.
+        """
+        array = np.asarray(value)
+
+        if array.dtype == object:
+            rows = [np.asarray(row) for row in value]
+            if not rows:
+                array = np.zeros((0,), dtype=np.int64)
+            else:
+                shapes = {row.shape for row in rows}
+                if len(shapes) != 1:
+                    raise ValueError(
+                        "Cannot convert a list column with ragged rows "
+                        f"(shapes {sorted(shapes)}) to a tensor"
+                    )
+                array = np.stack(rows)
+
+        # `torch.tensor` copies: the arrays handed out by pyarrow are
+        # read-only, which `as_tensor` would carry over with a warning.
+        tensor = torch.tensor(array)
+        if tensor.is_floating_point():
+            tensor = tensor.to(torch.float32)
+        return tensor
+
+    @classmethod
+    def _to_attribute(cls, value):
+        """Convert a parquet cell to a `Data` attribute.
+
+        Numpy scalars (e.g. labels like `h11`) become Python scalars so
+        that they collate like the fields of the JSON-based MANTRA
+        datasets; list columns become tensors. Everything else (e.g.
+        strings) is attached as is.
+        """
+        if isinstance(value, np.generic):
+            return value.item()
+        if isinstance(value, (np.ndarray, list, tuple)):
+            return cls._list_column_to_tensor(value)
+        return value
+
     def _process_parquet(self, parquet_file) -> List[Data]:
         """Processes the parquet file iteration process.
 
@@ -183,11 +237,15 @@ class CalabiYau(InMemoryDataset):
                 row_dict = row.to_dict()
 
                 # Convert to the MANTRA convention: plain (nested) lists
-                # of 1-indexed vertices, named `triangulation`.
-                triangulation = [
-                    [int(v) + 1 for v in simplex]
+                # of 1-indexed vertices, named `triangulation`. The
+                # vertices of each simplex are sorted and the simplices
+                # are ordered lexicographically, since the
+                # representations and the feature propagation derive
+                # faces from the stored order.
+                triangulation = sorted(
+                    sorted(int(v) + 1 for v in simplex)
                     for simplex in row_dict.pop("simplices")
-                ]
+                )
 
                 # Convert vertex coordinates to a float tensor; row `i`
                 # holds the coordinates of vertex `i + 1`.
@@ -201,12 +259,8 @@ class CalabiYau(InMemoryDataset):
                     range(1, coords.shape[0] + 1)
                 ), "Not all vertices in the triangulation have a coordinate"
 
-                # Numpy scalars (e.g. labels like `h11`) are converted to
-                # Python scalars so that they collate like the fields of
-                # the JSON-based MANTRA datasets.
-                row_dict = {
-                    k: v.item() if isinstance(v, np.generic) else v
-                    for k, v in row_dict.items()
+                attributes = {
+                    k: self._to_attribute(v) for k, v in row_dict.items()
                 }
 
                 data_list.append(
@@ -217,7 +271,7 @@ class CalabiYau(InMemoryDataset):
                         n_vertices=coords.shape[
                             0
                         ],  # We checked this was the number of vertices, i.e. len(used_vertices)
-                        **row_dict,
+                        **attributes,
                     )
                 )
 
