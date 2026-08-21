@@ -66,8 +66,7 @@ class AttributeToClassTransform(T.BaseTransform):
 
     @property
     def num_classes(self):
-        """Number of classes of the mapping; `None` without a mapping."""
-        return None if self.mapping is None else len(self.mapping)
+        return len(self.mapping)
 
     def forward(self, data: Data):
         assert (
@@ -75,6 +74,12 @@ class AttributeToClassTransform(T.BaseTransform):
         ), f"Source attribute '{self.source}' is not present in data"
 
         value = data[self.source]
+
+        if isinstance(value, torch.Tensor):
+            assert len(value.shape) == 0 or (len(value.shape) == 1 and value.shape[0] == 1), "Needs to be a 1 element tensor, i.e. scalar"
+            assert not torch.is_floating_point(value), "Tensor needs to be of type int"
+            value = value.item()
+
         if value not in self.mapping:
             raise KeyError(
                 f"Unknown {self._value_description} {value!r}; "
@@ -172,6 +177,5 @@ class AttributeToRegressionTransform(T.BaseTransform):
             Data object with the target stored in `y` as a float tensor
             of shape `(1, k)`, with `k` the number of sources.
         """
-        data.y = torch.tensor(getattr(data, self.source), dtype=torch.float32)
-
+        data.y = torch.tensor(getattr(data, self.source), dtype=torch.float32).unsqueeze(dim=0)
         return data
