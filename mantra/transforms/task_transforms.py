@@ -98,6 +98,7 @@ class AttributeToClassTransform(T.BaseTransform):
 
         index = self.mapping[value]
         data.y = torch.tensor(index, dtype=torch.long)
+        data.label = value
         return data
 
 
