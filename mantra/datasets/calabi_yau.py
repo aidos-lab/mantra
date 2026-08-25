@@ -163,31 +163,6 @@ class CalabiYau(InMemoryDataset):
         dst = os.path.join(self.raw_dir, self.raw_file_names[0])
         shutil.copy2(self.local_path, dst)
 
-    @staticmethod
-    def _to_attribute(key, value):
-        """Convert a parquet cell to a `Data` attribute.
-
-        pyarrow hands out Python scalars, which collate like the fields
-        of the JSON-based MANTRA datasets, and Python lists. Lists --
-        including nested ones such as the `(nnz, 4)` COO block of
-        `intersection_numbers` -- become tensors, with floats stored as
-        `float32`. Ragged nested lists have no tensor form and raise.
-        """
-        if not isinstance(value, list):
-            return value
-
-        try:
-            tensor = torch.tensor(value)
-        except (TypeError, ValueError) as error:
-            raise ValueError(
-                f"Column '{key}' cannot be converted to a tensor "
-                "(ragged or non-numeric rows)"
-            ) from error
-
-        if tensor.is_floating_point():
-            tensor = tensor.to(torch.float32)
-        return tensor
-
     def _process_parquet(self, parquet_file) -> List[Data]:
         """Processes the parquet file iteration process.
 
@@ -230,8 +205,15 @@ class CalabiYau(InMemoryDataset):
                     range(1, coords.shape[0] + 1)
                 ), "Not all vertices in the triangulation have a coordinate"
 
+                # Scalars stay Python scalars, so they collate like
+                # the fields of the JSON-based MANTRA datasets; lists
+                # -- including nested ones such as the `(nnz, 4)` COO
+                # block of `intersection_numbers` -- become tensors.
+                # Ragged or non-numeric columns make `torch.tensor`
+                # raise, pointing at a badly parsed file.
                 attributes = {
-                    k: self._to_attribute(k, v) for k, v in row_dict.items()
+                    k: torch.tensor(v) if isinstance(v, list) else v
+                    for k, v in row_dict.items()
                 }
 
                 data_list.append(
