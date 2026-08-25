@@ -207,10 +207,8 @@ class CalabiYau(InMemoryDataset):
 
                 # Scalars stay Python scalars, so they collate like
                 # the fields of the JSON-based MANTRA datasets; lists
-                # -- including nested ones such as the `(nnz, 4)` COO
-                # block of `intersection_numbers` -- become tensors.
-                # Ragged or non-numeric columns make `torch.tensor`
-                # raise, pointing at a badly parsed file.
+                # including nested ones such as the `(nnz, 4)` COO
+                # block of `intersection_numbers` become tensors.
                 attributes = {
                     k: torch.tensor(v) if isinstance(v, list) else v
                     for k, v in row_dict.items()
