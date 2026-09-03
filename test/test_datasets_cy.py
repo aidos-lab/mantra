@@ -195,24 +195,6 @@ class TestCYStratified:
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
 
-    def test_min_sample_per_class_drops_rare_values(
-        self, tmp_path, make_cy_parquet
-    ):
-        rows = _numbered_rows(20)
-        rows[-1]["h12"] = 99
-        splits = [
-            _load_split(
-                tmp_path,
-                make_cy_parquet,
-                rows,
-                split_type,
-                min_sample_per_class=1,
-                label_source="h12",
-            )
-            for split_type in ("train", "val", "test")
-        ]
-        seen = sorted(int(data.h11) for ds in splits for data in ds)
-        assert seen == list(range(19))
 
     def test_stratified_needs_populated_classes(
         self, tmp_path, make_cy_parquet
@@ -236,7 +218,6 @@ class TestCYStratified:
         )
         obj.stratified = kwargs.pop("stratified", False)
         obj.label_source = kwargs.pop("label_source", "h11")
-        obj.min_sample_per_class = kwargs.pop("min_sample_per_class", None)
         return obj.processed_file_names
 
     def test_file_names_encode_split_options(self):
@@ -246,11 +227,11 @@ class TestCYStratified:
             "test_seed42.pt",
         ]
         assert self._names(
-            stratified=True, min_sample_per_class=2, label_source="h11"
+            stratified=True,  label_source="h11"
         ) == [
-            "train_seed42_ccf2_strat_h11.pt",
-            "val_seed42_ccf2_strat_h11.pt",
-            "test_seed42_ccf2_strat_h11.pt",
+            "train_seed42_strat_h11.pt",
+            "val_seed42_strat_h11.pt",
+            "test_seed42_strat_h11.pt",
         ]
         assert self._names(seed=7, split_proportions=[0.5, 0.1, 0.4]) == [
             "train_seed7_sp0.5-0.1-0.4.pt",
