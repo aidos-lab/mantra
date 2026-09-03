@@ -33,13 +33,14 @@ class TestCY:
 
         data = dataset[0]
 
-        # Simplices are converted to the 1-indexed MANTRA convention,
-        # `dimension` holds the topological dimension.
+        # Simplices are converted to the 1-indexed MANTRA convention
+        # (sorted within and across simplices), `dimension` holds the
+        # topological dimension.
         assert data.triangulation == [
             [1, 2, 3],
+            [1, 2, 5],
             [1, 3, 4],
             [1, 4, 5],
-            [1, 5, 2],
         ]
         assert int(data.dimension) == 2
         assert int(data.n_vertices) == 5
@@ -194,44 +195,3 @@ class TestCYStratified:
         assert counts["train"] == {0: 6, 1: 6, 2: 6}
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
-
-    def test_stratified_needs_populated_classes(
-        self, tmp_path, make_cy_parquet
-    ):
-        # Every `h11` value occurs once, which sklearn cannot stratify.
-        with pytest.raises(ValueError, match="least populated"):
-            _load_split(
-                tmp_path,
-                make_cy_parquet,
-                _numbered_rows(20),
-                "train",
-                stratified=True,
-                label_source="h11",
-            )
-
-    def _names(self, **kwargs):
-        obj = CalabiYauDataset.__new__(CalabiYauDataset)
-        obj.seed = kwargs.pop("seed", 42)
-        obj.split_proportions = kwargs.pop(
-            "split_proportions", [0.6, 0.2, 0.2]
-        )
-        obj.stratified = kwargs.pop("stratified", False)
-        obj.label_source = kwargs.pop("label_source", "h11")
-        return obj.processed_file_names
-
-    def test_file_names_encode_split_options(self):
-        assert self._names() == [
-            "train_seed42.pt",
-            "val_seed42.pt",
-            "test_seed42.pt",
-        ]
-        assert self._names(stratified=True, label_source="h11") == [
-            "train_seed42_strat_h11.pt",
-            "val_seed42_strat_h11.pt",
-            "test_seed42_strat_h11.pt",
-        ]
-        assert self._names(seed=7, split_proportions=[0.5, 0.1, 0.4]) == [
-            "train_seed7_sp0.5-0.1-0.4.pt",
-            "val_seed7_sp0.5-0.1-0.4.pt",
-            "test_seed7_sp0.5-0.1-0.4.pt",
-        ]

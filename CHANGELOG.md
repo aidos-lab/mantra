@@ -31,6 +31,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Changed
 
+- `CalabiYau` converts parquet list columns (e.g. the per-vertex `c2`
+  or the sparse `intersection_numbers` block) to tensors instead of
+  attaching numpy arrays, so they collate and cache like any other
+  attribute, and sorts the vertices of each simplex (and the simplices
+  themselves), so that faces derived from the stored order line up with
+  the propagated per-rank feature tensors.
+
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
   downloading a pre-generated release asset. This also fixes the 404
