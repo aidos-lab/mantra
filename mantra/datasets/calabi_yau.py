@@ -175,7 +175,9 @@ class CalabiYau(InMemoryDataset):
         """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(batch_size=self.parquet_batch_size):
+        for pq_batch in parquet_file.iter_batches(
+            batch_size=self.parquet_batch_size
+        ):
             parquet_df = pq_batch.to_pandas()
             for _, row in parquet_df.iterrows():
                 row_dict = row.to_dict()

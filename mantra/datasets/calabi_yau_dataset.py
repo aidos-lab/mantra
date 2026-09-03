@@ -1,9 +1,9 @@
 import math
 from typing import List
 
+import torch
 from tqdm import tqdm
 
-import torch
 from mantra.datasets.calabi_yau import CalabiYau
 from mantra.datasets.utils import make_split_index
 
@@ -134,7 +134,6 @@ class CalabiYauDataset(CalabiYau):
         """Split the parsed data and save one file per split."""
         data_list = self._load_data_list()
 
-
         if self.pre_filter is not None:
             data_list = [
                 data
@@ -162,7 +161,6 @@ class CalabiYauDataset(CalabiYau):
             test_size=self.split_proportions[2],
             labels=labels,
         )
-
 
         # WARN: This is order specific (must match SPLIT_TYPES).
         for path, index in zip(

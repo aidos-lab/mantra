@@ -5,8 +5,8 @@ from collections import defaultdict
 from enum import Enum
 from typing import List
 
-import torch
 import numpy as np
+import torch
 from torch_geometric.data import (
     Data,
 )
