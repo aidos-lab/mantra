@@ -6,7 +6,6 @@ from enum import Enum
 from typing import List
 
 import numpy as np
-import torch
 from torch_geometric.data import (
     Data,
 )
@@ -345,7 +344,7 @@ class MantraDataset(ManifoldTriangulations):
 
         # Get the class labels
         labels = (
-            torch.tensor([data.name for data in data_list])
+            np.array([data.name for data in data_list])
             if self.stratified
             else None
         )

@@ -1,7 +1,7 @@
 import math
 from typing import List
 
-import torch
+import numpy as np
 from tqdm import tqdm
 
 from mantra.datasets.calabi_yau import CalabiYau
@@ -142,7 +142,7 @@ class CalabiYauDataset(CalabiYau):
             ]
 
         labels = (
-            torch.tensor([data[self.label_source] for data in data_list])
+            np.array([data[self.label_source] for data in data_list])
             if self.stratified
             else None
         )
