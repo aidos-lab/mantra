@@ -179,7 +179,9 @@ class CalabiYau(InMemoryDataset):
         """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(batch_size=self.parquet_batch_size):
+        for pq_batch in parquet_file.iter_batches(
+            batch_size=self.parquet_batch_size
+        ):
             # Python scalars and (nested) lists, no numpy in between.
             for row_dict in pq_batch.to_pylist():
                 # Convert to the MANTRA convention: plain (nested) lists
