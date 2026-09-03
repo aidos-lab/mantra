@@ -195,7 +195,6 @@ class TestCYStratified:
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
 
-
     def test_stratified_needs_populated_classes(
         self, tmp_path, make_cy_parquet
     ):
@@ -226,9 +225,7 @@ class TestCYStratified:
             "val_seed42.pt",
             "test_seed42.pt",
         ]
-        assert self._names(
-            stratified=True,  label_source="h11"
-        ) == [
+        assert self._names(stratified=True, label_source="h11") == [
             "train_seed42_strat_h11.pt",
             "val_seed42_strat_h11.pt",
             "test_seed42_strat_h11.pt",
