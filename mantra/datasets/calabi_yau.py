@@ -24,6 +24,9 @@ class CalabiYau(InMemoryDataset):
     the simplices to 1-indexed lists and stores the *topological*
     dimension of the complex (number of vertices per top simplex minus
     one) in the `dimension` attribute.
+
+    This class serves the full dataset; train/val/test splits are
+    served by :class:`~mantra.datasets.CalabiYauDataset`.
     """
 
     def __init__(
@@ -37,7 +40,7 @@ class CalabiYau(InMemoryDataset):
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
-        batch_size: int = 1000,
+        parquet_batch_size: int = 1000,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -77,7 +80,8 @@ class CalabiYau(InMemoryDataset):
             subsets are stored in their own processed directory, so
             they can coexist with the full dataset and are cheap to
             precompute, e.g. for smoke tests or timing benchmarks.
-        batch_size : int
+
+        parquet_batch_size : int
             Size of the batch to load from the parquet file of the
             manifold triangulations.
         """
@@ -85,7 +89,7 @@ class CalabiYau(InMemoryDataset):
         self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.limit = limit
-        self.batch_size = batch_size
+        self.parquet_batch_size = parquet_batch_size
 
         root += self._add_version_to_root()
 
@@ -97,7 +101,15 @@ class CalabiYau(InMemoryDataset):
             force_reload=force_reload,
         )
 
-        self.load(self.processed_paths[0])
+        self.load(self.processed_paths[self._load_index()])
+
+    def _load_index(self):
+        """Index into ``processed_paths`` of the file to load.
+
+        Subclasses producing several processed files (e.g. one per
+        split) override this to select the right one.
+        """
+        return int(0)
 
     def _add_version_to_root(self):
         if self.version == "latest":
@@ -135,8 +147,8 @@ class CalabiYau(InMemoryDataset):
     def processed_file_names(self):
         """Return process file names.
 
-        Stores the processed data in a file. If this file is present in the
-        `processed` folder, processing will typically be skipped.
+        Stores the processed data in a file. If this file is present in
+        the `processed` folder, processing will typically be skipped.
         """
         return ["data.pt"]
 
@@ -163,7 +175,9 @@ class CalabiYau(InMemoryDataset):
         """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(batch_size=self.batch_size):
+        for pq_batch in parquet_file.iter_batches(
+            batch_size=self.parquet_batch_size
+        ):
             parquet_df = pq_batch.to_pandas()
             for _, row in parquet_df.iterrows():
                 row_dict = row.to_dict()
@@ -213,11 +227,17 @@ class CalabiYau(InMemoryDataset):
                 return data_list
         return data_list
 
-    def process(self):
-        """Processes dataset."""
+    def _load_data_list(self) -> List[Data]:
+        """Parse the raw parquet file and apply ``pre_filter``."""
         parquet_file = pq.ParquetFile(self.raw_paths[0])
 
         data_list = self._process_parquet(parquet_file)
+
+        return data_list
+
+    def process(self):
+        """Processes dataset."""
+        data_list = self._load_data_list()
 
         if self.pre_filter is not None:
             data_list = [
