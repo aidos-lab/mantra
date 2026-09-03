@@ -370,6 +370,8 @@ AttributeToClassTransform(
 AttributeToRegressionTransform("genus")
 ```
 
+Node-level targets are supported by `AttributeToNodeRegressionTransform(source, mask_first=False)` and `AttributeToNodeClassTransform(source, mapping, mask_first=False)`, which turn an attribute holding one value per vertex into `data.y` of shape `(n_vertices, 1)` (float regression target) or `(n_vertices,)` (class indices from a fixed `mapping`). Both also store a boolean `data.node_mask` selecting the supervised vertices; with `mask_first=True` the first vertex is excluded, for datasets in which it is a distinguished point without a target of its own.
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)

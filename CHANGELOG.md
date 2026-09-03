@@ -12,6 +12,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   transforms whose targets are fixed functions of the stored
   attributes.
 
+- `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`:
+  stateless node-level task transforms that turn an attribute holding
+  one value per vertex into `data.y` (one target per vertex) together
+  with a boolean `data.node_mask` selecting the supervised vertices.
+
   `MANTRADivided` for tuning the on-the-fly balancing
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).
