@@ -16,6 +16,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).
 
+- `CalabiYauDataset`: seeded train/val/test splits of `CalabiYau`
+  (`split_type`, `seed`, `split_proportions`, `stratified`,
+  `label_source`, `min_sample_per_class`), mirroring
+  `MantraDataset` on top of `ManifoldTriangulations`. The split
+  files encode these options, so variants coexist with the full
+  dataset.
+
 ## Removed
 
 - `CreateLabels`, which assigned class indices in encounter order and
