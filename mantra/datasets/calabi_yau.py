@@ -2,7 +2,6 @@ import os
 import shutil
 from typing import List
 
-import numpy as np
 import pyarrow.parquet as pq
 import torch
 from torch_geometric.data import Data, InMemoryDataset
@@ -16,12 +15,17 @@ class CalabiYau(InMemoryDataset):
     reflexive lattice polytope, stored in a parquet file with columns
     `simplices` (top-level simplices, 0-indexed vertex lists) and
     `vertices` (integer lattice coordinates, one row per vertex). All
-    remaining columns (e.g. Hodge numbers `h11`, `h12`) are attached to
-    the resulting :class:`~torch_geometric.data.Data` objects verbatim.
+    remaining columns are attached to the resulting
+    :class:`~torch_geometric.data.Data` objects: scalar columns (e.g.
+    the Hodge numbers `h11`, `h12`) as Python scalars, list columns
+    (e.g. the per-vertex second Chern class `c2` or the sparse
+    `intersection_numbers` block) as tensors, so that they collate and
+    cache like any other per-sample attribute.
 
     To stay compatible with the MANTRA conventions used by the
     transforms and representations of this library, `process()` converts
-    the simplices to 1-indexed lists and stores the *topological*
+    the simplices to 1-indexed lists, sorted within each simplex and
+    lexicographically across simplices, and stores the *topological*
     dimension of the complex (number of vertices per top simplex minus
     one) in the `dimension` attribute.
 
@@ -178,21 +182,23 @@ class CalabiYau(InMemoryDataset):
         for pq_batch in parquet_file.iter_batches(
             batch_size=self.parquet_batch_size
         ):
-            parquet_df = pq_batch.to_pandas()
-            for _, row in parquet_df.iterrows():
-                row_dict = row.to_dict()
-
+            # Python scalars and (nested) lists, no numpy in between.
+            for row_dict in pq_batch.to_pylist():
                 # Convert to the MANTRA convention: plain (nested) lists
-                # of 1-indexed vertices, named `triangulation`.
-                triangulation = [
-                    [int(v) + 1 for v in simplex]
+                # of 1-indexed vertices, named `triangulation`. The
+                # vertices of each simplex are sorted and the simplices
+                # are ordered lexicographically, since the
+                # representations and the feature propagation derive
+                # faces from the stored order.
+                triangulation = sorted(
+                    sorted(int(v) + 1 for v in simplex)
                     for simplex in row_dict.pop("simplices")
-                ]
+                )
 
                 # Convert vertex coordinates to a float tensor; row `i`
                 # holds the coordinates of vertex `i + 1`.
-                coords = torch.as_tensor(
-                    np.vstack(row_dict.pop("vertices")), dtype=torch.float32
+                coords = torch.tensor(
+                    row_dict.pop("vertices"), dtype=torch.float32
                 )
 
                 used_vertices = {v for s in triangulation for v in s}
@@ -201,11 +207,12 @@ class CalabiYau(InMemoryDataset):
                     range(1, coords.shape[0] + 1)
                 ), "Not all vertices in the triangulation have a coordinate"
 
-                # Numpy scalars (e.g. labels like `h11`) are converted to
-                # Python scalars so that they collate like the fields of
-                # the JSON-based MANTRA datasets.
-                row_dict = {
-                    k: v.item() if isinstance(v, np.generic) else v
+                # Scalars stay Python scalars, so they collate like
+                # the fields of the JSON-based MANTRA datasets; lists
+                # including nested ones such as the `(nnz, 4)` COO
+                # block of `intersection_numbers` become tensors.
+                attributes = {
+                    k: torch.tensor(v) if isinstance(v, list) else v
                     for k, v in row_dict.items()
                 }
 
@@ -217,7 +224,7 @@ class CalabiYau(InMemoryDataset):
                         n_vertices=coords.shape[
                             0
                         ],  # We checked this was the number of vertices, i.e. len(used_vertices)
-                        **row_dict,
+                        **attributes,
                     )
                 )
 
