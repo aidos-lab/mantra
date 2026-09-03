@@ -135,6 +135,7 @@ class OrientableToClassTransform(T.BaseTransform):
     def forward(self, data: Data):
         data.orientable = torch.tensor(data.betti_numbers)[..., -1]
         data.y = data.orientable.long()
+        data.label = bool(data.y.item())
         return data
 
 

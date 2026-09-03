@@ -126,10 +126,12 @@ class TestOrientableToClassTransform:
     def test_orientable_last_betti_one(self):
         result = OrientableToClassTransform()(Data(betti_numbers=[1, 0, 1]))
         assert result.y.item() == 1
+        assert result.label is True
 
     def test_non_orientable_last_betti_zero(self):
         result = OrientableToClassTransform()(Data(betti_numbers=[1, 0, 0]))
         assert result.y.item() == 0
+        assert result.label is False
 
 
 class TestBettiToClassTransform:
