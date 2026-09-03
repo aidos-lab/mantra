@@ -40,7 +40,7 @@ class CalabiYau(InMemoryDataset):
         pre_transform=None,
         pre_filter=None,
         force_reload=False,
-        batch_size: int = 1000,
+        parquet_batch_size: int = 1000,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -81,7 +81,7 @@ class CalabiYau(InMemoryDataset):
             they can coexist with the full dataset and are cheap to
             precompute, e.g. for smoke tests or timing benchmarks.
 
-        batch_size : int
+        parquet_batch_size : int
             Size of the batch to load from the parquet file of the
             manifold triangulations.
         """
@@ -89,7 +89,7 @@ class CalabiYau(InMemoryDataset):
         self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.limit = limit
-        self.batch_size = batch_size
+        self.parquet_batch_size = parquet_batch_size
 
         root += self._add_version_to_root()
 
@@ -109,7 +109,7 @@ class CalabiYau(InMemoryDataset):
         Subclasses producing several processed files (e.g. one per
         split) override this to select the right one.
         """
-        return 0
+        return int(0)
 
     def _add_version_to_root(self):
         if self.version == "latest":
@@ -175,7 +175,7 @@ class CalabiYau(InMemoryDataset):
         """
         data_list = []
 
-        for pq_batch in parquet_file.iter_batches(batch_size=self.batch_size):
+        for pq_batch in parquet_file.iter_batches(batch_size=self.parquet_batch_size):
             parquet_df = pq_batch.to_pandas()
             for _, row in parquet_df.iterrows():
                 row_dict = row.to_dict()
@@ -231,18 +231,18 @@ class CalabiYau(InMemoryDataset):
 
         data_list = self._process_parquet(parquet_file)
 
+        return data_list
+
+    def process(self):
+        """Processes dataset."""
+        data_list = self._load_data_list()
+
         if self.pre_filter is not None:
             data_list = [
                 data
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
             ]
-
-        return data_list
-
-    def process(self):
-        """Processes dataset."""
-        data_list = self._load_data_list()
 
         if self.pre_transform is not None:
             data_list = [

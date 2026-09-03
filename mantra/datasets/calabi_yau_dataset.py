@@ -1,11 +1,11 @@
 import math
 from typing import List
 
-import numpy as np
 from tqdm import tqdm
 
+import torch
 from mantra.datasets.calabi_yau import CalabiYau
-from mantra.datasets.utils import filter_by_class_count, make_split_index
+from mantra.datasets.utils import make_split_index
 
 SPLIT_TYPES = ["train", "val", "test"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -38,8 +38,7 @@ class CalabiYauDataset(CalabiYau):
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified: bool = False,
         label_source: str = "h11",
-        min_sample_per_class: int | None = None,
-        batch_size: int = 1000,
+        parquet_batch_size: int = 1000,
     ):
         """
         Create a split of the CY-Manifolds dataset.
@@ -90,7 +89,6 @@ class CalabiYauDataset(CalabiYau):
         self.split_proportions = split_proportions
         self.stratified = stratified
         self.label_source = label_source
-        self.min_sample_per_class = min_sample_per_class
 
         super().__init__(
             root,
@@ -102,7 +100,7 @@ class CalabiYauDataset(CalabiYau):
             pre_transform=pre_transform,
             pre_filter=pre_filter,
             force_reload=force_reload,
-            batch_size=batch_size,
+            parquet_batch_size=parquet_batch_size,
         )
 
     def _load_index(self):
@@ -121,11 +119,8 @@ class CalabiYauDataset(CalabiYau):
             parts.append(
                 "sp" + "-".join(str(p) for p in self.split_proportions)
             )
-        if self.min_sample_per_class:
-            parts.append(f"ccf{self.min_sample_per_class}")
         if self.stratified:
             parts.append("strat")
-        if self.min_sample_per_class or self.stratified:
             parts.append(self.label_source)
         return "_" + "_".join(parts)
 
@@ -139,15 +134,25 @@ class CalabiYauDataset(CalabiYau):
         """Split the parsed data and save one file per split."""
         data_list = self._load_data_list()
 
-        data_list, _ = filter_by_class_count(
-            data_list, self.label_source, self.min_sample_per_class
-        )
+
+        if self.pre_filter is not None:
+            data_list = [
+                data
+                for data in tqdm(data_list, desc="Filtering")
+                if self.pre_filter(data)
+            ]
 
         labels = (
-            np.array([data[self.label_source] for data in data_list])
+            torch.tensor([data[self.label_source] for data in data_list])
             if self.stratified
             else None
         )
+
+        if self.pre_transform is not None:
+            data_list = [
+                self.pre_transform(data)
+                for data in tqdm(data_list, desc="Pre-transforming")
+            ]
 
         train_index, val_index, test_index = make_split_index(
             data_list_size=len(data_list),
@@ -158,11 +163,6 @@ class CalabiYauDataset(CalabiYau):
             labels=labels,
         )
 
-        if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
 
         # WARN: This is order specific (must match SPLIT_TYPES).
         for path, index in zip(
