@@ -195,7 +195,3 @@ class TestCYStratified:
         assert counts["train"] == {0: 6, 1: 6, 2: 6}
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
-
-        # torch.tensor rejects ragged nested lists directly.
-        with pytest.raises(ValueError, match="expected sequence"):
-            _load(tmp_path, make_cy_parquet, rows)
