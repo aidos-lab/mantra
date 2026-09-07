@@ -28,7 +28,7 @@ plugins:
         python:
           paths: [mantra,.]
           options:
-            docstring_style: google
+            docstring_style: numpy
             docstring_section_style: list
   - mkdocs-autoapi:
       autoapi_dir: mantra

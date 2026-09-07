@@ -27,24 +27,21 @@ for using graph neural networks:
 
 ```python
 from torch_geometric.transforms import Compose
-from torch_geometric.transforms import FaceToEdge
 
 from mantra.datasets import ManifoldTriangulations
-from mantra.transforms import NodeIndex
-from mantra.transforms import RandomNodeFeatures
+from mantra.transforms import NodeRandomTransform, SelectFeatures
+from mantra.representations import OneSkeleton
 
 
 dataset = ManifoldTriangulations(
-    root="./data",
-    dimension=2,
-    version="latest",
-    transform=Compose(
+    root="./data", # Root of the dataset
+    dimension=2, # Dimension of the manifolds in question
+    version="latest", # Which version of the dataset to load
+    pre_transform=Compose( # Set of transforms to be applied during preprocessing
         [
-            NodeIndex(),
-            RandomNodeFeatures(),
-            # Converts face indices to edge indices, thus essentially
-            # making the 1-skeleton available to a model.
-            FaceToEdge(remove_faces=False),
+            OneSkeleton(),
+            NodeRandomTransform(), # Assigns random features (default dim=8) on the attribute `random_features`
+            SelectFeatures(src="random_features", dst=None, representation="graph"), # Assing `x = random_features`
         ]
     ),
     force_reload=True,

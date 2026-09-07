@@ -1,18 +1,18 @@
 name: Create new dataset release for Zenodo and Github.
 
-on: 
+on:
   workflow_dispatch:
-  push: 
+  push:
     tags:
       - "v*.*.*"
 
-jobs: 
-  run-python: 
+jobs:
+  run-python:
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-  
+        uses: actions/checkout@v6
+
       - name: Install Python and dependencies
         uses: actions/setup-python@v5
         with:
@@ -24,25 +24,29 @@ jobs:
           pip install requests
 
       - name: Run data conversion script
-        run: | 
+        run: |
           sh scripts/convert_manifolds.sh
-      
+
+      # The top `# vX.Y.Z` section of CHANGELOG.md is the version being released.
+      - name: Extract release notes for this version
+        run: awk '/^# v[0-9]/{n++} n==1' CHANGELOG.md > release_notes.md
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           draft: false
-          body_path: CHANGELOG.md
-          generate_release_notes: false  # Just use `CHANGELOG.md`
+          body_path: release_notes.md
+          generate_release_notes: false
           make_latest: true
           files: |
             2_manifolds.json.gz
             3_manifolds.json.gz
-      
+
       - name: Get latest tag
         id: get_tag
         run: |
           echo "VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      
+
       - name: Create new Zenodo release
         env:
           TOKEN: ${{ secrets.ZENODO_TOKEN }}
