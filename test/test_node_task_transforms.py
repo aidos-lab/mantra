@@ -41,18 +41,6 @@ class TestAttributeToNodeRegressionTransform:
         assert result.y.dtype == torch.float32
         assert result.y.shape == (3, 1)
         assert result.y.flatten().tolist() == [4.0, -2.0, 6.0]
-        assert result.node_mask.dtype == torch.bool
-        assert result.node_mask.tolist() == [True, True, True]
-
-    def test_mask_first_excludes_first_vertex(self):
-        result = AttributeToNodeRegressionTransform("value", mask_first=True)(
-            Data(value=torch.tensor([0, 1, 2, 3]))
-        )
-
-        assert result.node_mask.tolist() == [False, True, True, True]
-        # The target keeps every vertex; masking is left to the consumer.
-        assert result.y.shape == (4, 1)
-        assert result.y[result.node_mask].flatten().tolist() == [1.0, 2.0, 3.0]
 
     def test_source_is_left_in_place(self):
         value = torch.tensor([1, 2])
@@ -62,9 +50,7 @@ class TestAttributeToNodeRegressionTransform:
         assert data.value is value
 
     def test_batches_by_concatenating_vertices(self):
-        transform = AttributeToNodeRegressionTransform(
-            "value", mask_first=True
-        )
+        transform = AttributeToNodeRegressionTransform("value")
 
         batch = Batch.from_data_list(
             [
@@ -74,8 +60,7 @@ class TestAttributeToNodeRegressionTransform:
         )
 
         assert batch.y.shape == (5, 1)
-        assert batch.node_mask.tolist() == [False, True, True, False, True]
-        assert batch.y[batch.node_mask].flatten().tolist() == [1.0, 2.0, 5.0]
+        assert batch.y.flatten().tolist() == [0.0, 1.0, 2.0, 0.0, 5.0]
 
     @pytest.mark.parametrize(
         "value",
@@ -95,9 +80,7 @@ class TestAttributeToNodeRegressionTransform:
         # Value = 10 * graph + local node index, so that every row of
         # `y` can be checked against the node it is supposed to belong
         # to, before and after batching.
-        transform = AttributeToNodeRegressionTransform(
-            "value", mask_first=True
-        )
+        transform = AttributeToNodeRegressionTransform("value")
         graphs = [
             transform(_graph(3, offset=10, value=[10, 11, 12])),
             transform(_graph(2, offset=20, value=[20, 21])),
@@ -117,8 +100,6 @@ class TestAttributeToNodeRegressionTransform:
         # local index `x[k]`.
         expected = 10 * (batch.batch + 1) + batch.x.flatten().long()
         assert batch.y.flatten().tolist() == expected.tolist()
-        # The mask marks the first vertex of *each* graph.
-        assert batch.node_mask.tolist() == (batch.x.flatten() != 0).tolist()
         # Edge endpoints, offset by the batching, index the right targets.
         src, dst = batch.edge_index
         assert torch.equal(batch.y[src].flatten(), expected[src].float())
@@ -136,7 +117,6 @@ class TestAttributeToNodeClassTransform:
         assert result.y.dtype == torch.long
         assert result.y.shape == (4,)
         assert result.y.tolist() == [1, 0, 1, 2]
-        assert result.node_mask.tolist() == [True] * 4
 
     def test_accepts_list_of_values(self):
         transform = AttributeToNodeClassTransform("label", self.MAPPING)
@@ -157,16 +137,6 @@ class TestAttributeToNodeClassTransform:
 
         assert transform.num_classes == 3
 
-    def test_mask_first_excludes_first_vertex(self):
-        transform = AttributeToNodeClassTransform(
-            "label", self.MAPPING, mask_first=True
-        )
-
-        result = transform(Data(label=torch.tensor([3, 7, 11])))
-
-        assert result.node_mask.tolist() == [False, True, True]
-        assert result.y[result.node_mask].tolist() == [1, 2]
-
     def test_batches_by_concatenating_vertices(self):
         transform = AttributeToNodeClassTransform("label", self.MAPPING)
 
@@ -178,7 +148,6 @@ class TestAttributeToNodeClassTransform:
         )
 
         assert batch.y.tolist() == [0, 1, 2]
-        assert batch.node_mask.shape == (3,)
 
     def test_unknown_value_raises(self):
         transform = AttributeToNodeClassTransform("label", self.MAPPING)
@@ -199,9 +168,7 @@ class TestAttributeToNodeClassTransform:
             transform(Data())
 
     def test_indices_follow_node_order_through_batching(self):
-        transform = AttributeToNodeClassTransform(
-            "label", self.MAPPING, mask_first=True
-        )
+        transform = AttributeToNodeClassTransform("label", self.MAPPING)
         batch = Batch.from_data_list(
             [
                 transform(_graph(3, offset=0, label=[3, 7, 11])),
@@ -212,7 +179,6 @@ class TestAttributeToNodeClassTransform:
         assert batch.batch.tolist() == [0, 0, 0, 1, 1]
         # Concatenated in graph order, one index per node.
         assert batch.y.tolist() == [0, 1, 2, 2, 0]
-        assert batch.node_mask.tolist() == [False, True, True, False, True]
         # Node k with local index `x[k]` carries the label of that node.
         local = batch.x.flatten().long()
         labels = torch.tensor([3, 7, 11, 11, 3])
