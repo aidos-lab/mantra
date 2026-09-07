@@ -90,14 +90,19 @@ class AttributeToClassTransform(T.BaseTransform):
             ), "Tensor needs to be of type int"
             value = value.item()
 
-        if value not in self.mapping:
+        if self.mapping is None:
+            index = value
+        elif value not in self.mapping:
             raise KeyError(
                 f"Unknown {self._value_description} {value!r}; "
                 f"expected one of {sorted(self.mapping, key=str)}."
             )
+        else:
+            index = self.mapping[value]
 
-        index = self.mapping[value]
         data.y = torch.tensor(index, dtype=torch.long)
+        data.label = value
+
         return data
 
 
@@ -134,6 +139,7 @@ class OrientableToClassTransform(T.BaseTransform):
     def forward(self, data: Data):
         data.orientable = torch.tensor(data.betti_numbers)[..., -1]
         data.y = data.orientable.long()
+        data.label = bool(data.y.item())
         return data
 
 

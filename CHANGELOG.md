@@ -16,6 +16,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   (`target_count`, `n_moves`, `use_topology_changes`, `max_vertices`,
   `verbose`).
 
+- `CalabiYauDataset`: seeded train/val/test splits of `CalabiYau`
+  (`split_type`, `seed`, `split_proportions`, `stratified`,
+  `label_source`, `min_sample_per_class`), mirroring
+  `MantraDataset` on top of `ManifoldTriangulations`. The split
+  files encode these options, so variants coexist with the full
+  dataset.
+
 - `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`:
   stateless node-level task transforms that turn an attribute holding
   one value per vertex into `data.y` with one target per vertex.
@@ -27,6 +34,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   `AttributeToClassTransform` or a name transform instead.
 
 ## Changed
+
+- `CalabiYau` converts parquet list columns (e.g. the per-vertex `c2`
+  or the sparse `intersection_numbers` block) to tensors instead of
+  attaching numpy arrays, so they collate and cache like any other
+  attribute, and sorts the vertices of each simplex (and the simplices
+  themselves), so that faces derived from the stored order line up with
+  the propagated per-rank feature tensors.
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
