@@ -88,7 +88,7 @@ class TestAttributeToNodeRegressionTransform:
             transform(Data(value=value))
 
     def test_missing_source_raises(self):
-        with pytest.raises(AssertionError, match="not present"):
+        with pytest.raises(KeyError):
             AttributeToNodeRegressionTransform("value")(Data(n_vertices=3))
 
     def test_targets_follow_node_order_through_batching(self):
@@ -195,7 +195,7 @@ class TestAttributeToNodeClassTransform:
     def test_missing_source_raises(self):
         transform = AttributeToNodeClassTransform("label", self.MAPPING)
 
-        with pytest.raises(AssertionError, match="not present"):
+        with pytest.raises(KeyError):
             transform(Data())
 
     def test_indices_follow_node_order_through_batching(self):
