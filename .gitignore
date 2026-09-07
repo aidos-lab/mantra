@@ -1,24 +1,43 @@
-uv.lock
-**/raw
-data/
-bu/
-*.json
-
-test_*
-!test/test_*.py
+# Python
 **/__pycache__
+*.py[cod]
+*.so
 **/*.egg-info
-
-processed/**
-scratch_**
-
 /build
-/visualization 
-/tables
+/dist
 
-docs/build
+# Environments
+.venv/
+.venv-*/
+venv/
 
-site/
-
-# Coverage data
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
 .coverage
+.coverage.*
+htmlcov/
+
+# IDE / OS (.idea/ is ignored user-wide in ~/.config/git/ignore)
+.DS_Store
+
+# Claude Code: local agent state. A shared .claude/settings.json may be committed.
+.claude/*
+!.claude/settings.json
+/CLAUDE.md
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data and artefacts. Root-anchored *.json keeps the manifold downloads out
+# while leaving .claude/settings.json and future config JSON committable.
+/*.json
+data/
+**/raw/
+processed/**
+
+# Library: uv.lock stays untracked, CI resolves fresh via `uv sync`.
+uv.lock
+docs/build/
+site/

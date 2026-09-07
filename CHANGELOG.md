@@ -22,6 +22,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   therefore depended on dataset traversal; use
   `AttributeToClassTransform` or a name transform instead.
 
+- `scripts/generate_balanced.py` (superseded by on-the-fly balancing)
+  and the `balanced` parameter of the internal dataset URL helper.
+
 ## Changed
 
 - `balanced=True` now computes the balanced dataset during `process()`
@@ -43,10 +46,42 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   covers stellar subdivision with `fraction=1.0`, which is just as
   deterministic as barycentric subdivision.
 
-## Removed
+# v0.0.19
 
-- `scripts/generate_balanced.py` (superseded by on-the-fly balancing)
-  and the `balanced` parameter of the internal dataset URL helper.
+Release fixes only (version resolution in `mantra/__init__.py` and the
+PyPI release script). No functional changes since v0.0.17.
+
+# v0.0.18
+
+Release fixes only. No functional changes since v0.0.17.
+
+# v0.0.17
+
+## Added
+
+- `mantra.representations`: `OneSkeleton`, `DualGraph`, `HasseDiagram`,
+  and the simplicial-complex connectivity representations
+  `IncidenceSimplicialComplex`, `AdjacencySimplicialComplex`, and
+  `CoadjacencySimplicialComplex`, backed by an internal simplex trie.
+- `mantra.transforms` as a package: `MomentCurveEmbedding` (with
+  optional propagation to higher-order simplices), `NodeRandomTransform`,
+  `NodeDegreeTransform`, `SelectFeatures`, `SelectAttributes`, and
+  `CreateLabels`.
+- `PairwiseSimplicialDS`, a dataset of triangulation pairs.
+- `name` parameter of `ManifoldTriangulations` so that several processed
+  variants can coexist under one root.
+
+## Changed
+
+- `ManifoldTriangulations(manifold=...)` is now `dimension=...`.
+- The package is built with `uv` and hatchling with a dynamically
+  derived version, and is formatted with black and checked with ruff in
+  CI.
+
+## Fixed
+
+- Indexing in the dual-graph construction and off-by-one errors in the
+  moment-curve embedding.
 
 # v0.0.16
 

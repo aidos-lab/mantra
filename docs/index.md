@@ -44,7 +44,7 @@ A: Topology forms a fundamental theoretical foundation for natural sciences like
 
 
 #### Q: Which are the main functions and classes implemented in this dataset?
-A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTriangulations` allows the user to load the MANTRA dataset using a `InMemoryDataset` format from [`torch_geometric`](https://pytorch-geometric.readthedocs.io/en/latest/). The transforms `NodeIndex`, `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot`are also provided in this package. Concretely, `NodeIndex` transforms the original triangulation format in a torch-like tensor, and `RandomNodeFeatures`, `DegreeTransform`, and `DegreeTransformOneHot` assign input feature vectors to vertices in a the `x` attribute of the input `Data` representing a triangulation based either on random features or on the degree of each vertex, respectively.
+A: The core class of the MANTRA package is `ManifoldTriangulations`. `ManifoldTriangulations` allows the user to load the MANTRA dataset using a `InMemoryDataset` format from [`torch_geometric`]([`torch_geometric`](https://pytorch-geometric.readthedocs.io/en/latest/)). Additionally, the `MantraDataset` class allows loading a dataset split.
 
 *Have a question that's not answered here? Please open an issue on our GitHub repository.*
 
