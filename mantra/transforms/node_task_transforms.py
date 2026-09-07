@@ -33,15 +33,9 @@ class _NodeAttributeTransform(T.BaseTransform):
 
     def _node_values(self, data: Data):
         """Return the per-vertex values of `source` as a 1-D tensor."""
-        assert (
-            self.source in data
-        ), f"Source attribute '{self.source}' is not present in data"
-
-        # `as_tensor` accepts lists (`pre_transform` path) as well as
-        # the tensors produced by the collated dataset (`transform`
-        # path).
         values = torch.as_tensor(data[self.source])
 
+        # A `(n, k)` attribute would silently yield n * k targets.
         assert values.dim() == 1, (
             f"Attribute '{self.source}' must hold one value per vertex, "
             f"got shape {tuple(values.shape)}"
