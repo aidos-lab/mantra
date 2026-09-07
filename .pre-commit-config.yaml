@@ -1,27 +1,48 @@
-# Local hooks that mirror the CI checks:
-#   .github/workflows/check_coding_style.yaml -> black --check
-#   .github/workflows/check_ruff_merge.yaml   -> ruff check ./mantra
-#   .github/workflows/run_tests.yaml          -> pytest (via uv)
+# Local gate mirroring CI. Install once per clone: `uv run pre-commit install`
+# (default_install_hook_types below installs the pre-push hook as well).
 #
-# All hooks run through `uv run` so they use the tool versions pinned in
-# the project's dev dependency group.
+# Hooks run through `uv run`, so they use the versions pinned in the `lint`
+# dependency group. Fast checks run on changed files at commit time; the full
+# test suite runs on push.
+default_install_hook_types: [pre-commit, pre-push]
+default_stages: [pre-commit]
+
 repos:
   - repo: local
     hooks:
       - id: black-check
-        name: black (check)
-        # CI passes `--exclude docs/`; locally we use `--extend-exclude`
-        # so black's default exclusions (.venv, .git, ...) stay active.
-        entry: uv run black --check --extend-exclude docs/ --target-version py312 .
+        name: black (check, changed files)
+        entry: uv run black --check
         language: system
-        pass_filenames: false
+        types_or: [python, pyi]
+        exclude: ^docs/
+        pass_filenames: true
+
       - id: ruff-check
-        name: ruff check
-        entry: uv run ruff check mantra
+        name: ruff check (changed files)
+        entry: uv run ruff check --force-exclude
         language: system
-        pass_filenames: false
+        types_or: [python, pyi]
+        pass_filenames: true
+
       - id: pytest
-        name: pytest
-        entry: uv run pytest
+        name: pytest (full suite)
+        entry: uv run pytest -q
         language: system
         pass_filenames: false
+        always_run: true
+        # Drop this line to run the suite on every commit instead.
+        stages: [pre-push]
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: \.ipynb$
+      - id: trailing-whitespace
+        exclude: \.ipynb$
+      - id: check-merge-conflict
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: [--maxkb=2048]

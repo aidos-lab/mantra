@@ -1,7 +1,6 @@
-from itertools import combinations
-
 import json
 import sys
+from itertools import combinations
 
 
 def build_complex(top_simplices):
