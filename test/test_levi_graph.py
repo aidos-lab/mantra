@@ -13,19 +13,15 @@ from torch_geometric.data import Data
 from mantra.representations import LeviGraph
 from mantra.transforms import PropagateConvexComb
 
-# Boundary of a tetrahedron with the top simplices deliberately given in
-# non-lexicographic order (each tuple itself internally sorted), pinning
-# the index alignment of the simplex partition.
+# Tetrahedron boundary with the top simplices in non-lexicographic order.
 TETRAHEDRON_TRI_SCRAMBLED = [[2, 3, 4], [1, 2, 4], [1, 2, 3], [1, 3, 4]]
-# The same top simplices, 0-indexed and lexicographically sorted: the
-# order the Levi graph must use for the maximal-simplex partition.
+# The same top simplices, 0-indexed and in the order the Levi graph uses.
 TETRAHEDRON_TOPS_SORTED = [[0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3]]
 # Two triangles sharing the edge (1, 2).
 TWO_TRIANGLES = [[1, 2, 3], [1, 2, 4]]
 
-# Vertex coordinates whose x-coordinates are powers of two: barycenters
-# of *distinct* vertex subsets are pairwise distinct, so a misindexed
-# feature lookup cannot produce the correct value by accident.
+# Power-of-two x-coordinates: barycenters of distinct vertex subsets are
+# pairwise distinct, so a misindexed feature lookup cannot pass by accident.
 VERTICES = torch.tensor([[1.0, 0.1], [2.0, 0.2], [4.0, 0.4], [8.0, 0.8]])
 
 
@@ -117,9 +113,7 @@ class TestLeviGraphStructure:
         # simplices, not the scrambled input order.
         assert out.simplex[4:] == TETRAHEDRON_TOPS_SORTED
 
-        # Exact edge-set equality: every top simplex connects to
-        # precisely its own vertices, and no vertex-vertex or top-top
-        # edges exist (the graph is bipartite).
+        # Bipartite: every top simplex connects to exactly its own vertices.
         expected = set()
         for i, top in enumerate(TETRAHEDRON_TOPS_SORTED):
             for v in top:
@@ -130,9 +124,7 @@ class TestLeviGraphStructure:
 
 class TestLeviGraphDefault:
     def test_no_propagation_adds_no_features(self):
-        # ``feature_propagation`` defaults to ``None`` and must then
-        # reproduce the pre-propagation behavior: the bipartite graph
-        # plus the per-node ``simplex`` attribute, but no ``x``.
+        # The default must reproduce the pre-propagation output.
         out = LeviGraph()(
             Data(triangulation=TETRAHEDRON_TRI_SCRAMBLED, dimension=2)
         )
@@ -171,8 +163,7 @@ class TestLeviGraphFeaturePropagation:
             expected = VERTICES[top].mean(dim=0)
             assert torch.allclose(row, expected)
 
-        # All 8 features are pairwise distinct, so index misalignment
-        # between the two partitions cannot pass the checks above.
+        # Pairwise distinct features make the checks above sensitive to swaps.
         assert out.x.unique(dim=0).shape[0] == 8
 
     def test_missing_rank_tensor_raises(self):
