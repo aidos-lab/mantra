@@ -359,37 +359,54 @@ class MantraDataset(ManifoldTriangulations):
             labels=labels,
         )
 
-        # Apply the selected subdivision algorithm to the test set
-        ood_data_list = self._build_ood_split(
-            test_entries=[data_list[idx] for idx in test_index], rng=rng
-        )
-
-        # Get the indices for ood
-        ood_index = np.arange(
-            len(data_list), len(data_list) + len(ood_data_list)
-        )
-
-        # Dictionary with splits
-        split_dict = {
-            "train": train_index,
-            "val": val_index,
-            "test": test_index,
-            "ood": ood_index,
+        split_lists = {
+            "train": [data_list[idx] for idx in train_index],
+            "val": [data_list[idx] for idx in val_index],
+            "test": [data_list[idx] for idx in test_index],
         }
 
-        # Stick it at the end
-        data_list.extend(ood_data_list)
+        # Apply the selected subdivision algorithm to the test set
+        split_lists["ood"] = self._build_ood_split(
+            test_entries=split_lists["test"], rng=rng
+        )
 
-        # Apply pretransforms now
-        if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
+        # The OOD split derives from the unexpanded test entries, so
+        # expansion happens after it has been built.
+        for split_type in SPLIT_TYPES[:3]:
+            split_lists[split_type] = self._expand_split(
+                split_type, split_lists[split_type]
+            )
 
         for i, split_type in enumerate(SPLIT_TYPES):
-            data_split_list = [
-                data_list[idx] for idx in split_dict[split_type]
-            ]
+            data_split_list = split_lists[split_type]
+            if self.pre_transform is not None:
+                data_split_list = [
+                    self.pre_transform(data)
+                    for data in tqdm(
+                        data_split_list,
+                        desc=f"Pre-transforming ({split_type})",
+                    )
+                ]
             # WARN:  This is order specific!
             self.save(data_split_list, self.processed_paths[i])
+
+    def _expand_split(self, split_type: str, data_list: List[Data]):
+        """Hook for subclasses to expand an in-distribution split.
+
+        Called for the train, val and test splits with the entries of
+        that split before the pre-transform is applied. Returns the
+        entries unchanged.
+
+        Parameters
+        ----------
+        split_type : str
+            One of "train", "val" or "test".
+        data_list : list of Data
+            Entries of the split.
+
+        Returns
+        -------
+        list of Data
+            Entries to save for the split.
+        """
+        return data_list

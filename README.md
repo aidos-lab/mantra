@@ -310,6 +310,30 @@ dataset_ood =  MantraDataset(
 )
 ```
 
+### Pachner walks
+
+`PachnerWalkDataset` builds the same splits as `MantraDataset` and expands
+every train, val and test entry into a random Pachner walk: the original
+triangulation is followed by `walk_length` snapshots, taken every
+`moves_per_step` random moves, each stored as its own entry with the same
+labels. Every entry carries `walk_base` (its source entry within the
+split) and `walk_step` (its position on the walk), so two snapshots of the
+same walk are known to be at most `|walk_step_a - walk_step_b| *
+moves_per_step` Pachner moves apart. The OOD split is not expanded.
+
+```python
+from mantra.datasets import PachnerWalkDataset
+
+dataset_train = PachnerWalkDataset(
+    root="./data",
+    dimension=2,
+    split_type="train",
+    walk_length=4,  # snapshots per entry, in addition to the original
+    moves_per_step=3,  # random Pachner moves between snapshots
+    walk_seed=0,  # defaults to the split seed
+)
+```
+
 ## Specifying the task
 The main task of MANTRA is predicting the homeomorphism type class of a triangulation, i.e. which manifold it triangulates. However, each triangulation has additional labels related to the properties of the manifold it represents, whichwhich together determine its homeomorphic class. These are a.) orientable, b.) Betti numbers. The former is a binary label that denotes wether the manifold is orientable. The latter is a sequence of integers that count the different dimensional holes.
 

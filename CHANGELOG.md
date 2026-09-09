@@ -16,6 +16,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   which applies a random Pachner walk in place and returns the
   triangulation after every `moves_per_step` moves.
 
+- `PachnerWalkDataset`, which builds the `MantraDataset` splits and
+  expands every train, val and test entry into the snapshots of a
+  random Pachner walk (`walk_length`, `moves_per_step`, `walk_seed`),
+  each with `walk_base` and `walk_step` attributes. The walk
+  parameters are encoded in the split file names, so caches do not
+  collide with those of `MantraDataset`.
+
 - `AttributeToClassTransform`, `AttributeToRegressionTransform` and
   `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
   transforms whose targets are fixed functions of the stored
