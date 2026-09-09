@@ -6,9 +6,7 @@ from mantra.utils.constants import (
     RP2_TRIANGULATION_MINUS_FACE,
     TORUS_TRIANGULATION_MINUS_FACE,
 )
-from mantra.utils.triangulation import (
-    Triangulation,
-)
+from mantra.utils.triangulation import Triangulation, Triangulation2D
 
 # Two triangles sharing edge {2, 3}; the only flippable edge.
 TWO_TRIANGLES = [[1, 2, 3], [2, 3, 4]]
@@ -106,4 +104,71 @@ class TestRandomPachnerMove:
     def test_explicit_weights_force_subdivide(self):
         # Zero weight on flip -> subdivide is chosen, always succeeds.
         t = Triangulation.from_list([[1, 2, 3]], rng=random.Random(0))
-        assert t.random_pachner_move(weights=(0.0, 1.0)) is True
+        assert t.random_pachner_move(weights=(0.0, 1.0, 0.0)) is True
+
+    def test_zero_weights_are_never_tried(self):
+        # Only the 3-1 move is allowed and the sphere has no removable
+        # vertex, so no move is possible.
+        t = Triangulation.from_list(SPHERE, rng=random.Random(0))
+        assert t.random_pachner_move(weights=(0.0, 0.0, 1.0)) is False
+
+    def test_falls_back_to_a_possible_move(self):
+        # Flip has almost all the weight but is impossible on the
+        # sphere; the move must fall back to the subdivision.
+        t = Triangulation.from_list(SPHERE, rng=random.Random(0))
+        assert t.random_pachner_move(weights=(1e6, 1.0, 0.0)) is True
+        assert t.n_vertices == 5
+
+    def test_remove_only_weights_only_remove_vertices(self):
+        t = Triangulation.from_list(SPHERE, rng=random.Random(0))
+        for _ in range(4):
+            t.subdivide()
+        assert t.n_vertices == 8
+        for expected in (7, 6, 5, 4):
+            assert t.random_pachner_move(weights=(0.0, 0.0, 1.0)) is True
+            assert t.n_vertices == expected
+
+
+class TestMove31:
+    def test_explicit_removal_undoes_subdivision(self):
+        t = Triangulation.from_list(SPHERE)
+        before = set(t._simplices)
+        assert t.subdivide(frozenset({1, 2, 3})) is True
+        assert t.move_3_1(5) is True
+        assert t._simplices == before
+
+    def test_random_removal_gives_back_a_tetrahedral_sphere(self):
+        # After subdividing {1, 2, 3} both the new vertex 5 and the
+        # opposite vertex 4 are removable (the link of 4 is no longer
+        # a face); either choice yields the boundary of a tetrahedron.
+        t = Triangulation.from_list(SPHERE, rng=random.Random(0))
+        t.subdivide(frozenset({1, 2, 3}))
+        assert t.move_3_1() is True
+        assert t.n_vertices == 4
+        assert len(t._simplices) == 4
+        t.validate()
+
+    def test_no_candidate_on_sphere(self):
+        # Every vertex of the tetrahedral sphere has degree 3, but its
+        # link triangle is already a face of the complex.
+        t = Triangulation.from_list(SPHERE, rng=random.Random(0))
+        assert t.move_3_1() is False
+        assert t.move_3_1(1) is False
+
+    def test_rejects_vertex_of_wrong_degree(self):
+        t = Triangulation.from_list(SPHERE)
+        t.subdivide(frozenset({1, 2, 3}))
+        t.subdivide(frozenset({1, 2, 5}))
+        # Vertex 5 now has degree 4.
+        assert t.move_3_1(5) is False
+        assert t.n_vertices == 6
+
+    def test_rejects_link_that_is_not_a_triangle(self):
+        # Vertex 1 has degree 3, but its link is a path, not a cycle.
+        t = Triangulation.from_list([[1, 2, 3], [1, 3, 4], [1, 4, 5]])
+        assert t.move_3_1(1) is False
+        assert len(t._simplices) == 3
+
+    def test_aliases(self):
+        assert Triangulation2D.move_1_3 is Triangulation2D.subdivide
+        assert Triangulation2D.move_2_2 is Triangulation2D.flip_edge

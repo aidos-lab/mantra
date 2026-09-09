@@ -232,7 +232,8 @@ class TestBalanceDatasetDedup:
         assert len(out) == 3
 
     def test_over_limit_class_raises_value_error(self, monkeypatch):
-        # Every source would exceed the vertex limit after n_moves, so
+        # The only move possible on the tetrahedral sphere is a
+        # subdivision, so every augmentation exceeds the vertex limit,
         # the class cannot be balanced and a clear error is raised.
         monkeypatch.setattr(
             balancing, "find_duplicates", lambda result, verbose=False: []
@@ -242,7 +243,7 @@ class TestBalanceDatasetDedup:
             balance_dataset(
                 data,
                 target_count=2,
-                n_moves=12,
+                n_moves=1,
                 seed=0,
                 use_surgery=False,
                 max_vertices=4,

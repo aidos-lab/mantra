@@ -391,3 +391,33 @@ class TestVertexLabeling:
             entry, n_moves=8, id_cnt=0, rng=random.Random(42)
         )
         assert_canonical_labels(out["triangulation"], out["n_vertices"])
+
+
+class Test2DVertexRemovalInvariants:
+    def test_random_walk_with_removals_preserves_torus(self):
+        t = Triangulation.from_list(TORUS, rng=random.Random(7))
+        removed = 0
+        for _ in range(60):
+            n_before = t.n_vertices
+            assert t.random_pachner_move() is True
+            removed += t.n_vertices < n_before
+            assert t.euler_characteristic() == 0
+            t.validate()
+        assert removed > 0
+        assert is_orientable(t.to_list()) is True
+
+    def test_random_walk_with_removals_preserves_rp2(self):
+        t = Triangulation.from_list(RP2, rng=random.Random(7))
+        for _ in range(60):
+            assert t.random_pachner_move() is True
+            assert t.euler_characteristic() == 1
+            t.validate()
+        assert is_orientable(t.to_list()) is False
+
+    def test_3_1_f_vector_delta(self):
+        t = Triangulation.from_list(TORUS)
+        f0, f1, f2 = t.f_vector()
+        t.subdivide(frozenset({1, 2, 4}))
+        assert t.move_3_1(8) is True
+        assert t.f_vector() == (f0, f1, f2)
+        t.validate()

@@ -7,6 +7,10 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `Triangulation2D.move_3_1`, the vertex removal inverse to the 1-3
+  move, plus the aliases `move_1_3` (= `subdivide`) and `move_2_2`
+  (= `flip_edge`) so both dimensions share the `move_i_j` naming.
+
 - `AttributeToClassTransform`, `AttributeToRegressionTransform` and
   `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
   transforms whose targets are fixed functions of the stored
@@ -28,6 +32,16 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   refactor; the augmented and deduplicated entries are now used.
 
 ## Changed
+
+- `Triangulation2D.random_pachner_move` now samples from the 2-2, 1-3
+  and 3-1 moves (`weights` has three entries) and, like the 3D
+  version, falls back to the other moves if the chosen one is not
+  possible. Previously, random 2D walks only flipped and subdivided,
+  so the vertex count never decreased and the walks did not explore
+  the full Pachner graph, whose connectivity requires both directions
+  of every move. Random sequences for a fixed seed therefore differ
+  from earlier versions, including the augmentations produced by
+  `balanced=True`.
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of

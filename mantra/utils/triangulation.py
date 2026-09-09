@@ -388,6 +388,96 @@ class Triangulation2D(Triangulation):
 
         return True
 
+    def move_3_1(self, vertex=None):
+        """Perform a 3-1 Pachner move (inverse of the 1-3 move).
+
+        Remove a vertex whose star consists of exactly 3 triangles
+        forming a subdivided triangle, and replace the star by that
+        triangle.
+
+        Parameters
+        ----------
+        vertex : int or None
+            Vertex to remove. If None, a random valid vertex is
+            chosen.
+
+        Returns
+        -------
+        bool
+            True if the move was performed, False if no valid vertex
+            exists.
+        """
+        if vertex is None:
+            valid_verts = self._find_3_1_candidates()
+            if not valid_verts:
+                return False
+            vertex = self._rng.choice(valid_verts)
+
+        star = [s for s in self._simplices if vertex in s]
+        if len(star) != 3:
+            return False
+
+        link_verts = set()
+        for s in star:
+            link_verts |= s - {vertex}
+
+        if len(link_verts) != 3:
+            return False
+
+        new_triangle = frozenset(link_verts)
+        expected_star = {(new_triangle - {w}) | {vertex} for w in link_verts}
+        # Defensive: three distinct triangles with a three-vertex link
+        # are exactly the three edges of new_triangle joined to
+        # ``vertex``, so this never fires. Kept as a guard against
+        # malformed input.
+        if expected_star != set(star):  # pragma: no cover
+            return False
+
+        # Collapsing onto an existing triangle would double that face.
+        if new_triangle in self._simplices:
+            return False
+
+        for s in star:
+            self._simplices.discard(s)
+
+        self._simplices.add(new_triangle)
+
+        return True
+
+    # The 2D moves predate the ``move_i_j`` naming of the 3D class;
+    # the aliases give both dimensions the same interface.
+    move_2_2 = flip_edge
+    move_1_3 = subdivide
+
+    def _find_3_1_candidates(self):
+        """Find all vertices valid for a 3-1 move."""
+        vert_triangles = {}
+        for s in self._simplices:
+            for v in s:
+                vert_triangles.setdefault(v, []).append(s)
+
+        candidates = []
+        for v, star in vert_triangles.items():
+            if len(star) != 3:
+                continue
+            link_verts = set()
+            for s in star:
+                link_verts |= s - {v}
+            if len(link_verts) != 3:
+                continue
+
+            new_triangle = frozenset(link_verts)
+            expected = {(new_triangle - {w}) | {v} for w in link_verts}
+            # Defensive: see move_3_1 — unreachable for well-formed input.
+            if expected != set(star):  # pragma: no cover
+                continue
+            if new_triangle in self._simplices:
+                continue
+
+            candidates.append(v)
+
+        return candidates
+
     def _glue_torus(self, triangle=None):
         """Connected sum with a torus (increases genus by 1).
 
@@ -504,22 +594,36 @@ class Triangulation2D(Triangulation):
     def random_pachner_move(self, weights=None):
         """Apply a random Pachner move.
 
+        Move types are tried in weighted random order until one
+        succeeds; types with weight 0 are never tried. With the
+        default weights this always returns True on a closed surface,
+        since ``subdivide`` cannot fail.
+
         Parameters
         ----------
         weights : tuple of float or None
-            Weights for (flip_edge, subdivide). Default: equal.
+            Weights for (flip_edge, subdivide, move_3_1). Default:
+            equal.
 
         Returns
         -------
         bool
-            True if a move was performed.
+            True if a move was performed, False if none of the moves
+            with positive weight is possible.
         """
         if weights is None:
-            weights = (1.0, 1.0)
+            weights = (1.0, 1.0, 1.0)
 
-        moves = [self.flip_edge, self.subdivide]
-        move = self._rng.choices(moves, weights=weights, k=1)[0]
-        return move()
+        moves = [self.flip_edge, self.subdivide, self.move_3_1]
+        remaining = [i for i in range(len(moves)) if weights[i] > 0]
+        while remaining:
+            idx = self._rng.choices(
+                remaining, weights=[weights[i] for i in remaining], k=1
+            )[0]
+            if moves[idx]():
+                return True
+            remaining.remove(idx)
+        return False
 
 
 class Triangulation3D(Triangulation):
