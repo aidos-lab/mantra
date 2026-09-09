@@ -34,6 +34,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Removed
 
+- `mantra.datasets.prop_pred`, which imported a `PairwiseSimplicialDS`
+  that no longer exists and could not be imported.
+
 - `CreateLabels`, which assigned class indices in encounter order and
   therefore depended on dataset traversal; use
   `AttributeToClassTransform` or a name transform instead.

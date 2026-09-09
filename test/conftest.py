@@ -71,26 +71,6 @@ def balanced_entries():
 
 
 @pytest.fixture
-def pairwise_entries():
-    """A 2D dataset mixing the ``S^2``/``T^2`` comparison pair with ``RP^2``.
-
-    The ``RP^2`` record exercises the exclusion branch of the pairwise
-    comparison (it falls outside the comparison pair).
-    """
-    return (
-        [
-            manifold_entry(f"s{i}", name="S^2", orientable=True)
-            for i in range(2)
-        ]
-        + [
-            manifold_entry(f"t{i}", name="T^2", orientable=True)
-            for i in range(2)
-        ]
-        + [manifold_entry("r0", name="RP^2", orientable=False)]
-    )
-
-
-@pytest.fixture
 def make_cy_parquet(tmp_path):
     """Return a factory writing CY-style rows to a parquet file.
 
