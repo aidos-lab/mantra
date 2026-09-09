@@ -23,6 +23,18 @@ class Triangulation(ABC):
     rng : random.Random or None
         Random number generator. If None, the module-level
         ``random`` is used.
+
+    Attributes
+    ----------
+    move_log : list of tuple
+        One ``(move_name, vertices)`` entry per successful Pachner
+        move, in order of application, e.g. ``("2-2", (3, 8))``.
+        ``vertices`` are the sorted labels of the simplex the move
+        acted on: the flipped edge (2-2, 3-2), the subdivided
+        triangle or tetrahedron (1-3, 1-4), the shared triangle (2-3)
+        or the removed vertex (3-1, 4-1). Labels refer to the
+        internal label space, which :meth:`to_list` compacts on
+        export.
     """
 
     def __init__(self, top_simplices, dimension, rng=None):
@@ -30,6 +42,7 @@ class Triangulation(ABC):
         self._simplices = {frozenset(s) for s in top_simplices}
         self._next_vertex = max(v for s in self._simplices for v in s) + 1
         self._rng = rng if rng is not None else random
+        self.move_log = []
 
     @staticmethod
     def from_list(triangulation, rng=None) -> "Triangulation":
@@ -160,6 +173,52 @@ class Triangulation(ABC):
                     f"Face {set(face)} has {len(cofaces)} cofaces, "
                     f"expected 2 for a closed manifold."
                 )
+
+    @abstractmethod
+    def random_pachner_move(self, weights=None):
+        raise NotImplementedError()
+
+    def random_walk(self, n_steps, moves_per_step=1, weights=None):
+        """Apply a random Pachner walk in place and record snapshots.
+
+        Performs ``n_steps * moves_per_step`` successful random
+        Pachner moves and returns a snapshot of the triangulation
+        after every ``moves_per_step`` moves. The moves are appended
+        to :attr:`move_log`.
+
+        Parameters
+        ----------
+        n_steps : int
+            Number of snapshots to take after the starting one.
+        moves_per_step : int
+            Number of successful moves between consecutive snapshots.
+        weights : tuple of float or None
+            Move-type weights forwarded to :meth:`random_pachner_move`.
+
+        Returns
+        -------
+        list of list of list of int
+            ``[T_0, T_1, ..., T_n_steps]`` as :meth:`to_list` exports,
+            where ``T_0`` is the starting triangulation.
+
+        Raises
+        ------
+        RuntimeError
+            If no move with positive weight is possible. Each call to
+            :meth:`random_pachner_move` already tries every move type
+            with positive weight, so a failed call cannot succeed on
+            retry.
+        """
+        snapshots = [self.to_list()]
+        for _ in range(n_steps):
+            for _ in range(moves_per_step):
+                if not self.random_pachner_move(weights):
+                    raise RuntimeError(
+                        "No Pachner move with positive weight is possible "
+                        f"after {len(self.move_log)} logged moves."
+                    )
+            snapshots.append(self.to_list())
+        return snapshots
 
     def _stellar_subdivide(self, simplex=None):
         """Stellar-subdivide one top-dimensional simplex.
@@ -361,6 +420,7 @@ class Triangulation2D(Triangulation):
         for v in edge:
             self._simplices.add(frozenset(new_edge | {v}))
 
+        self.move_log.append(("2-2", tuple(sorted(edge))))
         return True
 
     def subdivide(self, triangle=None):
@@ -386,6 +446,7 @@ class Triangulation2D(Triangulation):
         for edge in combinations(triangle, 2):
             self._simplices.add(frozenset(edge) | {v})
 
+        self.move_log.append(("1-3", tuple(sorted(triangle))))
         return True
 
     def move_3_1(self, vertex=None):
@@ -442,6 +503,7 @@ class Triangulation2D(Triangulation):
 
         self._simplices.add(new_triangle)
 
+        self.move_log.append(("3-1", (vertex,)))
         return True
 
     # The 2D moves predate the ``move_i_j`` naming of the 3D class;
@@ -666,6 +728,7 @@ class Triangulation3D(Triangulation):
         for face in combinations(tet, 3):
             self._simplices.add(frozenset(face) | {v})
 
+        self.move_log.append(("1-4", tuple(sorted(tet))))
         return True
 
     def move_2_3(self, face=None):
@@ -722,6 +785,7 @@ class Triangulation3D(Triangulation):
         for edge in combinations(face, 2):
             self._simplices.add(frozenset(edge) | {d, e})
 
+        self.move_log.append(("2-3", tuple(sorted(face))))
         return True
 
     def move_3_2(self, edge=None):
@@ -792,6 +856,7 @@ class Triangulation3D(Triangulation):
         self._simplices.add(link_face | {d})
         self._simplices.add(link_face | {e})
 
+        self.move_log.append(("3-2", tuple(sorted(edge))))
         return True
 
     def move_4_1(self, vertex=None):
@@ -851,6 +916,7 @@ class Triangulation3D(Triangulation):
         # add the collapsed tetrahedron
         self._simplices.add(new_tet)
 
+        self.move_log.append(("4-1", (vertex,)))
         return True
 
     def _edge_exists(self, d, e):

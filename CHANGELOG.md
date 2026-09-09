@@ -11,6 +11,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   move, plus the aliases `move_1_3` (= `subdivide`) and `move_2_2`
   (= `flip_edge`) so both dimensions share the `move_i_j` naming.
 
+- `Triangulation.move_log`, which records every successful Pachner
+  move as `(move_name, vertices)`, and `Triangulation.random_walk`,
+  which applies a random Pachner walk in place and returns the
+  triangulation after every `moves_per_step` moves.
+
 - `AttributeToClassTransform`, `AttributeToRegressionTransform` and
   `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
   transforms whose targets are fixed functions of the stored
