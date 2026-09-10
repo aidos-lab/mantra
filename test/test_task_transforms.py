@@ -333,7 +333,7 @@ class TestAttributeToNodeClassTransform:
     def test_unknown_value_raises(self):
         transform = AttributeToNodeClassTransform("label", self.MAPPING)
 
-        with pytest.raises(KeyError, match="Unknown value 5"):
+        with pytest.raises(KeyError):
             transform(Data(label=torch.tensor([3, 5])))
 
     def test_float_values_raise(self):

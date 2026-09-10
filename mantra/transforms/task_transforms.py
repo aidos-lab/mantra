@@ -290,6 +290,11 @@ class AttributeToNodeClassTransform(T.BaseTransform):
     def forward(self, data: Data):
         values = _node_values(data, self.source)
 
+        # Floats would pass silently: `{3: 0}[3.0]` hits, `long()` truncates.
+        assert not torch.is_floating_point(
+            values
+        ), "Tensor needs to be of type int"
+
         if self.mapping is None:
             indices = values.tolist()
         else:
