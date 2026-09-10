@@ -5,7 +5,7 @@ import numpy as np
 from tqdm import tqdm
 
 from mantra.datasets.calabi_yau import CalabiYau
-from mantra.datasets.utils import make_split_index
+from mantra.datasets.utils import filter_by_class_count, make_split_index
 
 SPLIT_TYPES = ["train", "val", "test"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -38,6 +38,7 @@ class CalabiYauDataset(CalabiYau):
         split_proportions: List[float] = DEFAULT_SPLIT_PROPORTIONS,
         stratified: bool = False,
         label_source: str = "h11",
+        min_sample_per_class: int | None = None,
         parquet_batch_size: int = 1000,
     ):
         """
@@ -89,6 +90,7 @@ class CalabiYauDataset(CalabiYau):
         self.split_proportions = split_proportions
         self.stratified = stratified
         self.label_source = label_source
+        self.min_sample_per_class = min_sample_per_class
 
         super().__init__(
             root,
@@ -115,6 +117,8 @@ class CalabiYauDataset(CalabiYau):
         of the file names.
         """
         parts = [f"seed{self.seed}"]
+        if self.min_sample_per_class:
+            parts.append(f"ccf{self.min_sample_per_class}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
             parts.append(
                 "sp" + "-".join(str(p) for p in self.split_proportions)
@@ -140,6 +144,10 @@ class CalabiYauDataset(CalabiYau):
                 for data in tqdm(data_list, desc="Filtering")
                 if self.pre_filter(data)
             ]
+
+        data_list, _ = filter_by_class_count(
+            data_list, self.label_source, self.min_sample_per_class
+        )
 
         labels = (
             np.array([data[self.label_source] for data in data_list])

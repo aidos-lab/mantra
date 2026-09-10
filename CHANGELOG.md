@@ -23,6 +23,15 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
+## Fixed
+
+- `CalabiYau` keys its raw and processed files on the name of the
+  local parquet file, so pointing `local_path` at another file no
+  longer reuses the previous file's processed data.
+
+- `CalabiYauDataset` applies `min_sample_per_class`, which was
+  documented but not accepted.
+
 ## Removed
 
 - `CreateLabels`, which assigned class indices in encounter order and
