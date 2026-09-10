@@ -13,9 +13,15 @@ for any other attribute (for integer-valued attributes such as
 Remapping these canonical indices to a contiguous range over the
 classes present in a particular training split needs to be performed
 in the training code.
+
+The node-level transforms (`AttributeToNodeRegressionTransform`,
+`AttributeToNodeClassTransform`) read an attribute holding one value
+per vertex, either a 1-D tensor (the `transform` path, after the
+dataset has been collated) or a list of scalars (the `pre_transform`
+path), and write one target per vertex in vertex order.
 """
 
-from typing import Dict
+from typing import Dict, Optional
 
 import torch
 import torch_geometric.transforms as T
@@ -201,4 +207,96 @@ class AttributeToRegressionTransform(T.BaseTransform):
         data.y = torch.as_tensor(
             getattr(data, self.source), dtype=torch.float32
         ).reshape(1, -1)
+        return data
+
+
+def _node_values(data: Data, source: str) -> torch.Tensor:
+    """Return the per-vertex values of `source` as a 1-D tensor."""
+    values = torch.as_tensor(data[source])
+
+    # A `(n, k)` attribute would silently yield n * k targets.
+    assert values.dim() == 1, (
+        f"Attribute '{source}' must hold one value per vertex, "
+        f"got shape {tuple(values.shape)}"
+    )
+
+    return values
+
+
+class AttributeToNodeRegressionTransform(T.BaseTransform):
+    """Encode a per-vertex attribute as a node-level regression target.
+
+    The values are stored in `data.y` as a float tensor of shape
+    `(n_vertices, 1)`, one row per vertex in vertex order.
+    """
+
+    def __init__(self, source: str):
+        """Create a new node-level regression-target transform.
+
+        Parameters
+        ----------
+        source : str
+            Per-vertex attribute used as the target. Must be present in
+            the data with one value per vertex.
+        """
+        super().__init__()
+
+        self.source = source
+
+    def forward(self, data: Data):
+        values = _node_values(data, self.source)
+
+        data.y = values.to(torch.float32).view(-1, 1)
+        return data
+
+
+class AttributeToNodeClassTransform(T.BaseTransform):
+    """Encode a per-vertex attribute as node-level class indices.
+
+    The per-vertex counterpart of `AttributeToClassTransform`: every
+    vertex value is passed through a fixed `mapping`, or taken as the
+    class index itself when `mapping` is `None`, and the indices are
+    stored in `data.y` as a `long` tensor of shape `(n_vertices,)`, one
+    entry per vertex in vertex order. The raw values are kept in
+    `data.label`. Remapping to the classes present in a training split
+    is left to the training code.
+    """
+
+    def __init__(self, source: str, mapping: Optional[Dict]):
+        """Create a new node-level class-index transform.
+
+        Parameters
+        ----------
+        source : str
+            Per-vertex attribute used as the label. Must be present in
+            the data with one integer value per vertex.
+
+        mapping : Dict or None
+            Fixed mapping from attribute values to class indices, built
+            once from the values present in the full dataset so that it
+            does not depend on a split or traversal order. `None` uses
+            the values as indices.
+        """
+        super().__init__()
+
+        self.source = source
+        self.mapping = mapping
+
+    @property
+    def num_classes(self):
+        """Number of classes of the mapping."""
+        return len(self.mapping)
+
+    def forward(self, data: Data):
+        values = _node_values(data, self.source)
+
+        if self.mapping is None:
+            indices = values.tolist()
+        else:
+            indices = []
+            for value in values.tolist():
+                indices.append(self.mapping[value])
+
+        data.y = torch.tensor(indices, dtype=torch.long)
+        data.label = values
         return data

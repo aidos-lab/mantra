@@ -23,9 +23,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
-- `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`:
-  stateless node-level task transforms that turn an attribute holding
-  one value per vertex into `data.y` with one target per vertex.
+- `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
+  in `task_transforms`: stateless node-level task transforms that turn
+  an attribute holding one value per vertex into `data.y` with one
+  target per vertex. The class transform accepts `mapping=None` and
+  keeps the raw values in `data.label`, like `AttributeToClassTransform`.
 
 ## Removed
 
