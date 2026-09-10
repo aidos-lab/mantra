@@ -385,6 +385,28 @@ class TestBalancedDivided:
         assert sizes["train"] + sizes["val"] + sizes["test"] == 8
         assert sizes["ood"] == sizes["test"]
 
+    def test_every_class_is_balanced_to_target_count(
+        self, make_manifolds_json, tmp_path, no_dedup
+    ):
+        entries = [manifold_entry(f"s{i}", name="S^2") for i in range(7)] + [
+            manifold_entry(f"r{i}", name="RP^2", orientable=False)
+            for i in range(2)
+        ]
+        counts = Counter()
+        for split in ["train", "val", "test"]:
+            ds = make_divided(
+                make_manifolds_json,
+                entries,
+                tmp_path,
+                split_type=split,
+                balanced=True,
+                target_count=5,
+                n_moves=1,
+                use_surgery=False,
+            )
+            counts.update(d.name for d in ds)
+        assert counts == {"S^2": 5, "RP^2": 5}
+
     def test_processed_dir_separates_balanced(
         self, make_manifolds_json, balanced_entries, tmp_path, no_dedup
     ):

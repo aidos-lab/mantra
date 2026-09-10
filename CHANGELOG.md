@@ -22,6 +22,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   therefore depended on dataset traversal; use
   `AttributeToClassTransform` or a name transform instead.
 
+## Fixed
+
+- `MantraDataset(balanced=True)` balanced nothing since the split
+  refactor; the augmented and deduplicated entries are now used.
+
 ## Changed
 
 - `balanced=True` now computes the balanced dataset during `process()`
