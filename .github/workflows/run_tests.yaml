@@ -1,17 +1,29 @@
 name: Run tests
 
-on: [pull_request]
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Oldest supported (requires-python) and the version used locally.
+        python-version: ["3.10", "3.13"]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.10.11'
+          python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: uv sync

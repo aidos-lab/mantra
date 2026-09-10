@@ -39,9 +39,7 @@ def new_version(raw_endpoints: requests.Response, access_token):
 
 def discard(raw_endpoints: requests.Response, access_token):
     discard_api = raw_endpoints.json()["links"]["discard"]
-    response = requests.post(
-        discard_api, params={"access_token": access_token}
-    )
+    requests.post(discard_api, params={"access_token": access_token})
 
     # No need to check response here---it is possible that we cannot
     # discard somehing because there is no draft.
