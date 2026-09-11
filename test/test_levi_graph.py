@@ -1,4 +1,5 @@
 import pytest
+import torch
 from torch_geometric.data import Data
 
 from mantra.representations import LeviGraph
@@ -43,3 +44,14 @@ class TestLeviGraph:
         cnt_nodes = self._cnt_nodes(data)
 
         assert data.n_vertices == cnt_nodes + len(data.triangulation)
+
+    def test_node_types_mark_the_bipartition(self, transform, two_triangles):
+        data = transform(self._make_data(two_triangles))
+
+        # Vertices first (four of them), then the two triangles.
+        assert torch.equal(
+            data.node_type, torch.tensor([0, 0, 0, 0, 1, 1])
+        )
+        # Every edge joins a vertex to a triangle.
+        src, dst = data.edge_index
+        assert (data.node_type[src] != data.node_type[dst]).all()

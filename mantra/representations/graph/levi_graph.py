@@ -47,6 +47,12 @@ class LeviGraph(BaseTransform):
         nodes and each 0-simplex is connected to a maximal simplex if
         it's contained in it.
 
+        Every node carries a ``node_type`` attribute, 0 for a
+        0-simplex and 1 for a maximal simplex, so that a model can tell
+        the two parts of the bipartition apart. With a sum readout the
+        one-hot node types give the counts $(f_0, f_d)$, from which
+        the Euler characteristic of a closed surface follows as
+        $\chi = f_0 - f_2 / 2$.
         """
         # Guarantee the ordering
         top_simplices = list(set([tuple(s) for s in top_simplices]))
@@ -66,11 +72,11 @@ class LeviGraph(BaseTransform):
         # integers aligned with the original (zero-indexed) vertex
         # order.
         for v in vertices:
-            G.add_node(v - 1, simplex=[v - 1])
+            G.add_node(v - 1, simplex=[v - 1], node_type=0)
 
         # For each maximal simplex
         for i, simp in enumerate(top_simplices):
-            G.add_node(n + i, simplex=[v - 1 for v in simp])
+            G.add_node(n + i, simplex=[v - 1 for v in simp], node_type=1)
             # Connect the maximal simplex to the 0-simplices it contains
             for v in simp:
                 G.add_edge(v - 1, n + i)
