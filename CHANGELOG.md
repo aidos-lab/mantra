@@ -23,14 +23,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
-## Fixed
+- `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
+  in `task_transforms`: stateless node-level task transforms that turn
+  an attribute holding one value per vertex into `data.y` with one
+  target per vertex. The class transform accepts `mapping=None` and
+  keeps the raw values in `data.label`, like `AttributeToClassTransform`.
 
-- `CalabiYau` keys its raw and processed files on the name of the
-  local parquet file, so pointing `local_path` at another file no
-  longer reuses the previous file's processed data.
-
-- `CalabiYauDataset` applies `min_sample_per_class`, which was
-  documented but not accepted.
 
 ## Removed
 

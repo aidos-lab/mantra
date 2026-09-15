@@ -370,6 +370,8 @@ AttributeToClassTransform(
 AttributeToRegressionTransform("genus")
 ```
 
+Node-level targets are supported by `AttributeToNodeRegressionTransform(source)` and `AttributeToNodeClassTransform(source, mapping)`, which turn an attribute holding one value per vertex into `data.y` of shape `(n_vertices, 1)` (float regression target) or `(n_vertices,)` (class indices from a fixed `mapping`, or the values themselves with `mapping=None`), one entry per vertex in vertex order. The class transform keeps the raw values in `data.label`, like `AttributeToClassTransform`.
+
 ## More Examples 
 
 Please find more example notebooks in the [`examples`](/examples)
