@@ -49,10 +49,7 @@ class LeviGraph(BaseTransform):
 
         Every node carries a ``node_type`` attribute, 0 for a
         0-simplex and 1 for a maximal simplex, so that a model can tell
-        the two parts of the bipartition apart. With a sum readout the
-        one-hot node types give the counts $(f_0, f_d)$, from which
-        the Euler characteristic of a closed surface follows as
-        $\chi = f_0 - f_2 / 2$.
+        the two parts of the bipartition apart.
         """
         # Guarantee the ordering
         top_simplices = list(set([tuple(s) for s in top_simplices]))

@@ -23,18 +23,6 @@ class Triangulation(ABC):
     rng : random.Random or None
         Random number generator. If None, the module-level
         ``random`` is used.
-
-    Attributes
-    ----------
-    move_log : list of tuple
-        One ``(move_name, vertices)`` entry per successful Pachner
-        move, in order of application, e.g. ``("2-2", (3, 8))``.
-        ``vertices`` are the sorted labels of the simplex the move
-        acted on: the flipped edge (2-2, 3-2), the subdivided
-        triangle or tetrahedron (1-3, 1-4), the shared triangle (2-3)
-        or the removed vertex (3-1, 4-1). Labels refer to the
-        internal label space, which :meth:`to_list` compacts on
-        export.
     """
 
     def __init__(self, top_simplices, dimension, rng=None):
@@ -42,7 +30,6 @@ class Triangulation(ABC):
         self._simplices = {frozenset(s) for s in top_simplices}
         self._next_vertex = max(v for s in self._simplices for v in s) + 1
         self._rng = rng if rng is not None else random
-        self.move_log = []
 
     @staticmethod
     def from_list(triangulation, rng=None) -> "Triangulation":
@@ -179,12 +166,7 @@ class Triangulation(ABC):
         raise NotImplementedError()
 
     def random_walk(self, n_steps, moves_per_step=1, weights=None):
-        """Apply a random Pachner walk in place and record snapshots.
-
-        Performs ``n_steps * moves_per_step`` successful random
-        Pachner moves and returns a snapshot of the triangulation
-        after every ``moves_per_step`` moves. The moves are appended
-        to :attr:`move_log`.
+        """Apply a random Pachner walk in place and return its snapshots.
 
         Parameters
         ----------
@@ -198,24 +180,19 @@ class Triangulation(ABC):
         Returns
         -------
         list of list of list of int
-            ``[T_0, T_1, ..., T_n_steps]`` as :meth:`to_list` exports,
-            where ``T_0`` is the starting triangulation.
+            ``[T_0, T_1, ..., T_n_steps]`` as :meth:`to_list` exports.
 
         Raises
         ------
         RuntimeError
-            If no move with positive weight is possible. Each call to
-            :meth:`random_pachner_move` already tries every move type
-            with positive weight, so a failed call cannot succeed on
-            retry.
+            If no move with positive weight is possible.
         """
         snapshots = [self.to_list()]
         for _ in range(n_steps):
             for _ in range(moves_per_step):
                 if not self.random_pachner_move(weights):
                     raise RuntimeError(
-                        "No Pachner move with positive weight is possible "
-                        f"after {len(self.move_log)} logged moves."
+                        "No Pachner move with positive weight is possible."
                     )
             snapshots.append(self.to_list())
         return snapshots
@@ -420,7 +397,6 @@ class Triangulation2D(Triangulation):
         for v in edge:
             self._simplices.add(frozenset(new_edge | {v}))
 
-        self.move_log.append(("2-2", tuple(sorted(edge))))
         return True
 
     def subdivide(self, triangle=None):
@@ -446,7 +422,6 @@ class Triangulation2D(Triangulation):
         for edge in combinations(triangle, 2):
             self._simplices.add(frozenset(edge) | {v})
 
-        self.move_log.append(("1-3", tuple(sorted(triangle))))
         return True
 
     def move_3_1(self, vertex=None):
@@ -469,76 +444,43 @@ class Triangulation2D(Triangulation):
             exists.
         """
         if vertex is None:
-            valid_verts = self._find_3_1_candidates()
+            # Vertex order follows the simplex set, as the sampled walks
+            # of existing caches depend on it.
+            vertices = dict.fromkeys(v for s in self._simplices for v in s)
+            valid_verts = [
+                v for v in vertices if self._3_1_target(v) is not None
+            ]
             if not valid_verts:
                 return False
             vertex = self._rng.choice(valid_verts)
 
+        target = self._3_1_target(vertex)
+        if target is None:
+            return False
+        star, new_triangle = target
+
+        # Discard in place: rebuilding the set would reorder it and
+        # change the random choices that follow.
+        for s in star:
+            self._simplices.discard(s)
+        self._simplices.add(new_triangle)
+        return True
+
+    def _3_1_target(self, vertex):
+        """Star and triangle of the 3-1 move on ``vertex``, None if invalid."""
         star = [s for s in self._simplices if vertex in s]
         if len(star) != 3:
-            return False
-
+            return None
         link_verts = set()
         for s in star:
             link_verts |= s - {vertex}
-
-        if len(link_verts) != 3:
-            return False
-
         new_triangle = frozenset(link_verts)
-        expected_star = {(new_triangle - {w}) | {vertex} for w in link_verts}
-        # Defensive: three distinct triangles with a three-vertex link
-        # are exactly the three edges of new_triangle joined to
-        # ``vertex``, so this never fires. Kept as a guard against
-        # malformed input.
-        if expected_star != set(star):  # pragma: no cover
-            return False
-
-        # Collapsing onto an existing triangle would double that face.
-        if new_triangle in self._simplices:
-            return False
-
-        for s in star:
-            self._simplices.discard(s)
-
-        self._simplices.add(new_triangle)
-
-        self.move_log.append(("3-1", (vertex,)))
-        return True
-
-    # The 2D moves predate the ``move_i_j`` naming of the 3D class;
-    # the aliases give both dimensions the same interface.
-    move_2_2 = flip_edge
-    move_1_3 = subdivide
-
-    def _find_3_1_candidates(self):
-        """Find all vertices valid for a 3-1 move."""
-        vert_triangles = {}
-        for s in self._simplices:
-            for v in s:
-                vert_triangles.setdefault(v, []).append(s)
-
-        candidates = []
-        for v, star in vert_triangles.items():
-            if len(star) != 3:
-                continue
-            link_verts = set()
-            for s in star:
-                link_verts |= s - {v}
-            if len(link_verts) != 3:
-                continue
-
-            new_triangle = frozenset(link_verts)
-            expected = {(new_triangle - {w}) | {v} for w in link_verts}
-            # Defensive: see move_3_1 — unreachable for well-formed input.
-            if expected != set(star):  # pragma: no cover
-                continue
-            if new_triangle in self._simplices:
-                continue
-
-            candidates.append(v)
-
-        return candidates
+        # Three distinct triangles around a vertex with a three-vertex
+        # link are always its subdivided triangle; collapsing onto an
+        # existing triangle would double that face.
+        if len(link_verts) != 3 or new_triangle in self._simplices:
+            return None
+        return star, new_triangle
 
     def _glue_torus(self, triangle=None):
         """Connected sum with a torus (increases genus by 1).
@@ -728,7 +670,6 @@ class Triangulation3D(Triangulation):
         for face in combinations(tet, 3):
             self._simplices.add(frozenset(face) | {v})
 
-        self.move_log.append(("1-4", tuple(sorted(tet))))
         return True
 
     def move_2_3(self, face=None):
@@ -785,7 +726,6 @@ class Triangulation3D(Triangulation):
         for edge in combinations(face, 2):
             self._simplices.add(frozenset(edge) | {d, e})
 
-        self.move_log.append(("2-3", tuple(sorted(face))))
         return True
 
     def move_3_2(self, edge=None):
@@ -856,7 +796,6 @@ class Triangulation3D(Triangulation):
         self._simplices.add(link_face | {d})
         self._simplices.add(link_face | {e})
 
-        self.move_log.append(("3-2", tuple(sorted(edge))))
         return True
 
     def move_4_1(self, vertex=None):
@@ -916,7 +855,6 @@ class Triangulation3D(Triangulation):
         # add the collapsed tetrahedron
         self._simplices.add(new_tet)
 
-        self.move_log.append(("4-1", (vertex,)))
         return True
 
     def _edge_exists(self, d, e):

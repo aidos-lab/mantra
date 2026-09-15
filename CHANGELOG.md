@@ -8,17 +8,15 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 ## Added
 
 - `Triangulation2D.move_3_1`, the vertex removal inverse to the 1-3
-  move, plus the aliases `move_1_3` (= `subdivide`) and `move_2_2`
-  (= `flip_edge`) so both dimensions share the `move_i_j` naming.
+  move.
 
-- `Triangulation.move_log`, which records every successful Pachner
-  move as `(move_name, vertices)`, and `Triangulation.random_walk`,
-  which applies a random Pachner walk in place and returns the
-  triangulation after every `moves_per_step` moves.
+- `Triangulation.random_walk`, which applies a random Pachner walk in
+  place and returns the triangulation after every `moves_per_step`
+  moves.
 
 - `PachnerWalkDataset`, which builds the `MantraDataset` splits and
   expands every train, val and test entry into the snapshots of a
-  random Pachner walk (`walk_length`, `moves_per_step`, `walk_seed`),
+  random Pachner walk (`walk_length`, `moves_per_step`, `move_weights`),
   each with `walk_base` and `walk_step` attributes. The walk
   parameters are encoded in the split file names, so caches do not
   collide with those of `MantraDataset`.

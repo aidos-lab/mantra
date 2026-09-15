@@ -168,7 +168,3 @@ class TestMove31:
         t = Triangulation.from_list([[1, 2, 3], [1, 3, 4], [1, 4, 5]])
         assert t.move_3_1(1) is False
         assert len(t._simplices) == 3
-
-    def test_aliases(self):
-        assert Triangulation2D.move_1_3 is Triangulation2D.subdivide
-        assert Triangulation2D.move_2_2 is Triangulation2D.flip_edge

@@ -49,9 +49,7 @@ class TestLeviGraph:
         data = transform(self._make_data(two_triangles))
 
         # Vertices first (four of them), then the two triangles.
-        assert torch.equal(
-            data.node_type, torch.tensor([0, 0, 0, 0, 1, 1])
-        )
+        assert torch.equal(data.node_type, torch.tensor([0, 0, 0, 0, 1, 1]))
         # Every edge joins a vertex to a triangle.
         src, dst = data.edge_index
         assert (data.node_type[src] != data.node_type[dst]).all()

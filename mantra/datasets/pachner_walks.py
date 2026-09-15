@@ -17,40 +17,27 @@ WALK_SEED_OFFSETS = {"train": 1, "val": 2, "test": 3}
 class PachnerWalkDataset(MantraDataset):
     """MANTRA splits in which every entry is expanded into a Pachner walk.
 
-    The train, val and test splits contain the same base entries as
-    :class:`MantraDataset` with the same ``seed``, but every base
-    triangulation ``T_0`` is followed by the snapshots ``T_1, ...,
-    T_K`` of a random Pachner walk started from it, each snapshot a
-    separate ``Data`` object. Entries are ordered base-major, i.e. all
-    snapshots of the first base entry precede those of the second. The
-    ``ood`` split is the same as for :class:`MantraDataset`.
-
-    With ``walk_length=0`` the dataset is identical to
-    :class:`MantraDataset`, including its cached files. Otherwise every
-    entry of the expanded splits carries two additional attributes:
+    Every base triangulation ``T_0`` of the train, val and test splits
+    of :class:`MantraDataset` is followed by the snapshots ``T_1, ...,
+    T_K`` of a random Pachner walk started from it, each a separate
+    ``Data`` object with ``triangulation`` and ``n_vertices`` of the
+    snapshot and every other attribute copied from the base entry. Two
+    attributes identify the walk:
 
     ``walk_base``
-        Position of its base entry within the split, starting at 0. The
-        name deliberately avoids the substring ``index``: PyTorch
-        Geometric increments attributes whose key contains it when
-        collating a batch, which would renumber the walks.
+        Position of the base entry within the split. The name avoids
+        the substring ``index``, which PyTorch Geometric increments
+        when collating a batch.
     ``walk_step``
-        Index ``k`` of the snapshot ``T_k`` on the walk; the base entry
-        itself has ``walk_step = 0`` and keeps its ``id``, later
-        snapshots get the id ``"<base id>_walk_<k>"``.
+        Index ``k`` of the snapshot; ``k > 0`` gets the id
+        ``"<base id>_walk_<k>"``.
 
-    ``triangulation`` and ``n_vertices`` describe the snapshot; all
-    other attributes (``name``, ``betti_numbers``, ``orientable``,
-    ``genus``, ...) are copied from the base entry, since Pachner moves
-    preserve the homeomorphism type.
-
-    Two snapshots ``a`` and ``b`` on the same walk are separated by
-    ``|walk_step_a - walk_step_b| * moves_per_step`` random moves.
-    This is an upper bound on their Pachner distance (the minimal
-    number of moves connecting them), not the distance itself: a walk
-    can undo its own moves. Treat it as a monotone proxy for the
-    distance. Snapshots of different walks are not related by any
-    known number of moves.
+    ``|walk_step_a - walk_step_b| * moves_per_step`` random moves
+    separate two snapshots of one walk. This is an upper bound on their
+    Pachner distance, not the distance itself, since a walk can undo
+    its own moves. The ``ood`` split and, with ``walk_length=0``, all
+    splits are identical to :class:`MantraDataset`, cache files
+    included.
 
     Parameters
     ----------
@@ -59,19 +46,12 @@ class PachnerWalkDataset(MantraDataset):
         0 disables the expansion.
     moves_per_step : int
         Number of random Pachner moves between consecutive snapshots.
-    walk_seed : int or None
-        Seed of the random walks. Defaults to ``seed``, so changing
-        the split seed also changes the walks; set it explicitly to
-        draw different walks over the same splits.
     move_weights : sequence of float or None
-        Relative weights of the move types ``(flip, subdivide,
-        coarsen)``, i.e. the 2-2, 1-3 and 3-1 moves in 2D, forwarded to
-        :meth:`Triangulation.random_walk`. ``None`` means equal
-        weights. ``(1, 1, 0)`` never coarsens, so the snapshots are
-        refinements of the base triangulation. The weights are part of
-        the cache-file name.
+        Relative weights of the ``(flip, subdivide, coarsen)`` moves,
+        i.e. 2-2, 1-3 and 3-1 in 2D; ``None`` means equal weights and
+        ``(1, 1, 0)`` gives refining walks.
     seed : int
-        Split seed, see :class:`MantraDataset`.
+        Split seed, see :class:`MantraDataset`; also seeds the walks.
     kwargs : dict
         All other arguments of :class:`MantraDataset`.
     """
@@ -83,7 +63,6 @@ class PachnerWalkDataset(MantraDataset):
         *,
         walk_length: int = 0,
         moves_per_step: int = 1,
-        walk_seed: int | None = None,
         move_weights: Sequence[float] | None = None,
         seed: int = 42,
         **kwargs,
@@ -96,16 +75,13 @@ class PachnerWalkDataset(MantraDataset):
             )
         if move_weights is not None:
             move_weights = tuple(float(w) for w in move_weights)
-            if len(move_weights) != 3 or any(w < 0 for w in move_weights):
+            if len(move_weights) != 3:
                 raise ValueError(
-                    "move_weights needs three non-negative entries "
-                    f"(flip, subdivide, coarsen), got {list(move_weights)}"
+                    "move_weights needs three entries (flip, subdivide, "
+                    f"coarsen), got {list(move_weights)}"
                 )
-            if sum(move_weights) == 0:
-                raise ValueError("move_weights must not all be zero")
         self.walk_length = walk_length
         self.moves_per_step = moves_per_step
-        self.walk_seed = seed if walk_seed is None else walk_seed
         self.move_weights = move_weights
         super().__init__(root, split_type, seed=seed, **kwargs)
 
@@ -113,24 +89,15 @@ class PachnerWalkDataset(MantraDataset):
         """Suffix encoding the walk parameters; empty without walks."""
         if self.walk_length == 0:
             return ""
-        suffix = (
-            f"_walk{self.walk_length}x{self.moves_per_step}"
-            f"_ws{self.walk_seed}"
-        )
+        suffix = f"_walk{self.walk_length}x{self.moves_per_step}_ws{self.seed}"
         if self.move_weights is not None:
-            # Equal weights keep the historical file name.
             weights = "-".join(f"{w:g}" for w in self.move_weights)
             suffix += f"_mw{weights}"
         return suffix
 
     @property
     def processed_file_names(self):
-        """Return processed file names.
-
-        The walk parameters are appended to the train, val and test
-        file names only; the OOD file is the same as for
-        :class:`MantraDataset` and can be shared with it.
-        """
+        """Walk parameters go into the train, val and test names only."""
         names = super().processed_file_names
         suffix = self._walk_file_suffix()
         return [
@@ -142,7 +109,7 @@ class PachnerWalkDataset(MantraDataset):
         if self.walk_length == 0:
             return data_list
 
-        rng = random.Random(self.walk_seed + WALK_SEED_OFFSETS[split_type])
+        rng = random.Random(self.seed + WALK_SEED_OFFSETS[split_type])
         expanded = []
         for walk_base, data in enumerate(
             tqdm(data_list, desc=f"Pachner walks ({split_type})")

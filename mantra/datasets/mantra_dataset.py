@@ -391,22 +391,9 @@ class MantraDataset(ManifoldTriangulations):
             self.save(data_split_list, self.processed_paths[i])
 
     def _expand_split(self, split_type: str, data_list: List[Data]):
-        """Hook for subclasses to expand an in-distribution split.
+        """Hook for subclasses to expand a train, val or test split.
 
-        Called for the train, val and test splits with the entries of
-        that split before the pre-transform is applied. Returns the
+        Runs before the pre-transform; the base class returns the
         entries unchanged.
-
-        Parameters
-        ----------
-        split_type : str
-            One of "train", "val" or "test".
-        data_list : list of Data
-            Entries of the split.
-
-        Returns
-        -------
-        list of Data
-            Entries to save for the split.
         """
         return data_list

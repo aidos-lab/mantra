@@ -182,14 +182,14 @@ class TestWalks:
     def test_walks_are_reproducible_and_seed_dependent(
         self, make_manifolds_json, entries_2d, tmp_path
     ):
-        def triangulations(walk_seed):
+        def triangulations(seed):
             ds = make_walks(
                 make_manifolds_json,
                 entries_2d,
                 tmp_path,
                 split_type="train",
                 walk_length=3,
-                walk_seed=walk_seed,
+                seed=seed,
             )
             return [d.triangulation for d in ds]
 
@@ -197,7 +197,7 @@ class TestWalks:
         assert triangulations(1) != triangulations(2)
 
     def test_move_weights_validation(self, tmp_path):
-        for bad in ([1, 1], [1, -1, 0], [0, 0, 0]):
+        for bad in ([1, 1], [1, 1, 0, 0]):
             with pytest.raises(ValueError, match="move_weights"):
                 PachnerWalkDataset(
                     str(tmp_path / "root"),
@@ -257,7 +257,7 @@ class TestCache:
         for key, kwargs in {
             "none": {},
             "walk": dict(walk_length=3),
-            "walk_other_seed": dict(walk_length=3, walk_seed=7),
+            "walk_other_seed": dict(walk_length=3, seed=7),
             "walk_more_moves": dict(walk_length=3, moves_per_step=2),
         }.items():
             ds = make_walks(

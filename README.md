@@ -330,7 +330,6 @@ dataset_train = PachnerWalkDataset(
     split_type="train",
     walk_length=4,  # snapshots per entry, in addition to the original
     moves_per_step=3,  # random Pachner moves between snapshots
-    walk_seed=0,  # defaults to the split seed
 )
 ```
 
