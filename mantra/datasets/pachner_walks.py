@@ -1,7 +1,7 @@
 """Dataset of Pachner walks starting from MANTRA triangulations."""
 
 import random
-from typing import List
+from typing import List, Sequence
 
 from torch_geometric.data import Data
 from tqdm import tqdm
@@ -63,6 +63,13 @@ class PachnerWalkDataset(MantraDataset):
         Seed of the random walks. Defaults to ``seed``, so changing
         the split seed also changes the walks; set it explicitly to
         draw different walks over the same splits.
+    move_weights : sequence of float or None
+        Relative weights of the move types ``(flip, subdivide,
+        coarsen)``, i.e. the 2-2, 1-3 and 3-1 moves in 2D, forwarded to
+        :meth:`Triangulation.random_walk`. ``None`` means equal
+        weights. ``(1, 1, 0)`` never coarsens, so the snapshots are
+        refinements of the base triangulation. The weights are part of
+        the cache-file name.
     seed : int
         Split seed, see :class:`MantraDataset`.
     kwargs : dict
@@ -77,6 +84,7 @@ class PachnerWalkDataset(MantraDataset):
         walk_length: int = 0,
         moves_per_step: int = 1,
         walk_seed: int | None = None,
+        move_weights: Sequence[float] | None = None,
         seed: int = 42,
         **kwargs,
     ):
@@ -86,19 +94,34 @@ class PachnerWalkDataset(MantraDataset):
             raise ValueError(
                 f"moves_per_step must be >= 1, got {moves_per_step}"
             )
+        if move_weights is not None:
+            move_weights = tuple(float(w) for w in move_weights)
+            if len(move_weights) != 3 or any(w < 0 for w in move_weights):
+                raise ValueError(
+                    "move_weights needs three non-negative entries "
+                    f"(flip, subdivide, coarsen), got {list(move_weights)}"
+                )
+            if sum(move_weights) == 0:
+                raise ValueError("move_weights must not all be zero")
         self.walk_length = walk_length
         self.moves_per_step = moves_per_step
         self.walk_seed = seed if walk_seed is None else walk_seed
+        self.move_weights = move_weights
         super().__init__(root, split_type, seed=seed, **kwargs)
 
     def _walk_file_suffix(self):
         """Suffix encoding the walk parameters; empty without walks."""
         if self.walk_length == 0:
             return ""
-        return (
+        suffix = (
             f"_walk{self.walk_length}x{self.moves_per_step}"
             f"_ws{self.walk_seed}"
         )
+        if self.move_weights is not None:
+            # Equal weights keep the historical file name.
+            weights = "-".join(f"{w:g}" for w in self.move_weights)
+            suffix += f"_mw{weights}"
+        return suffix
 
     @property
     def processed_file_names(self):
@@ -128,7 +151,7 @@ class PachnerWalkDataset(MantraDataset):
                 data.triangulation, rng=rng
             )
             snapshots = triangulation.random_walk(
-                self.walk_length, self.moves_per_step
+                self.walk_length, self.moves_per_step, self.move_weights
             )
             for step, simplices in enumerate(snapshots):
                 entry = Data(**data.to_dict())

@@ -196,6 +196,41 @@ class TestWalks:
         assert triangulations(1) == triangulations(1)
         assert triangulations(1) != triangulations(2)
 
+    def test_move_weights_validation(self, tmp_path):
+        for bad in ([1, 1], [1, -1, 0], [0, 0, 0]):
+            with pytest.raises(ValueError, match="move_weights"):
+                PachnerWalkDataset(
+                    str(tmp_path / "root"),
+                    split_type="train",
+                    walk_length=1,
+                    move_weights=bad,
+                )
+
+    def test_refining_walks_never_lose_vertices(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        ds = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="train",
+            walk_length=3,
+            moves_per_step=2,
+            move_weights=[1, 1, 0],
+        )
+        plain = make_plain(
+            make_manifolds_json, entries_2d, tmp_path, split_type="train"
+        )
+        # Weights are part of the cache name, so these walks never share
+        # files with equally weighted ones.
+        assert all("_mw1-1-0" in n for n in ds.processed_file_names[:3])
+        for i, data in enumerate(ds):
+            step = i % 4
+            if step > 0:
+                previous = ds[i - 1]
+                assert int(data.n_vertices) >= int(previous.n_vertices)
+        assert len(ds) == 4 * len(plain)
+
     def test_pre_transform_sees_expanded_entries(
         self, make_manifolds_json, entries_2d, tmp_path
     ):
