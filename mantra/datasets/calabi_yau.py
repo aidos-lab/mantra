@@ -76,8 +76,10 @@ class CalabiYau(InMemoryDataset):
 
         local_path : str or None
             If set, use a local parquet file instead of downloading from
-            GitHub. The file will be copied into the raw directory.
-            Useful for testing locally generated datasets.
+            GitHub. The file is copied into the raw directory under its
+            own name and processed into a directory of that name, so
+            different files coexist; files sharing a name also share
+            the cache (use `force_reload` after replacing one).
 
         limit : int or None
             Only process the first `limit` triangulations. Limited
@@ -129,17 +131,23 @@ class CalabiYau(InMemoryDataset):
         for downloading to be skipped. To reference raw file names, use the
         property `self.raw_paths`.
         """
-        return ["manifolds.parquet"]
+        if self.local_path is None:
+            return ["manifolds.parquet"]
+        return [os.path.basename(self.local_path)]
 
     @property
     def processed_dir(self):
         """Return path of directory with the processed files.
 
-        The path encodes the optional `name` and `limit` parameters so
-        that differently prepared variants of the dataset can coexist.
+        The path encodes the local parquet file and the optional `name`
+        and `limit` parameters so that differently prepared variants of
+        the dataset can coexist.
         """
         path = os.path.join(self.root, "processed")
 
+        if self.local_path is not None:
+            stem = os.path.splitext(os.path.basename(self.local_path))[0]
+            path = os.path.join(path, stem)
         if self.name is not None:
             path = os.path.join(path, self.name)
         if self.limit is not None:

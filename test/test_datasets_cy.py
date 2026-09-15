@@ -173,6 +173,35 @@ class TestCYSplits:
             )
 
 
+class TestCYClassFilter:
+    def test_min_sample_per_class_drops_rare_values(
+        self, tmp_path, make_cy_parquet
+    ):
+        # h12 attains 0, 1, 2 ten times each and 7 twice.
+        rows = _numbered_rows(30)
+        for i in (30, 31):
+            rows.append({**rows[0], "h11": i, "h12": 7})
+
+        splits = [
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                rows,
+                split_type,
+                label_source="h12",
+                min_sample_per_class=2,
+            )
+            for split_type in ("train", "val", "test")
+        ]
+
+        assert sum(len(split) for split in splits) == 30
+        assert all(int(data.h12) != 7 for split in splits for data in split)
+        assert "ccf2" in splits[0].processed_paths[0]
+
+        unfiltered = _load_split(tmp_path, make_cy_parquet, rows, "train")
+        assert "ccf" not in unfiltered.processed_paths[0]
+
+
 class TestCYStratified:
     def test_stratified_split_balances_label_source(
         self, tmp_path, make_cy_parquet

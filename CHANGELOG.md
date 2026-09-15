@@ -29,6 +29,7 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   target per vertex. The class transform accepts `mapping=None` and
   keeps the raw values in `data.label`, like `AttributeToClassTransform`.
 
+
 ## Removed
 
 - `CreateLabels`, which assigned class indices in encounter order and
