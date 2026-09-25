@@ -7,6 +7,15 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `MantraDataset(division_type="pachner")`, an OOD split built by a
+  random Pachner walk instead of a subdivision: `target` or
+  `match={"division_type": ..., ...}` fixes the vertex count the walk
+  stops at (`match` takes the count the named subdivision would give
+  the same source, so the two OOD splits are size-matched entry by
+  entry), `move_weights` the `(flip, subdivide, coarsen)` weights of
+  that walk and `mix` the number of extra 2-2 flips per vertex that
+  change the local structure at fixed size.
+
 - `Triangulation2D.move_3_1`, the vertex removal inverse to the 1-3
   move.
 
@@ -40,6 +49,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   `AttributeToClassTransform` or a name transform instead.
 
 ## Fixed
+
+- The sources of the OOD split are now drawn from their own random
+  stream, so every subdivision of one seed starts from the same test
+  entries; before, the draws of one subdivision shifted the sources of
+  the next class. OOD file names carry an `_ss` marker, so caches of
+  the old draw are not reused.
 
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.

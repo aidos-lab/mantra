@@ -332,7 +332,7 @@ class TestProcessedFileNames:
             "train.pt",
             "val.pt",
             "test.pt",
-            "ood_barycentric_1.pt",
+            "ood_barycentric_1_ss.pt",
         ]
 
     def test_names_encode_parameters(self):
@@ -346,7 +346,7 @@ class TestProcessedFileNames:
             "train_ccf5.pt",
             "val_ccf5.pt",
             "test_ccf5.pt",
-            "ood_graded_50_cap100_ccf5.pt",
+            "ood_graded_50_cap100_ss_ccf5.pt",
         ]
 
     def test_names_encode_split_proportions_and_stratified(self):
@@ -355,7 +355,7 @@ class TestProcessedFileNames:
 
     def test_stellar_name_encodes_fraction(self):
         names = self._names(division_type="stellar", fraction=0.5)
-        assert names[-1] == "ood_stellar_0.5.pt"
+        assert names[-1] == "ood_stellar_0.5_ss.pt"
 
 
 class TestBalancedDivided:
