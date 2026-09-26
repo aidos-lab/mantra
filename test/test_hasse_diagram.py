@@ -93,3 +93,16 @@ def test_forward_propagates_coordinate_barycenters_per_node():
     # All 14 features are pairwise distinct (powers-of-two coordinates),
     # so a misindexed lookup cannot pass the loop above.
     assert out.x.unique(dim=0).shape[0] == 14
+
+
+def test_nodes_carry_their_rank():
+    data = Data(triangulation=TETRAHEDRON_TRI, dimension=2)
+    out = HasseDiagram(feature_propagation=None)(data)
+
+    # 4 vertices, 6 edges, 4 triangles, and every edge of the diagram
+    # joins consecutive ranks.
+    assert torch.bincount(out.rank).tolist() == [4, 6, 4]
+    src, dst = out.edge_index
+    assert ((out.rank[src] - out.rank[dst]).abs() == 1).all()
+    # The rank matches the size of the simplex the node stands for.
+    assert all(int(r) == len(s) - 1 for r, s in zip(out.rank, out.simplex))

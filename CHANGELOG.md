@@ -27,6 +27,10 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   unchanged) and checks a Pachner `target` against `max_vertices` the
   way graded checks `graded_vertex_number`.
 
+- `HasseDiagram` nodes carry their `rank`, so a model can tell the
+  ranks apart and a sum readout can count them (as `LeviGraph` nodes
+  carry `node_type`).
+
 - `Triangulation2D.move_3_1`, the vertex removal inverse to the 1-3
   move.
 

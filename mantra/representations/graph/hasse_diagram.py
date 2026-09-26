@@ -126,7 +126,10 @@ class HasseDiagram(BaseTransform):
             if G.has_node(k_simp):
                 continue
 
-            extra_attr_dict = {"simplex": [sim - 1 for sim in k_simp]}
+            extra_attr_dict = {
+                "simplex": [sim - 1 for sim in k_simp],
+                "rank": len(k_simp) - 1,
+            }
 
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(k_simp)-1}"
@@ -147,7 +150,9 @@ class HasseDiagram(BaseTransform):
         """
         Construct the Hasse diagram out of the triangulation of a
         $d$-manifold. There is a vertex for each k-simplex and it's joined
-        in a directed fashion to the k+1 simplex it is a subset of.
+        in a directed fashion to the k+1 simplex it is a subset of. Every
+        node carries its ``rank`` k, so that a model can tell the
+        ranks apart and a sum readout can count them.
 
         Parameters
         ----------
@@ -163,7 +168,10 @@ class HasseDiagram(BaseTransform):
         G = nx.Graph()
 
         for top_simp in top_simplices:
-            extra_attr_dict = {"simplex": [sim - 1 for sim in top_simp]}
+            extra_attr_dict = {
+                "simplex": [sim - 1 for sim in top_simp],
+                "rank": len(top_simp) - 1,
+            }
 
             if self.feature_propagation:
                 vtx_feat_str = f"{self.feature_propagation}_{len(top_simp)-1}"
