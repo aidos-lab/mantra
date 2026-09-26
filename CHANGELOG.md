@@ -7,14 +7,25 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
-- `MantraDataset(division_type="pachner")`, an OOD split built by a
-  random Pachner walk instead of a subdivision: `target` or
+- `MantraDataset(division_type="pachner")` (2D only), an OOD split built
+  by a random Pachner walk instead of a subdivision: `target` or
   `match={"division_type": ..., ...}` fixes the vertex count the walk
   stops at (`match` takes the count the named subdivision would give
   the same source, so the two OOD splits are size-matched entry by
   entry), `move_weights` the `(flip, subdivide, coarsen)` weights of
   that walk and `mix` the number of extra 2-2 flips per vertex that
   change the local structure at fixed size.
+
+- `MantraDataset(relabel=True)` renames the vertices of every OOD entry
+  by a random permutation after the subdivision or walk, so the entry
+  leaves the canonical labelling of the release; with
+  `division_type="pachner"` alone it is an isomorphic copy of its
+  source. `Triangulation.relabel_vertices` does the renaming.
+
+- `MantraDataset` rejects subdivision arguments its `division_type`
+  does not take (a typo used to be ignored and yield the test split
+  unchanged) and checks a Pachner `target` against `max_vertices` the
+  way graded checks `graded_vertex_number`.
 
 - `Triangulation2D.move_3_1`, the vertex removal inverse to the 1-3
   move.
@@ -50,16 +61,19 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
-- The sources of the OOD split are now drawn from their own random
-  stream, so every subdivision of one seed starts from the same test
-  entries; before, the draws of one subdivision shifted the sources of
-  the next class. OOD file names carry an `_ss` marker, so caches of
-  the old draw are not reused.
-
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.
 
 ## Changed
+
+- All sources of the OOD split are drawn before any subdivision runs,
+  so every subdivision of one seed starts from the same test entries.
+  Graded and partial-stellar OOD splits therefore differ from earlier
+  versions at the same seed (their draws used to shift the sources of
+  the following classes); barycentric and full-stellar splits are
+  unchanged in content. OOD file names carry an `_ss` marker, so older
+  caches are rebuilt rather than reused. To reproduce earlier graded or
+  partial-stellar results, use 0.0.19.
 
 - `Triangulation2D.random_pachner_move` now samples from the 2-2, 1-3
   and 3-1 moves (`weights` has three entries) and, like the 3D

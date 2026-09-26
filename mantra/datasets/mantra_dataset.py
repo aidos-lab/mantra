@@ -38,9 +38,16 @@ class SubdivisionType(Enum):
         raise ValueError(f"There is no Subdivision with name {sub_name}")
 
 
-# Pachner walks of the OOD split: (flip, subdivide, coarsen) weights of
-# the size-changing phase, and the number of moves allowed per vertex
-# the walk has to gain before it is declared stuck.
+# Arguments of the OOD subdivisions, see MantraDataset.
+SUBDIVISION_KEYS = {
+    SubdivisionType.BARYCENTRIC: {"round"},
+    SubdivisionType.STELLAR: {"fraction"},
+    SubdivisionType.GRADED: {"graded_vertex_number"},
+    SubdivisionType.PACHNER: {"target", "match", "move_weights", "mix"},
+}
+# Pachner walks of the OOD split (2D only): (flip, subdivide, coarsen)
+# weights of the size-changing phase, and the number of moves allowed
+# per vertex the walk has to gain before it is declared stuck.
 DEFAULT_PACHNER_WEIGHTS = (1.0, 1.0, 0.0)
 PACHNER_MOVE_BUDGET = 100
 
@@ -73,6 +80,7 @@ class MantraDataset(ManifoldTriangulations):
         target_count: int = 10,
         use_surgery: bool = False,
         max_ood_size_per_class: int | None = None,
+        relabel: bool = False,
         **kwargs,
     ):
         """
@@ -110,24 +118,32 @@ class MantraDataset(ManifoldTriangulations):
             randomized subdivisions (graded, or stellar with
             ``fraction`` < 1), while barycentric subdivision is
             deterministic and produces exact duplicates.
+        relabel : bool
+            Rename the vertices of every OOD entry by a random
+            permutation after the subdivision or walk. The entry then
+            leaves the canonical labelling of the release without any
+            further change; with ``division_type="pachner"`` and no other
+            argument it is an isomorphic copy of its source.
         kwargs : Dict
-            Arguments for the subdivision. Barycentric accepts ``round``
-            (number of rounds, default 1), stellar accepts ``fraction``
-            (fraction of top-simplices to subdivide, default 1.0), and
-            graded requires ``graded_vertex_number``: every OOD sample is grown
-            to exactly this number of vertices, and test-set sources that
-            already have ``graded_vertex_number`` or more vertices are excluded
-            from the OOD split. Pachner accepts ``target`` (vertex count
-            the walk stops at) or ``match`` (a dict with the
-            ``division_type`` and arguments of another subdivision; the
-            walk stops at the vertex count that subdivision would give
-            the same source, so both OOD splits are matched in size
-            source by source) or neither (the vertex count stays);
-            ``move_weights``, the ``(flip, subdivide, coarsen)`` weights
-            of the walk up to the target (default ``(1, 1, 0)``); and
-            ``mix``, the number of extra 2-2 flips per vertex applied
-            afterwards (default 0), which changes the local structure
-            without changing the size.
+            Arguments of the subdivision, checked against the division
+            type.
+
+            - barycentric: ``round``, number of rounds (default 1).
+            - stellar: ``fraction`` of top simplices to subdivide
+              (default 1.0).
+            - graded: ``graded_vertex_number``, the vertex count every
+              OOD entry is grown to (required, must exceed
+              ``max_vertices``).
+            - pachner (2D only), a random Pachner walk from the source:
+              ``target``, the vertex count it stops at, or ``match``,
+              a dict with the ``division_type`` and arguments of another
+              subdivision, whose vertex count on the same source is the
+              target (so the two OOD splits are matched in size entry
+              by entry); neither keeps the size. ``move_weights``, the
+              ``(flip, subdivide, coarsen)`` weights of that walk
+              (default ``(1, 1, 0)``), and ``mix``, extra 2-2 flips per
+              vertex applied afterwards (default 0), which change the
+              local structure but not the size.
         """
         if split_type not in SPLIT_TYPES:
             raise ValueError(
@@ -147,6 +163,7 @@ class MantraDataset(ManifoldTriangulations):
         self.min_sample_per_class = min_sample_per_class
         self.division_type = SubdivisionType.from_str(division_type)
         self.max_ood_size_per_class = max_ood_size_per_class
+        self.relabel = bool(relabel)
         self.kwargs = kwargs
 
         if balanced and min_sample_per_class:
@@ -155,26 +172,9 @@ class MantraDataset(ManifoldTriangulations):
                 "min_sample_per_class is applied, so the filter can "
                 "re-imbalance or drop classes again."
             )
-        if self.division_type == SubdivisionType.GRADED:
-            if "graded_vertex_number" not in kwargs:
-                raise ValueError(
-                    "Graded subdivision requires a 'graded_vertex_number' keyword "
-                    "argument: the number of vertices every OOD sample is "
-                    "grown to."
-                )
-            if (
-                max_vertices is not None
-                and kwargs["graded_vertex_number"] <= max_vertices
-            ):
-                raise ValueError(
-                    f"graded_vertex_number ({kwargs['graded_vertex_number']}) must be "
-                    f"strictly greater than max_vertices ({max_vertices}); "
-                    "otherwise OOD samples are not guaranteed to be larger "
-                    "than the train/val/test triangulations."
-                )
-
-        if self.division_type == SubdivisionType.PACHNER:
-            self._validate_pachner_kwargs(kwargs, dimension)
+        self._validate_subdivision(
+            self.division_type, kwargs, max_vertices, dimension
+        )
 
         super().__init__(
             root,
@@ -194,36 +194,77 @@ class MantraDataset(ManifoldTriangulations):
             use_surgery,
         )
 
-    @staticmethod
-    def _validate_pachner_kwargs(kwargs, dimension):
-        if "target" in kwargs and "match" in kwargs:
+    @classmethod
+    def _validate_subdivision(cls, division_type, kwargs, max_vertices, dim):
+        """Reject unknown, missing and unsafe subdivision arguments."""
+        if division_type == SubdivisionType.NONE:
+            allowed = set()
+        else:
+            allowed = SUBDIVISION_KEYS[division_type]
+        if unknown := set(kwargs) - allowed:
             raise ValueError(
-                "Pachner walks take either 'target' or 'match', not both"
+                f"'{division_type}' does not take {sorted(unknown)}; "
+                f"its arguments are {sorted(allowed)}"
             )
-        match = kwargs.get("match")
-        if match is not None:
-            if not isinstance(match, dict) or "division_type" not in match:
+
+        if division_type == SubdivisionType.GRADED:
+            if "graded_vertex_number" not in kwargs:
                 raise ValueError(
-                    "'match' must be a dict with a 'division_type' and the "
-                    f"arguments of that subdivision, got {match!r}"
+                    "Graded subdivision requires 'graded_vertex_number': "
+                    "the number of vertices every OOD entry is grown to."
                 )
-            matched = SubdivisionType.from_str(match["division_type"])
-            if matched in (SubdivisionType.NONE, SubdivisionType.PACHNER):
-                raise ValueError(f"Cannot match the size of '{matched}'")
-        weights = kwargs.get("move_weights", DEFAULT_PACHNER_WEIGHTS)
-        n_moves = 3 if dimension == 2 else 4
-        if len(weights) != n_moves or any(w < 0 for w in weights):
-            raise ValueError(
-                f"move_weights needs {n_moves} non-negative entries in "
-                f"dimension {dimension}, got {list(weights)}"
+            cls._check_above_max_vertices(
+                "graded_vertex_number",
+                kwargs["graded_vertex_number"],
+                max_vertices,
             )
-        if ("target" in kwargs or match is not None) and weights[1] <= 0:
+
+        if division_type == SubdivisionType.PACHNER:
+            if dim != 2:
+                raise NotImplementedError("Pachner OOD splits are 2D only")
+            if "target" in kwargs and "match" in kwargs:
+                raise ValueError(
+                    "Pachner walks take 'target' or 'match', not both"
+                )
+            if "target" in kwargs:
+                cls._check_above_max_vertices(
+                    "target", kwargs["target"], max_vertices
+                )
+            if "match" in kwargs:
+                match = dict(kwargs["match"])
+                if "division_type" not in match:
+                    raise ValueError(
+                        "'match' needs the 'division_type' of the subdivision "
+                        f"to match and its arguments, got {kwargs['match']!r}"
+                    )
+                matched = SubdivisionType.from_str(match.pop("division_type"))
+                if matched in (SubdivisionType.NONE, SubdivisionType.PACHNER):
+                    raise ValueError(f"Cannot match the size of '{matched}'")
+                cls._validate_subdivision(matched, match, max_vertices, dim)
+            weights = kwargs.get("move_weights", DEFAULT_PACHNER_WEIGHTS)
+            if len(weights) != 3 or min(weights) < 0:
+                raise ValueError(
+                    "move_weights needs three non-negative entries "
+                    f"(flip, subdivide, coarsen), got {list(weights)}"
+                )
+            if ("target" in kwargs or "match" in kwargs) and weights[1] <= 0:
+                raise ValueError(
+                    "A Pachner walk with a size target needs a positive "
+                    "weight for the 1-3 move"
+                )
+            if kwargs.get("mix", 0) < 0:
+                raise ValueError(f"mix must be >= 0, got {kwargs['mix']}")
+
+    @staticmethod
+    def _check_above_max_vertices(name, value, max_vertices):
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError(f"{name} must be an int, got {value!r}")
+        if max_vertices is not None and value <= max_vertices:
             raise ValueError(
-                "A Pachner walk with a size target needs a positive weight "
-                "for the vertex-adding move"
+                f"{name} ({value}) must be strictly greater than "
+                f"max_vertices ({max_vertices}); otherwise OOD entries are "
+                "not guaranteed to be larger than the train/val/test ones."
             )
-        if kwargs.get("mix", 0) < 0:
-            raise ValueError(f"mix must be >= 0, got {kwargs['mix']}")
 
     def _load_index(self):
         """Load the processed file matching ``split_type``."""
@@ -248,40 +289,47 @@ class MantraDataset(ManifoldTriangulations):
 
     @staticmethod
     def _subdivision_str(division_type, kwargs):
-        """Name of a subdivision and its arguments, as used in file names."""
+        """``<type>_<arguments>`` of a subdivision, as used in file names."""
         if division_type == SubdivisionType.BARYCENTRIC:
-            arg_str = f"{kwargs.get('round', 1)}"
+            args = f"{kwargs.get('round', 1)}"
         elif division_type == SubdivisionType.STELLAR:
-            arg_str = f"{kwargs.get('fraction', 1)}"
+            args = f"{kwargs.get('fraction', 1)}"
         elif division_type == SubdivisionType.GRADED:
-            arg_str = f"{kwargs['graded_vertex_number']}"
-        else:  # Pachner
-            if "target" in kwargs:
-                arg_str = f"t{kwargs['target']}"
-            elif kwargs.get("match") is not None:
-                match = dict(kwargs["match"])
-                matched = SubdivisionType.from_str(match.pop("division_type"))
-                arg_str = "m-" + MantraDataset._subdivision_str(matched, match)
-            else:
-                arg_str = "n"
+            args = f"{kwargs['graded_vertex_number']}"
+        else:
+            args = MantraDataset._pachner_str(kwargs)
+        return f"{division_type}_{args}"
+
+    @staticmethod
+    def _pachner_str(kwargs):
+        """Arguments of a Pachner walk, as used in file names."""
+        if "target" in kwargs:
+            args = f"t{kwargs['target']}"
+        elif "match" in kwargs:
+            match = dict(kwargs["match"])
+            matched = SubdivisionType.from_str(match.pop("division_type"))
+            args = "m-" + MantraDataset._subdivision_str(matched, match)
+        else:
+            args = "n"
+        if args != "n":  # the weights only act while the walk has a target
             weights = kwargs.get("move_weights", DEFAULT_PACHNER_WEIGHTS)
-            arg_str += "_w" + "-".join(f"{w:g}" for w in weights)
-            if kwargs.get("mix", 0):
-                arg_str += f"_mix{kwargs['mix']:g}"
-        return f"{division_type}_{arg_str}"
+            args += "_w" + "-".join(f"{w:g}" for w in weights)
+        if kwargs.get("mix", 0):
+            args += f"_mix{kwargs['mix']:g}"
+        return args
 
     def _build_ood_str(self):
         if self.division_type == SubdivisionType.NONE:
             return str(self.division_type)
 
         ood_str = self._subdivision_str(self.division_type, self.kwargs)
-
+        if self.relabel:
+            ood_str += "_rl"
         if self.max_ood_size_per_class is not None:
             ood_str += f"_cap{self.max_ood_size_per_class}"
-
-        # "ss": the OOD sources are drawn from their own random stream,
-        # shared by every subdivision (see _build_ood_split). Caches
-        # without the marker predate that and are not reused.
+        # "ss": all OOD sources are drawn before any subdivision (see
+        # _build_ood_split). Caches without the marker predate that and
+        # are not reused.
         return ood_str + "_ss"
 
     @property
@@ -336,18 +384,19 @@ class MantraDataset(ManifoldTriangulations):
         self._apply_subdivision(probe, matched, match)
         return probe.n_vertices
 
-    def _pachner_walk(self, triangle, target):
-        """Walk ``triangle`` to ``target`` vertices, then mix it with flips.
+    def _pachner_walk(self, triangle, data):
+        """Walk ``triangle`` (built from ``data``) as the kwargs prescribe.
 
-        The walk draws moves with ``move_weights`` until the vertex
-        count equals ``target`` (``None``: no size-changing phase), then
-        applies ``mix`` 2-2 flips per vertex, which keep the size. A
-        triangulation without a flippable edge, such as the tetrahedral
-        sphere, ends the mixing early.
+        Random moves with ``move_weights`` until the vertex count equals
+        the target (none: no size-changing phase), then ``mix`` 2-2
+        flips per vertex, which keep the size. A triangulation without a
+        flippable edge, such as the tetrahedral sphere, ends the mixing
+        early.
         """
         weights = tuple(
             self.kwargs.get("move_weights", DEFAULT_PACHNER_WEIGHTS)
         )
+        target = self._pachner_target(data)
         if target is not None:
             n = triangle.n_vertices
             if target < n:
@@ -377,9 +426,11 @@ class MantraDataset(ManifoldTriangulations):
         triangle = Triangulation.from_list(data.triangulation, rng=rng)
 
         if self.division_type == SubdivisionType.PACHNER:
-            self._pachner_walk(triangle, self._pachner_target(data))
+            self._pachner_walk(triangle, data)
         else:
             self._apply_subdivision(triangle, self.division_type, self.kwargs)
+        if self.relabel:
+            triangle.relabel_vertices()
 
         new_entry = Data(**data.to_dict())
         new_entry.triangulation = triangle.to_list()
@@ -401,20 +452,15 @@ class MantraDataset(ManifoldTriangulations):
             else int(1e9)
         )
 
-        # The sources are drawn from a copy of the generator, so every
-        # subdivision of one seed starts from the same source entries,
-        # however many random draws the subdivisions themselves make.
-        # (The copy also keeps the sources of the draw-free
-        # subdivisions, barycentric and full stellar, as they were.)
-        source_rng = random.Random()
-        source_rng.setstate(rng.getstate())
-
         # Construct class dict
         entries_by_class = defaultdict(list)
         for data in test_entries:
             entries_by_class[data.name].append(data)
 
-        ood_list: List = []
+        # All sources are drawn before any subdivision runs, so every
+        # subdivision of one seed starts from the same source entries,
+        # however many random draws the subdivisions themselves make.
+        sources_by_class = {}
         for class_name in sorted(entries_by_class):
             # Choose only k samples  if specified with `k`,
             #  if there's less than k, choose the maximum amount of samples in a `class_name`
@@ -429,12 +475,15 @@ class MantraDataset(ManifoldTriangulations):
                     "increase the size of test (split or amount of samples) "
                     "or lower the class count number"
                 )
-            sources = source_rng.choices(entries_by_class[class_name], k=k_cap)
+            sources_by_class[class_name] = rng.choices(
+                entries_by_class[class_name], k=k_cap
+            )
 
-            for i in tqdm(
-                range(len(sources)), desc=f"Subdividing OOD ({class_name})"
+        ood_list: List = []
+        for class_name, sources in sources_by_class.items():
+            for i, source in enumerate(
+                tqdm(sources, desc=f"Subdividing OOD ({class_name})")
             ):
-                source = sources[i]
                 ood_list.append(self._subdivide_entry(source, rng, f"ood_{i}"))
 
         return ood_list

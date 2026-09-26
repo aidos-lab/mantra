@@ -92,6 +92,34 @@ class Triangulation(ABC):
         remap = {old: new for new, old in enumerate(used, start=1)}
         return sorted(sorted(remap[v] for v in s) for s in self._simplices)
 
+    def relabel_vertices(self, permutation=None):
+        """Rename the vertices in place, by a random permutation by default.
+
+        The triangulation stays the same up to isomorphism; only the
+        labels move. Since :meth:`to_list` compacts labels in their
+        numeric order, this is the way to obtain a non-canonical
+        labelling of an otherwise unchanged triangulation.
+
+        Parameters
+        ----------
+        permutation : dict or None
+            Old label -> new label, a bijection on :attr:`vertices`.
+            ``None`` draws a uniformly random one from ``rng``.
+        """
+        vertices = sorted(self.vertices)
+        if permutation is None:
+            shuffled = list(vertices)
+            self._rng.shuffle(shuffled)
+            permutation = dict(zip(vertices, shuffled))
+        if (
+            sorted(permutation) != vertices
+            or sorted(permutation.values()) != vertices
+        ):
+            raise ValueError("permutation must be a bijection on the vertices")
+        self._simplices = {
+            frozenset(permutation[v] for v in s) for s in self._simplices
+        }
+
     def face_to_cofaces(self, face_dim):
         """Map faces of given dimension to their containing top-simplices.
 

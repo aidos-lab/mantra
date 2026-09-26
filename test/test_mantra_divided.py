@@ -324,6 +324,7 @@ class TestProcessedFileNames:
             "split_proportions", [0.6, 0.2, 0.2]
         )
         obj.stratified = kwargs.pop("stratified", False)
+        obj.relabel = False
         obj.kwargs = kwargs
         return obj.processed_file_names
 
@@ -475,7 +476,6 @@ class TestBalancedDivided:
                 balanced=True,
                 target_count=5,
                 n_moves=4,
-                min_class_count=0,
                 use_surgery=False,
                 max_vertices=7,
             )
