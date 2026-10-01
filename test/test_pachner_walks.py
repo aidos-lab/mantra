@@ -323,3 +323,278 @@ def test_walk_metadata_survives_collation(
 
     assert batch.walk_base.tolist() == [int(d.walk_base) for d in entries]
     assert batch.walk_step.tolist() == [int(d.walk_step) for d in entries]
+
+
+class TestSizeWalks:
+    TARGETS = (8, 12)
+
+    def test_train_and_val_are_expanded_to_the_targets(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        for split in ["train", "val"]:
+            plain = make_plain(
+                make_manifolds_json, entries_2d, tmp_path, split_type=split
+            )
+            ds = make_walks(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path,
+                split_type=split,
+                size_targets=list(self.TARGETS),
+            )
+            per_base = 1 + len(self.TARGETS)
+            assert len(ds) == per_base * len(plain)
+            for i, data in enumerate(ds):
+                walk_base, step = divmod(i, per_base)
+                base = plain[walk_base]
+                assert int(data.walk_base) == walk_base
+                assert int(data.walk_step) == step
+                tri = Triangulation.from_list(data.triangulation)
+                tri.validate()
+                assert tri.n_vertices == int(data.n_vertices)
+                assert tri.euler_characteristic() == (
+                    Triangulation.from_list(
+                        base.triangulation
+                    ).euler_characteristic()
+                )
+                assert data.name == base.name
+                if step == 0:
+                    assert data.id == base.id
+                    assert data.triangulation == base.triangulation
+                else:
+                    target = self.TARGETS[step - 1]
+                    assert data.id == f"{base.id}_size_{target}"
+                    assert int(data.n_vertices) == target
+
+    def test_test_and_ood_stay_plain_by_default(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        for split, kwargs in [
+            ("test", {}),
+            ("ood", {"division_type": "barycentric"}),
+        ]:
+            plain = make_plain(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path,
+                split_type=split,
+                **kwargs,
+            )
+            ds = make_walks(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path,
+                split_type=split,
+                size_targets=[8],
+                **kwargs,
+            )
+            assert [d.id for d in ds] == [d.id for d in plain]
+            assert not hasattr(ds[0], "walk_step")
+            assert (
+                ds.processed_file_names[2:] == plain.processed_file_names[2:]
+            )
+
+    def test_size_splits_can_include_test(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        plain = make_plain(
+            make_manifolds_json, entries_2d, tmp_path, split_type="test"
+        )
+        ds = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="test",
+            size_targets=[8],
+            size_splits=("train", "val", "test"),
+        )
+        assert len(ds) == 2 * len(plain)
+        assert "_size8" in ds.processed_file_names[2]
+
+    def test_keep_base_false_drops_the_sources(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        plain = make_plain(
+            make_manifolds_json, entries_2d, tmp_path, split_type="train"
+        )
+        ds = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="train",
+            size_targets=[8, 12],
+            keep_base=False,
+        )
+        assert len(ds) == 2 * len(plain)
+        assert sorted({int(d.n_vertices) for d in ds}) == [8, 12]
+        assert [int(d.walk_step) for d in ds] == [1, 2] * len(plain)
+        assert "_nb" in ds.processed_file_names[0]
+
+    def test_classes_are_balanced_across_sizes(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        ds = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="train",
+            size_targets=[8, 12],
+        )
+        counts = {}
+        for d in ds:
+            counts.setdefault(int(d.n_vertices), []).append(d.name)
+        by_size = {n: sorted(names) for n, names in counts.items()}
+        assert by_size[8] == by_size[12]
+
+    def test_mix_keeps_the_size_and_changes_the_triangulation(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        plain = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="train",
+            size_targets=[12],
+        )
+        mixed = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path,
+            split_type="train",
+            size_targets=[12],
+            size_mix=2,
+        )
+        assert "_mix2" in mixed.processed_file_names[0]
+        assert [int(d.n_vertices) for d in mixed] == [
+            int(d.n_vertices) for d in plain
+        ]
+        # The first walk shares its rng stream with the unmixed one up
+        # to the target, so at least one entry differs only by the mix.
+        assert any(
+            a.triangulation != b.triangulation
+            for a, b in zip(plain, mixed)
+            if int(a.walk_step) > 0
+        )
+        for a, b in zip(plain, mixed):
+            tri = Triangulation.from_list(b.triangulation)
+            tri.validate()
+            assert (
+                tri.euler_characteristic()
+                == Triangulation.from_list(
+                    a.triangulation
+                ).euler_characteristic()
+            )
+
+    def test_reproducible_and_seed_dependent(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        def by_id(seed, root):
+            ds = make_walks(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path / root,
+                split_type="train",
+                size_targets=[12],
+                seed=seed,
+            )
+            return {d.id: d.triangulation for d in ds}
+
+        # Two roots, so the second build cannot come from the cache.
+        assert by_id(1, "a") == by_id(1, "b")
+        # The seed also chooses the split; compare the walks of the
+        # entries both splits contain.
+        one, two = by_id(1, "a"), by_id(2, "c")
+        shared = [i for i in one if i in two and i.endswith("_size_12")]
+        assert shared
+        assert any(one[i] != two[i] for i in shared)
+
+    def test_file_names_encode_the_targets(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        names = {}
+        for key, kwargs in {
+            "none": {},
+            "size": dict(size_targets=[8]),
+            "size_two": dict(size_targets=[8, 12]),
+            "size_nb": dict(size_targets=[8], keep_base=False),
+            "size_seed": dict(size_targets=[8], seed=7),
+            "size_mw": dict(size_targets=[8], move_weights=[2, 1, 0]),
+            "size_mix": dict(size_targets=[8], size_mix=1),
+        }.items():
+            ds = make_walks(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path / key,
+                split_type="train",
+                **kwargs,
+            )
+            names[key] = ds.processed_file_names[0]
+        assert len(set(names.values())) == len(names)
+        assert names["none"] == "train.pt"
+        assert names["size"] == "train_size8_ws42.pt"
+        assert names["size_two"] == "train_size8-12_ws42.pt"
+        assert names["size_nb"] == "train_size8_nb_ws42.pt"
+        assert names["size_mw"] == "train_size8_mw2-1-0_ws42.pt"
+        # The default weights (1, 1, 0) written out give the same file.
+        explicit = make_walks(
+            make_manifolds_json,
+            entries_2d,
+            tmp_path / "size_default_mw",
+            split_type="train",
+            size_targets=[8],
+            move_weights=[1, 1, 0],
+        )
+        assert (
+            explicit.processed_file_names
+            == make_walks(
+                make_manifolds_json,
+                entries_2d,
+                tmp_path / "size",
+                split_type="train",
+                size_targets=[8],
+            ).processed_file_names
+        )
+
+    @pytest.mark.parametrize(
+        "kwargs, match",
+        [
+            (dict(size_targets=[12, 8]), "strictly increasing"),
+            (dict(size_targets=[8, 8]), "strictly increasing"),
+            (dict(size_targets=[]), "must not be empty"),
+            (dict(size_targets=[8.0]), "ints"),
+            (dict(size_targets=[8], max_vertices=8), "max_vertices"),
+            (dict(size_targets=[8], walk_length=1), "walk_length"),
+            (dict(size_targets=[8], move_weights=[1, 0, 0]), "1-3 weight"),
+            (dict(size_targets=[8], move_weights=[1, 1, 1]), "3-1 weight"),
+            (dict(size_targets=[8], size_splits=["foo"]), "size_splits"),
+            (dict(size_targets=[8], size_mix=-1), "size_mix"),
+        ],
+    )
+    def test_validation(self, tmp_path, kwargs, match):
+        with pytest.raises(ValueError, match=match):
+            PachnerWalkDataset(
+                str(tmp_path / "root"), split_type="train", **kwargs
+            )
+
+    def test_3d_raises(self, tmp_path):
+        with pytest.raises(NotImplementedError, match="2D"):
+            PachnerWalkDataset(
+                str(tmp_path / "root"),
+                split_type="train",
+                dimension=3,
+                size_targets=[8],
+            )
+
+    def test_target_below_source_raises(
+        self, make_manifolds_json, entries_2d, tmp_path
+    ):
+        # The tori have 7 vertices; a target of 6 is unreachable by a
+        # refining walk.
+        with pytest.raises(ValueError, match="below the vertex count"):
+            make_walks(
+                make_manifolds_json,
+                [torus_entry(f"t{i}") for i in range(6)],
+                tmp_path,
+                split_type="train",
+                size_targets=[6],
+            )

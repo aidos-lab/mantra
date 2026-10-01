@@ -52,6 +52,48 @@ DEFAULT_PACHNER_WEIGHTS = (1.0, 1.0, 0.0)
 PACHNER_MOVE_BUDGET = 100
 
 
+def pachner_walk_to(triangle, target, weights, mix=0):
+    """Walk ``triangle`` in place to ``target`` vertices, then mix it.
+
+    Random Pachner moves drawn with ``weights`` (``(flip, subdivide,
+    coarsen)``) until the vertex count equals ``target`` (``None``: no
+    size-changing phase), then ``mix`` 2-2 flips per vertex, which keep
+    the size. A triangulation without a flippable edge, such as the
+    tetrahedral sphere, ends the mixing early. Shared by the OOD walks
+    of :class:`MantraDataset` and the size-targeted training walks of
+    :class:`~mantra.datasets.PachnerWalkDataset`.
+
+    Raises
+    ------
+    ValueError
+        If ``target`` is below the vertex count of ``triangle``.
+    RuntimeError
+        If the walk does not reach ``target`` within
+        ``PACHNER_MOVE_BUDGET`` moves per vertex it has to gain.
+    """
+    if target is not None:
+        n = triangle.n_vertices
+        if target < n:
+            raise ValueError(
+                f"Pachner target ({target}) is below the vertex count "
+                f"({n}) of the source"
+            )
+        budget = PACHNER_MOVE_BUDGET * (target - n + 1)
+        moves = 0
+        while triangle.n_vertices != target:
+            if moves >= budget or not triangle.random_pachner_move(weights):
+                raise RuntimeError(
+                    f"Pachner walk did not reach {target} vertices "
+                    f"within {budget} moves"
+                )
+            moves += 1
+
+    n_flips = round(mix * triangle.n_vertices)
+    for _ in range(n_flips):
+        if not triangle.flip_edge():
+            break
+
+
 class MantraDataset(ManifoldTriangulations):
     """Dataset of manifold triangulations from the MANTRA benchmark
     with subdivisions of the test set as an additional OOD split.
@@ -389,37 +431,17 @@ class MantraDataset(ManifoldTriangulations):
 
         Random moves with ``move_weights`` until the vertex count equals
         the target (none: no size-changing phase), then ``mix`` 2-2
-        flips per vertex, which keep the size. A triangulation without a
-        flippable edge, such as the tetrahedral sphere, ends the mixing
-        early.
+        flips per vertex, which keep the size. See :func:`pachner_walk_to`.
         """
         weights = tuple(
             self.kwargs.get("move_weights", DEFAULT_PACHNER_WEIGHTS)
         )
-        target = self._pachner_target(data)
-        if target is not None:
-            n = triangle.n_vertices
-            if target < n:
-                raise ValueError(
-                    f"Pachner target ({target}) is below the vertex count "
-                    f"({n}) of the source"
-                )
-            budget = PACHNER_MOVE_BUDGET * (target - n + 1)
-            moves = 0
-            while triangle.n_vertices != target:
-                if moves >= budget or not triangle.random_pachner_move(
-                    weights
-                ):
-                    raise RuntimeError(
-                        f"Pachner walk did not reach {target} vertices "
-                        f"within {budget} moves"
-                    )
-                moves += 1
-
-        n_flips = round(self.kwargs.get("mix", 0) * triangle.n_vertices)
-        for _ in range(n_flips):
-            if not triangle.flip_edge():
-                break
+        pachner_walk_to(
+            triangle,
+            self._pachner_target(data),
+            weights,
+            self.kwargs.get("mix", 0),
+        )
 
     def _subdivide_entry(self, data, rng, tag):
         """Return a copy of ``data`` with the subdivided triangulation."""

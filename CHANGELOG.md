@@ -7,6 +7,16 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `PachnerWalkDataset(size_targets=[n, ...])`, size-targeted training
+  walks (2D only): every entry of the splits in `size_splits` (default
+  train and val) is followed by one refining walk per target, stopped
+  exactly at `n` vertices as the `target` of the `pachner` OOD split
+  is, optionally mixed by `size_mix` 2-2 flips per vertex; with
+  `keep_base=False` the source entries are dropped, leaving a split
+  in which every class appears at every size equally often. Entries carry
+  `walk_base`/`walk_step` like step walks, so same-walk pairs link a
+  source to its larger copies. `pachner_walk_to` is the shared walk.
+
 - `MantraDataset(division_type="pachner")` (2D only), an OOD split built
   by a random Pachner walk instead of a subdivision: `target` or
   `match={"division_type": ..., ...}` fixes the vertex count the walk
