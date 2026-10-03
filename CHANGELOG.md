@@ -33,6 +33,10 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   `ValueError`. Surgery also counted the glued vertices wrong and could
   exceed `max_vertices`.
 
+- Unbalanced datasets with different `max_vertices` shared one
+  processed directory, so a cached split built under one cap was
+  silently reused under another; the cap is now part of the path.
+
 ## Changed
 
 - `balanced=True` now computes the balanced dataset during `process()`
