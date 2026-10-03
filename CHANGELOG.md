@@ -27,12 +27,22 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.
 
+- `balance_dataset` stopped oversampling far short of twice the target
+  count because augmented copies and copies rejected by `max_vertices`
+  used up the budget; larger targets now fill or raise the existing
+  `ValueError`. Surgery also counted the glued vertices wrong and could
+  exceed `max_vertices`.
+
 ## Changed
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
   downloading a pre-generated release asset. This also fixes the 404
   for recent releases, which no longer shipped balanced assets.
+
+- With `max_vertices` set, augmentation stops subdividing once a copy
+  reaches the cap (`random_pachner_move(max_vertices=...)`), so capped
+  balancing fills its classes instead of rejecting most copies.
 
 - `balance_dataset` draws augmentations only from original entries
   (never from augmented copies), keeps a random subsample per class

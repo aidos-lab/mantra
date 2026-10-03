@@ -107,3 +107,9 @@ class TestRandomPachnerMove:
         # Zero weight on flip -> subdivide is chosen, always succeeds.
         t = Triangulation.from_list([[1, 2, 3]], rng=random.Random(0))
         assert t.random_pachner_move(weights=(0.0, 1.0)) is True
+
+    def test_max_vertices_blocks_subdivision(self):
+        t = Triangulation.from_list(TWO_TRIANGLES, rng=random.Random(0))
+        for _ in range(50):
+            t.random_pachner_move(max_vertices=4)
+            assert t.n_vertices == 4
