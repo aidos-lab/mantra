@@ -16,7 +16,8 @@ from mantra.utils.constants import (
 from mantra.utils.deduplication import find_duplicates
 from mantra.utils.triangulation import Triangulation
 
-GLUE_ADDS_N_VERTICES = {"torus": 3, "crosscap": 1}
+# Vertices of the glued torus / RP^2 minus the three identified ones.
+GLUE_ADDS_N_VERTICES = {"torus": 4, "crosscap": 3}
 
 
 def _genus_from_name(name):
@@ -32,7 +33,11 @@ def _genus_from_name(name):
 
 
 def _augment_triangulation(
-    entry: Dict, id_cnt: int, rng: random.Random, n_moves: int = 5
+    entry: Dict,
+    id_cnt: int,
+    rng: random.Random,
+    n_moves: int = 5,
+    max_vertices: int | None = None,
 ):
     """Create a new triangulation by applying random Pachner moves.
 
@@ -40,10 +45,14 @@ def _augment_triangulation(
     ----------
     entry : dict
         Dataset entry with 'triangulation' key.
+    id_cnt : int
+        Suffix of the new entry's id.
+    rng : random.Random
+        Random number generator.
     n_moves : int
         Number of random Pachner moves to apply.
-    rng : random.Random or None
-        Random number generator.
+    max_vertices : int or None
+        If set, no move adds a vertex once the copy has this many.
 
     Returns
     -------
@@ -56,7 +65,7 @@ def _augment_triangulation(
     t = Triangulation.from_list(simplices, rng=rng)
 
     for _ in range(n_moves):
-        t.random_pachner_move()
+        t.random_pachner_move(max_vertices=max_vertices)
 
     new_entry["triangulation"] = t.to_list()
     new_entry["n_vertices"] = t.n_vertices
@@ -256,47 +265,48 @@ def do_pachner(
     n_moves: int,
     rng: random.Random,
 ):
+    """Oversample every class to twice the target count by Pachner moves.
 
+    Copies are drawn round-robin from the entries that are not
+    themselves augmented copies and inserted in place, keeping each
+    class sorted by ``n_vertices``. Copies exceeding ``max_vertices``
+    are discarded and retried, up to ten attempts per missing entry.
+
+    Returns
+    -------
+    set of str
+        Names of the classes that gained augmented entries.
+    """
     id_cnt = 0
     augmented_classes = set()
 
-    # For each name (manifold class) and a list of all entries (triangulation)
-    # of that class
     for manifold_name, entries in class_entries.items():
-
-        # If we have more than enough entries
-        if len(entries) >= target_count * 2:
+        sources = [e for e in entries if "_aug_" not in e["id"]]
+        missing = target_count * 2 - len(entries)
+        if missing <= 0 or not sources:
             continue
 
-        deficit = target_count * 2 - len(entries)
-
-        for i in range(deficit):
-            source_entry = entries[i % len(entries)]
-
-            # Already augmented one
-            if "_aug_" in source_entry["id"]:
-                continue
-
-            # Augment
+        # Bounded so that an unsatisfiable vertex cap cannot loop forever.
+        for attempt in range(10 * missing):
+            if missing == 0:
+                break
             new_entry = _augment_triangulation(
-                source_entry, id_cnt, rng=rng, n_moves=n_moves
+                sources[attempt % len(sources)],
+                id_cnt,
+                rng=rng,
+                n_moves=n_moves,
+                max_vertices=max_vertices,
             )
-
             if (
                 max_vertices is not None
                 and new_entry["n_vertices"] > max_vertices
             ):
                 continue
 
-            # Sorted insert
-            bisect.insort(
-                class_entries[manifold_name],
-                new_entry,
-                key=lambda x: x["n_vertices"],
-            )
+            bisect.insort(entries, new_entry, key=lambda x: x["n_vertices"])
             augmented_classes.add(manifold_name)
-
             id_cnt += 1
+            missing -= 1
 
     return augmented_classes
 

@@ -171,16 +171,17 @@ class ManifoldTriangulations(InMemoryDataset):
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
-        balanced_suffix = (
-            f"balanced_{self.seed}{self._balance_dir_suffix()}"
-            if self.balanced
-            else f"unbalanced_{self.seed}"
-        )
+        if self.balanced:
+            suffix = f"balanced_{self.seed}{self._balance_dir_suffix()}"
+        else:
+            suffix = f"unbalanced_{self.seed}"
+            if self.max_vertices is not None:
+                suffix += f"_max_vertices{self.max_vertices}"
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
 
-        base_path = os.path.join(base_path, balanced_suffix)
+        base_path = os.path.join(base_path, suffix)
 
         return base_path
 
