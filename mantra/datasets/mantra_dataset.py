@@ -93,14 +93,9 @@ class MantraDataset(ManifoldTriangulations):
             every OOD sample is strictly larger than any in-distribution
             sample, since ``graded_vertex_number`` must exceed ``max_vertices``.
         max_ood_size_per_class : int or None
-            If set, oversample and trim the OOD split so that every
-            class contains exactly this many samples (classes without
-            eligible test-set sources are skipped). Oversampling draws
-            additional randomized subdivisions from the same test-set
-            sources; it only yields distinct triangulations for
-            randomized subdivisions (graded, or stellar with
-            ``fraction`` < 1), while barycentric subdivision is
-            deterministic and produces exact duplicates.
+            If set, subdivide at most this many distinct test-set
+            sources per class, drawn uniformly at random; classes with
+            fewer test entries contribute all of them.
         kwargs : Dict
             Arguments for the subdivision. Barycentric accepts ``round``
             (number of rounds, default 1), stellar accepts ``fraction``
@@ -276,18 +271,15 @@ class MantraDataset(ManifoldTriangulations):
         for class_name in sorted(entries_by_class):
             # Choose only k samples  if specified with `k`,
             #  if there's less than k, choose the maximum amount of samples in a `class_name`
-            k_cap: int = (
-                min(len(entries_by_class[class_name]), k)
-                if k
-                else len(entries_by_class[class_name])
-            )
-            if k is not None and k_cap < k:
+            pool = entries_by_class[class_name]
+            k_cap = min(len(pool), k)
+            if self.max_ood_size_per_class is not None and k_cap < k:
                 warnings.warn(
-                    f"Not enough samples of '{class_name}'"
+                    f"Not enough samples of '{class_name}': "
                     "increase the size of test (split or amount of samples) "
                     "or lower the class count number"
                 )
-            sources = rng.choices(entries_by_class[class_name], k=k_cap)
+            sources = rng.sample(pool, k_cap)
 
             for i in tqdm(
                 range(len(sources)), desc=f"Subdividing OOD ({class_name})"
@@ -319,8 +311,6 @@ class MantraDataset(ManifoldTriangulations):
             ]
 
         if self.balanced:
-            # balance_dataset enforces the vertex cap itself, both as a
-            # prefilter and during augmentation.
             data_list = balance_dataset(
                 data_list,
                 seed=self.seed,
