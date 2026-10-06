@@ -196,9 +196,8 @@ def do_surgery(
     augmented_classes = set()
 
     # Only go over the types we are missing
-    missing_types = list(
-        set([m_type.value for m_type in Manifold2Type])
-        - set(list(class_entries.keys()))
+    missing_types = sorted(
+        {m_type.value for m_type in Manifold2Type} - class_entries.keys()
     )
 
     # List of elements to apply surgery to
