@@ -396,10 +396,11 @@ def balance_dataset(
     for manifold_name, entries in class_entries.items():
         if len(entries) < target_count:
             raise ValueError(
-                f"Deduplication left class '{manifold_name}' with "
+                f"Balancing left class '{manifold_name}' with "
                 f"{len(entries)} < target_count ({target_count}) "
-                "entries: the augmented copies were too similar to "
-                "survive. Increase n_moves or lower target_count."
+                "entries: copies exceeded max_vertices or were "
+                "isomorphic to existing ones. Increase n_moves or "
+                "max_vertices, or lower target_count."
             )
         if len(entries) > target_count:
             # Random subsample down to the target: slicing the

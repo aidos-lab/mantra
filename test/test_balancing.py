@@ -279,7 +279,7 @@ class TestBalanceDatasetDedup:
         # boundary has none, so every copy is isomorphic to its source
         # and deduplication leaves the class below the target.
         data = [sphere_entry("s0", nv=4)]
-        with pytest.raises(ValueError, match="Deduplication left class"):
+        with pytest.raises(ValueError, match="Balancing left class"):
             balance_dataset(
                 data,
                 target_count=2,
@@ -299,7 +299,7 @@ class TestBalanceDatasetDedup:
 
         monkeypatch.setattr(balancing, "find_duplicates", all_duplicates)
         data = [sphere_entry("s0")]
-        with pytest.raises(ValueError, match="Deduplication left class"):
+        with pytest.raises(ValueError, match="Balancing left class"):
             balance_dataset(
                 data,
                 target_count=2,

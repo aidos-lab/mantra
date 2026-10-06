@@ -37,6 +37,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   processed directory, so a cached split built under one cap was
   silently reused under another; the cap is now part of the path.
 
+- OOD splits drew their per-class sources with replacement, so
+  deterministic subdivisions (barycentric, full stellar) produced exact
+  duplicates and fewer distinct sources than `max_ood_size_per_class`;
+  sources are now sampled without replacement.
+
 ## Changed
 
 - `balanced=True` now computes the balanced dataset during `process()`
