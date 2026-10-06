@@ -17,6 +17,7 @@ from .task_transforms import (
     OrientableToClassTransform,
 )
 from .util_transforms import (
+    PermuteVertices,
     PropagateConvexComb,
     SelectAttributes,
     SelectFeatures,
@@ -39,5 +40,6 @@ __all__ = [
     "NodeDegreeTransform",
     "EffectiveResistanceEmbedding",
     "EffectiveResistanceStatisticsEmbedding",
+    "PermuteVertices",
     "PropagateConvexComb",
 ]

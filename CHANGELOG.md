@@ -7,6 +7,10 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `PermuteVertices`: relabels a triangulation by a random vertex
+  permutation, so that downstream encodings and the orientations of
+  signed incidence matrices no longer depend on the stored labels.
+
 - `AttributeToClassTransform`, `AttributeToRegressionTransform` and
   `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
   transforms whose targets are fixed functions of the stored
