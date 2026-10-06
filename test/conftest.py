@@ -16,6 +16,20 @@ import pytest
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
 
 
+@pytest.fixture
+def large_label_tri():
+    """Labels reach 8, so a frozenset would iterate them out of order."""
+    return [
+        [1, 8, 9],
+        [1, 9, 10],
+        [1, 2, 8],
+        [2, 8, 10],
+        [2, 3, 4],
+        [4, 5, 6],
+        [5, 6, 7],
+    ]
+
+
 def manifold_entry(id, name="S^2", orientable=True, genus=0, **extra):
     """Build a single MANTRA-style manifold record."""
     entry = {

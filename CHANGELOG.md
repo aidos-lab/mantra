@@ -28,6 +28,8 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
+- Simplex-ordering stored lexicographically. 
+
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.
 
@@ -47,6 +49,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   sources are now sampled without replacement.
 
 ## Changed
+
+- `Simplex` stores its vertices as a sorted tuple, so iteration,
+  `repr` and ordering are lexicographic.
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
