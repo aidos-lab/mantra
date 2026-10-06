@@ -71,9 +71,8 @@ class ManifoldTriangulations(InMemoryDataset):
             downstream.
         max_vertices : int or None
             If set, keep only triangulations with at most this many
-            vertices. With ``balanced=True`` the cap is enforced inside
-            the balancing itself (as a prefilter and during
-            augmentation), so the classes stay balanced under the cap.
+            vertices. With ``balanced=True`` the cap also holds during
+            augmentation, so the classes stay balanced under the cap.
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -233,8 +232,6 @@ class ManifoldTriangulations(InMemoryDataset):
             ]
 
         if self.balanced:
-            # balance_dataset enforces the vertex cap itself, both as a
-            # prefilter and during augmentation.
             data_list = balance_dataset(
                 data_list,
                 seed=self.seed,
