@@ -1,5 +1,6 @@
 """Tests for ``mantra.datasets.mantra_divided``."""
 
+import os
 import warnings
 from collections import Counter
 
@@ -333,6 +334,7 @@ class TestProcessedFileNames:
             "val.pt",
             "test.pt",
             "ood_barycentric_1.pt",
+            "sources.pt",
         ]
 
     def test_names_encode_parameters(self):
@@ -347,6 +349,7 @@ class TestProcessedFileNames:
             "val_ccf5.pt",
             "test_ccf5.pt",
             "ood_graded_50_cap100_ccf5.pt",
+            "sources_ccf5.pt",
         ]
 
     def test_names_encode_split_proportions_and_stratified(self):
@@ -355,7 +358,112 @@ class TestProcessedFileNames:
 
     def test_stellar_name_encodes_fraction(self):
         names = self._names(division_type="stellar", fraction=0.5)
-        assert names[-1] == "ood_stellar_0.5.pt"
+        assert names[3] == "ood_stellar_0.5.pt"
+
+
+class TestCachedSplits:
+    """A subdivision reuses the cached splits instead of rebuilding them."""
+
+    @staticmethod
+    def counting_pre_transform():
+        calls = []
+
+        def pre_transform(d):
+            calls.append(d.id)
+            d.tagged = True
+            return d
+
+        return pre_transform, calls
+
+    @staticmethod
+    def read_files(ds):
+        return [open(p, "rb").read() for p in ds.processed_paths[:3]]
+
+    def test_subdivision_keeps_base_files_and_transforms_ood_only(
+        self, make_manifolds_json, balanced_entries, tmp_path
+    ):
+        pre_transform, calls = self.counting_pre_transform()
+        base = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="train",
+            pre_transform=pre_transform,
+        )
+        before = self.read_files(base)
+        calls.clear()
+
+        ood = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="ood",
+            division_type="barycentric",
+            pre_transform=pre_transform,
+        )
+
+        assert self.read_files(ood) == before
+        assert calls and all("_ood_" in id for id in calls)
+        assert all(d.tagged for d in ood)
+        assert all(int(d.n_vertices) == 14 for d in ood)
+
+    def test_without_subdivision_test_entries_transform_once(
+        self, make_manifolds_json, balanced_entries, tmp_path
+    ):
+        pre_transform, calls = self.counting_pre_transform()
+        ood = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="ood",
+            pre_transform=pre_transform,
+        )
+        test = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="test",
+            pre_transform=pre_transform,
+        )
+
+        assert max(Counter(calls).values()) == 1
+        assert [d.id for d in ood] == [d.id for d in test]
+
+    def test_cache_without_sources_is_rebuilt(
+        self, make_manifolds_json, balanced_entries, tmp_path
+    ):
+        base = make_divided(
+            make_manifolds_json, balanced_entries, tmp_path, split_type="train"
+        )
+        sources = base.processed_paths[4]
+        os.remove(sources)
+
+        ood = make_divided(
+            make_manifolds_json,
+            balanced_entries,
+            tmp_path,
+            split_type="ood",
+            division_type="barycentric",
+        )
+
+        assert os.path.exists(sources)
+        assert len(ood) == 2
+
+    def test_graded_checks_the_cached_vertex_count(
+        self, make_manifolds_json, balanced_entries, tmp_path
+    ):
+        make_divided(
+            make_manifolds_json, balanced_entries, tmp_path, split_type="train"
+        )
+        with pytest.raises(ValueError, match="graded_vertex_number"):
+            make_divided(
+                make_manifolds_json,
+                balanced_entries,
+                tmp_path,
+                split_type="ood",
+                division_type="graded",
+                graded_vertex_number=4,
+            )
 
 
 class TestBalancedDivided:

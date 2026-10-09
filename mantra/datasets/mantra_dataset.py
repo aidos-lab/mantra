@@ -1,11 +1,14 @@
 import math
+import os
 import random
+import shutil
 import warnings
 from collections import defaultdict
 from enum import Enum
 from typing import List
 
 import numpy as np
+import torch
 from torch_geometric.data import (
     Data,
 )
@@ -212,19 +215,15 @@ class MantraDataset(ManifoldTriangulations):
     def processed_file_names(self):
         """Return process file names.
 
-        Stores the processed data in a file. If this file is present in the
-        `processed` folder, processing will typically be skipped.
+        The train/val/test files and the raw test entries (``sources``)
+        are shared by every subdivision of one split; each subdivision
+        adds its own ``ood_*`` file.
         """
         suffix = self._split_file_suffix()
-        base_files = []
-        for split_type in SPLIT_TYPES[:3]:
-            file_str = f"{split_type}{suffix}.pt"
-            base_files.append(file_str)
-
-        ood_file: str = f"ood_{self._build_ood_str()}{suffix}.pt"
-        base_files.append(ood_file)
-
-        return base_files
+        names = [f"{split_type}{suffix}.pt" for split_type in SPLIT_TYPES[:3]]
+        names.append(f"ood_{self._build_ood_str()}{suffix}.pt")
+        names.append(f"sources{suffix}.pt")
+        return names
 
     def _subdivide_entry(self, data, rng, tag):
         """Return a copy of ``data`` with the subdivided triangulation."""
@@ -290,9 +289,49 @@ class MantraDataset(ManifoldTriangulations):
         return ood_list
 
     def process(self):
-        """Processes dataset."""
+        """Build the processed files that are missing.
+
+        The train/val/test files and the raw test entries are built once
+        per processed directory. A further subdivision only subdivides
+        the cached test entries and pre-transforms its own OOD split, so
+        the in-distribution files are never rewritten.
+        """
+        shared = self.processed_paths[:3] + self.processed_paths[4:]
+        if self.force_reload or not all(os.path.exists(p) for p in shared):
+            self._process_splits()
+        self._process_ood()
+
+    def _process_ood(self):
+        """Build the OOD file from the cached raw test entries."""
+        if self.division_type == SubdivisionType.NONE:
+            shutil.copyfile(self.processed_paths[2], self.processed_paths[3])
+            return
+
+        sources = torch.load(self.processed_paths[4])
+        if (
+            self.division_type == SubdivisionType.GRADED
+            and sources["max_n_vertices"]
+            >= self.kwargs["graded_vertex_number"]
+        ):
+            raise ValueError(
+                "The dataset contains triangulations with at least "
+                "`graded_vertex_number` vertices"
+            )
+
+        ood_data_list = self._build_ood_split(
+            test_entries=[Data(**el) for el in sources["entries"]],
+            rng=random.Random(self.seed),
+        )
+        if self.pre_transform is not None:
+            ood_data_list = [
+                self.pre_transform(data)
+                for data in tqdm(ood_data_list, desc="Pre-transforming")
+            ]
+        self.save(ood_data_list, self.processed_paths[3])
+
+    def _process_splits(self):
+        """Build the train/val/test files and the raw test entries."""
         inputs = self._load_raw_entries()
-        rng = random.Random(self.seed)
 
         data_list = [Data(**el) for el in inputs]
 
@@ -320,13 +359,6 @@ class MantraDataset(ManifoldTriangulations):
                 use_surgery=self.use_surgery,
             )
 
-        # Cap the vertex count of the in-distribution splits
-        if self.division_type == SubdivisionType.GRADED:
-            assert (
-                max([d.n_vertices for d in data_list])
-                < self.kwargs["graded_vertex_number"]
-            ), "The dataset contains triangulations with more vertices than `graded_vertex_number`"
-
         # Filter by homeomorphism type
         data_list, _ = filter_by_class_count(
             data_list, "name", self.min_sample_per_class
@@ -349,37 +381,20 @@ class MantraDataset(ManifoldTriangulations):
             labels=labels,
         )
 
-        # Apply the selected subdivision algorithm to the test set
-        ood_data_list = self._build_ood_split(
-            test_entries=[data_list[idx] for idx in test_index], rng=rng
-        )
-
-        # Get the indices for ood
-        ood_index = np.arange(
-            len(data_list), len(data_list) + len(ood_data_list)
-        )
-
-        # Dictionary with splits
-        split_dict = {
-            "train": train_index,
-            "val": val_index,
-            "test": test_index,
-            "ood": ood_index,
+        # The raw test entries seed every subdivision of this split
+        sources = {
+            "entries": [data_list[idx].to_dict() for idx in test_index],
+            "max_n_vertices": max(int(d.n_vertices) for d in data_list),
         }
+        torch.save(sources, self.processed_paths[4])
 
-        # Stick it at the end
-        data_list.extend(ood_data_list)
-
-        # Apply pretransforms now
         if self.pre_transform is not None:
             data_list = [
                 self.pre_transform(data)
                 for data in tqdm(data_list, desc="Pre-transforming")
             ]
 
-        for i, split_type in enumerate(SPLIT_TYPES):
-            data_split_list = [
-                data_list[idx] for idx in split_dict[split_type]
-            ]
-            # WARN:  This is order specific!
-            self.save(data_split_list, self.processed_paths[i])
+        for path, index in zip(
+            self.processed_paths, [train_index, val_index, test_index]
+        ):
+            self.save([data_list[idx] for idx in index], path)

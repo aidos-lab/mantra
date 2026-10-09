@@ -30,6 +30,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 - Simplex-ordering stored lexicographically. 
 
+- `MantraDataset` pre-transformed the test entries twice when no
+  subdivision was requested, and every subdivision rewrote the
+  train/val/test files and pre-transformed all entries again, so random
+  pre-transforms left different draws on disk than in the first dataset
+  instance.
+
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.
 
@@ -52,6 +58,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 - `Simplex` stores its vertices as a sorted tuple, so iteration,
   `repr` and ordering are lexicographic.
+
+- `MantraDataset` builds the train/val/test files and the raw test
+  entries (`sources*.pt`) once per processed directory; a further
+  subdivision only subdivides the cached test entries and pre-transforms
+  its own OOD split. Processed directories from earlier versions lack
+  the sources file and are rebuilt once.
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
