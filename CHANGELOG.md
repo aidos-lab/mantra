@@ -28,6 +28,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
+- `MantraDataset(force_reload=True)` now removes all existing files from the cache and only needs to be set during first  
+dataset creation
+
 - Simplex-ordering stored lexicographically. 
 
 - `MantraDataset` pre-transformed the test entries twice when no

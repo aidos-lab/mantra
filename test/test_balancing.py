@@ -31,6 +31,15 @@ def sphere_entry(id="s0", name="S^2", nv=4, **extra):
     return e
 
 
+def tet_pair_entry():
+    return {
+        "id": "t0",
+        "name": "S^3",
+        "n_vertices": 5,
+        "triangulation": [list(s) for s in TET_PAIR],
+    }
+
+
 class TestAugmentTriangulation:
     def test_2d_returns_new_entry(self):
         entry = sphere_entry()
@@ -61,6 +70,21 @@ class TestAugmentTriangulation:
             entry, id_cnt=0, n_moves=3, rng=random.Random(0)
         )
         assert isinstance(out["triangulation"], list)
+
+    @pytest.mark.parametrize("entry", [sphere_entry(), tet_pair_entry()])
+    def test_moves_come_from_the_given_rng(self, entry):
+        random.seed(0)
+        global_state = random.getstate()
+
+        first = _augment_triangulation(
+            entry, id_cnt=0, n_moves=5, rng=random.Random(3)
+        )
+        second = _augment_triangulation(
+            entry, id_cnt=0, n_moves=5, rng=random.Random(3)
+        )
+
+        assert first["triangulation"] == second["triangulation"]
+        assert random.getstate() == global_state
 
 
 class TestAugmentWithTopologyChange:

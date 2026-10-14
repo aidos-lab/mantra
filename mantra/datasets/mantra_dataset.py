@@ -1,3 +1,4 @@
+import glob
 import math
 import os
 import random
@@ -274,9 +275,9 @@ class MantraDataset(ManifoldTriangulations):
             k_cap = min(len(pool), k)
             if self.max_ood_size_per_class is not None and k_cap < k:
                 warnings.warn(
-                    f"Not enough samples of '{class_name}': "
-                    "increase the size of test (split or amount of samples) "
-                    "or lower the class count number"
+                    f"Class '{class_name}' has {k_cap} test entries, fewer "
+                    f"than max_ood_size_per_class={k}. Enlarge the test split or lower the cap "
+                    "for an OOD split with equal class sizes."
                 )
             sources = rng.sample(pool, k_cap)
 
@@ -294,10 +295,17 @@ class MantraDataset(ManifoldTriangulations):
         The train/val/test files and the raw test entries are built once
         per processed directory. A further subdivision only subdivides
         the cached test entries and pre-transforms its own OOD split, so
-        the in-distribution files are never rewritten.
+        the in-distribution files are never rewritten. Rebuilding the
+        splits deletes the OOD files derived from the previous test
+        entries, so ``force_reload`` on one split refreshes them all.
         """
         shared = self.processed_paths[:3] + self.processed_paths[4:]
         if self.force_reload or not all(os.path.exists(p) for p in shared):
+            suffix = self._split_file_suffix()
+            for path in glob.glob(
+                os.path.join(self.processed_dir, f"ood_*{suffix}.pt")
+            ):
+                os.remove(path)
             self._process_splits()
         self._process_ood()
 
