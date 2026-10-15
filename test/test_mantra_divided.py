@@ -265,16 +265,26 @@ class TestMaxOODSizePerClass:
         assert len(ds) == 2
 
     def test_partial_stellar_oversampling_is_randomized(
-        self, make_manifolds_json, balanced_entries, tmp_path
+        self, make_manifolds_json, tmp_path
     ):
+        entries = [
+            manifold_entry(f"m{i}", name="S^2", orientable=True, genus=0)
+            for i in range(12)
+        ] + [
+            manifold_entry(
+                f"m{i + 12}", name="RP^2", orientable=False, genus=0
+            )
+            for i in range(12)
+        ]
         ds = make_divided(
             make_manifolds_json,
-            balanced_entries,
+            entries,
             tmp_path,
             split_type="ood",
             stratified=True,
             division_type="stellar",
             fraction=0.5,
+            split_proportions=[0.25, 0.25, 0.5],
             max_ood_size_per_class=4,
         )
         triangulations = {tuple(tuple(s) for s in d.triangulation) for d in ds}

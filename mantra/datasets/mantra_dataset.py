@@ -273,7 +273,7 @@ class MantraDataset(ManifoldTriangulations):
             #  if there's less than k, choose the maximum amount of samples in a `class_name`
             pool = entries_by_class[class_name]
             k_cap = min(len(pool), k)
-            assert self.max_ood_size_per_class is None and k_cap >= k, \
+            assert self.max_ood_size_per_class is None or k_cap >= k, \
                     f"Class '{class_name}' has {k_cap} test entries, fewer " \
                     f"than max_ood_size_per_class={k}. Enlarge the test split or lower the cap " \
                     "for an OOD split with equal class sizes."
