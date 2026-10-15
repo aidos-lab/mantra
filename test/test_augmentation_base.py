@@ -20,9 +20,11 @@ class TestConstruction:
         t = make([[1, 2, 3]])
         assert t._new_vertex() == 4
 
-    def test_default_rng_is_module_random(self):
+    def test_default_rng_is_private_random_instance(self):
         t = make([[1, 2, 3]])
-        assert t._rng is random
+        assert isinstance(t._rng, random.Random)
+        assert t._rng is not random._inst
+        assert t._rng is not make([[1, 2, 3]])._rng
 
     def test_explicit_rng_is_used(self):
         rng = random.Random(0)

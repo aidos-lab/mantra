@@ -21,15 +21,15 @@ class Triangulation(ABC):
     dimension : int
         Dimension of the triangulation (2 or 3).
     rng : random.Random or None
-        Random number generator. If None, the module-level
-        ``random`` is used.
+        Random number generator. If None, a new unseeded
+        ``random.Random`` is created.
     """
 
     def __init__(self, top_simplices, dimension, rng=None):
         self._dim = dimension
         self._simplices = {frozenset(s) for s in top_simplices}
         self._next_vertex = max(v for s in self._simplices for v in s) + 1
-        self._rng = rng if rng is not None else random
+        self._rng = rng if rng is not None else random.Random()
 
     @staticmethod
     def from_list(triangulation, rng=None) -> "Triangulation":
@@ -40,8 +40,8 @@ class Triangulation(ABC):
         triangulation : list of list of int
             Top-level simplices with 1-indexed vertices.
         rng : random.Random or None
-            Random number generator. If None, the module-level
-            ``random`` is used.
+            Random number generator. If None, a new unseeded
+            ``random.Random`` is created.
 
         Returns
         -------
