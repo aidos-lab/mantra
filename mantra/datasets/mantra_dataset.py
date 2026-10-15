@@ -297,6 +297,8 @@ class MantraDataset(ManifoldTriangulations):
         splits deletes the OOD files derived from the previous test
         entries, so ``force_reload`` on one split refreshes them all.
         """
+        # The [4:] is just to return a list it's not that there are more elements!
+        # We check everything but the OOD-file at position 3
         shared = self.processed_paths[:3] + self.processed_paths[4:]
         if self.force_reload or not all(os.path.exists(p) for p in shared):
             suffix = self._split_file_suffix()
@@ -392,6 +394,7 @@ class MantraDataset(ManifoldTriangulations):
             "entries": [data_list[idx].to_dict() for idx in test_index],
             "max_n_vertices": max(int(d.n_vertices) for d in data_list),
         }
+
         torch.save(sources, self.processed_paths[4])
 
         if self.pre_transform is not None:
