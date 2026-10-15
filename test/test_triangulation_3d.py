@@ -172,3 +172,11 @@ class TestRandomPachnerMove:
     def test_explicit_weights(self):
         t = Triangulation.from_list(SINGLE_TET, rng=random.Random(1))
         assert t.random_pachner_move(weights=(1.0, 1.0, 1.0, 1.0)) is True
+
+    def test_max_vertices_prefers_vertex_preserving_moves(self):
+        # A 2-3 or 3-2 move is always available here, so the 1-4 move
+        # never has to run once the cap is reached.
+        t = Triangulation.from_list(TWO_TETS_SHARED_FACE, rng=random.Random(0))
+        for _ in range(50):
+            assert t.random_pachner_move(max_vertices=5) is True
+            assert t.n_vertices == 5

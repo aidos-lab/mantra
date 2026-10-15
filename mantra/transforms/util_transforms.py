@@ -1,6 +1,7 @@
 from itertools import combinations
 from typing import Dict, List, Literal, TypeAlias, Union
 
+import numpy as np
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
@@ -181,6 +182,70 @@ class SelectFeatures(BaseTransform):
         # representations for graph are PyG and indexed feature tensors based for simplicial complexes
         else:
             self._select_dst_single(src_tensor, data)
+
+        return data
+
+
+class PermuteVertices(BaseTransform):
+    """Relabel the vertices of a triangulation by a random permutation.
+
+    Every quantity derived from the triangulation afterwards, such as the
+    moment curve embedding or the orientations in signed incidence
+    matrices, then no longer depends on the original vertex labels.
+    Apply this transform before any transform that reads
+    `triangulation`.
+    """
+
+    def __init__(self, rng=None):
+        """Create new vertex permutation transform.
+
+        Parameters
+        ----------
+        rng : np.random.Generator, int, or None
+            Random number generator object. If set to `None`, a fresh
+            generator (`np.random.default_rng()`) will be used. If set
+            to an int, it will be used as a seed for a new
+            `np.random.default_rng()` instance.
+        """
+        super().__init__()
+
+        self.rng = np.random.default_rng(rng)
+
+    def forward(self, data: Data) -> Data:
+        """Relabel the triangulation of a data object.
+
+        Parameters
+        ----------
+        data : torch_geometric.data.Data
+            Input data object with a `triangulation` whose vertices are
+            labelled `1, ..., n`.
+
+        Returns
+        -------
+        torch_geometric.data.Data
+            Data object whose `triangulation` uses a new random
+            labelling, each top-level simplex sorted and the simplices
+            in lexicographic order. A new labelling is drawn on every
+            call.
+        """
+        assert (
+            "triangulation" in data
+        ), "Data object is missing `triangulation`"
+
+        if "simplex_trie" in data:
+            raise ValueError("Apply `PermuteVertices` before `AddSimplexTrie`")
+
+        vertices = {v for simplex in data.triangulation for v in simplex}
+        n = len(vertices)
+        if vertices != set(range(1, n + 1)):
+            raise ValueError("Vertex labels must be 1, ..., n")
+
+        labels = self.rng.permutation(n) + 1
+
+        data.triangulation = sorted(
+            sorted(int(labels[v - 1]) for v in simplex)
+            for simplex in data.triangulation
+        )
 
         return data
 

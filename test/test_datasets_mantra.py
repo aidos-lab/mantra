@@ -46,6 +46,22 @@ def test_balanced_suffix(
     )
 
 
+def test_unbalanced_vertex_cap_changes_processed_dir(
+    make_manifolds_json, balanced_entries, tmp_path
+):
+    path = make_manifolds_json(balanced_entries)
+    plain = ManifoldTriangulations(
+        str(tmp_path / "root"), dimension=2, local_path=path
+    )
+    capped = ManifoldTriangulations(
+        str(tmp_path / "root"), dimension=2, local_path=path, max_vertices=6
+    )
+    assert os.path.basename(plain.processed_dir) == "unbalanced_42"
+    assert os.path.basename(capped.processed_dir) == (
+        "unbalanced_42_max_vertices6"
+    )
+
+
 def test_invalid_dimension_raises(tmp_path):
     with pytest.raises(AssertionError):
         ManifoldTriangulations(str(tmp_path / "root"), dimension=5)

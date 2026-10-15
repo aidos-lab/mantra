@@ -21,15 +21,15 @@ class Triangulation(ABC):
     dimension : int
         Dimension of the triangulation (2 or 3).
     rng : random.Random or None
-        Random number generator. If None, the module-level
-        ``random`` is used.
+        Random number generator. If None, a new unseeded
+        ``random.Random`` is created.
     """
 
     def __init__(self, top_simplices, dimension, rng=None):
         self._dim = dimension
         self._simplices = {frozenset(s) for s in top_simplices}
         self._next_vertex = max(v for s in self._simplices for v in s) + 1
-        self._rng = rng if rng is not None else random
+        self._rng = rng if rng is not None else random.Random()
 
     @staticmethod
     def from_list(triangulation, rng=None) -> "Triangulation":
@@ -40,8 +40,8 @@ class Triangulation(ABC):
         triangulation : list of list of int
             Top-level simplices with 1-indexed vertices.
         rng : random.Random or None
-            Random number generator. If None, the module-level
-            ``random`` is used.
+            Random number generator. If None, a new unseeded
+            ``random.Random`` is created.
 
         Returns
         -------
@@ -501,13 +501,16 @@ class Triangulation2D(Triangulation):
 
         return {}
 
-    def random_pachner_move(self, weights=None):
+    def random_pachner_move(self, weights=None, max_vertices=None):
         """Apply a random Pachner move.
 
         Parameters
         ----------
         weights : tuple of float or None
             Weights for (flip_edge, subdivide). Default: equal.
+        max_vertices : int or None
+            If set, never subdivide once the triangulation has this
+            many vertices.
 
         Returns
         -------
@@ -516,6 +519,8 @@ class Triangulation2D(Triangulation):
         """
         if weights is None:
             weights = (1.0, 1.0)
+        if max_vertices is not None and self.n_vertices >= max_vertices:
+            weights = (weights[0], 0.0)
 
         moves = [self.flip_edge, self.subdivide]
         move = self._rng.choices(moves, weights=weights, k=1)[0]
@@ -825,7 +830,7 @@ class Triangulation3D(Triangulation):
 
         return candidates
 
-    def random_pachner_move(self, weights=None):
+    def random_pachner_move(self, weights=None, max_vertices=None):
         """Apply a random Pachner move.
 
         Tries move types in weighted random order. Since move_1_4
@@ -835,6 +840,10 @@ class Triangulation3D(Triangulation):
         ----------
         weights : tuple of float or None
             Weights for (1-4, 2-3, 3-2, 4-1). Default: equal.
+        max_vertices : int or None
+            If set, the vertex-adding 1-4 move is tried last once the
+            triangulation has this many vertices, so it only runs when
+            no other move applies.
 
         Returns
         -------
@@ -843,6 +852,8 @@ class Triangulation3D(Triangulation):
         """
         if weights is None:
             weights = (1.0, 1.0, 1.0, 1.0)
+        if max_vertices is not None and self.n_vertices >= max_vertices:
+            weights = (0.0,) + tuple(weights[1:])
 
         moves = [
             self.move_1_4,

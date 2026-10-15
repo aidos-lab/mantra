@@ -71,9 +71,8 @@ class ManifoldTriangulations(InMemoryDataset):
             downstream.
         max_vertices : int or None
             If set, keep only triangulations with at most this many
-            vertices. With ``balanced=True`` the cap is enforced inside
-            the balancing itself (as a prefilter and during
-            augmentation), so the classes stay balanced under the cap.
+            vertices. With ``balanced=True`` the cap also holds during
+            augmentation, so the classes stay balanced under the cap.
         name : str or None
             If set, the name denotes a way to distinguish between datasets
             based on the *same* data source but potentially prepared in a
@@ -171,16 +170,17 @@ class ManifoldTriangulations(InMemoryDataset):
     def processed_dir(self):
         """Return directory for storing processed data."""
         base_path = os.path.join(self.root, "processed")
-        balanced_suffix = (
-            f"balanced_{self.seed}{self._balance_dir_suffix()}"
-            if self.balanced
-            else f"unbalanced_{self.seed}"
-        )
+        if self.balanced:
+            suffix = f"balanced_{self.seed}{self._balance_dir_suffix()}"
+        else:
+            suffix = f"unbalanced_{self.seed}"
+            if self.max_vertices is not None:
+                suffix += f"_max_vertices{self.max_vertices}"
 
         if self.name is not None:
             base_path = os.path.join(base_path, self.name)
 
-        base_path = os.path.join(base_path, balanced_suffix)
+        base_path = os.path.join(base_path, suffix)
 
         return base_path
 
@@ -232,8 +232,6 @@ class ManifoldTriangulations(InMemoryDataset):
             ]
 
         if self.balanced:
-            # balance_dataset enforces the vertex cap itself, both as a
-            # prefilter and during augmentation.
             data_list = balance_dataset(
                 data_list,
                 seed=self.seed,

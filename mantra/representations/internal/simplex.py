@@ -22,36 +22,28 @@ class Simplex(Generic[ElementType]):
     ----------
     elements : Collection[Hashable]
         The nodes in the simplex.
-    construct_tree : bool, default=True
-        If True, construct the entire simplicial tree for the simplex.
-    **kwargs : keyword arguments, optional
-        Additional attributes to be associated with the simplex.
 
     Examples
     --------
     >>> # Create a 0-dimensional simplex (point)
-    >>> s = tnx.Simplex((1,))
+    >>> s = Simplex((1,))
     >>> # Create a 1-dimensional simplex (line segment)
-    >>> s = tnx.Simplex((1, 2))
+    >>> s = Simplex((1, 2))
     >>> # Create a 2-dimensional simplex (triangle)
-    >>> simplex1 = tnx.Simplex((1, 2, 3))
-    >>> simplex2 = tnx.Simplex(("a", "b", "c"))
+    >>> simplex1 = Simplex((1, 2, 3))
+    >>> simplex2 = Simplex(("a", "b", "c"))
     >>> # Create a 3-dimensional simplex (tetrahedron)
-    >>> simplex3 = tnx.Simplex((1, 2, 4, 5))
+    >>> simplex3 = Simplex((1, 2, 4, 5))
     """
 
-    elements: frozenset[Hashable]
-    name: str
+    elements: tuple[Hashable, ...]
 
-    def __init__(
-        self,
-        elements: Collection[Hashable],
-        **kwargs,
-    ) -> None:
-        self.elements = frozenset(elements)
-
-        if len(elements) != len(self.elements):
+    def __init__(self, elements: Collection[Hashable]) -> None:
+        if len(set(elements)) != len(elements):
             raise ValueError("A simplex cannot contain duplicate nodes.")
+
+        # Sorted makes iteration, `repr` and the ordering lexicographic
+        self.elements = tuple(sorted(elements))
 
     def __hash__(self) -> int:
         """Returns a hash of the simplex.
@@ -102,29 +94,25 @@ class Simplex(Generic[ElementType]):
         """
         return type(self) is type(other) and self.elements == other.elements
 
-    def __contains__(self, item: ElementType | Iterable[ElementType]) -> bool:
-        """Return True if the given element is a subset of the nodes.
+    def __contains__(self, item: ElementType) -> bool:
+        """Return True if the given node is in the simplex.
 
         Parameters
         ----------
         item : Any
-            The element to be checked.
+            The node to be checked.
 
         Returns
         -------
         bool
-            True if the given element is a subset of the nodes.
+            True if the given node is in the simplex.
 
         Examples
         --------
-        >>> s = tnx.Simplex((1, 2, 3))
+        >>> s = Simplex((1, 2, 3))
         >>> 1 in s
         True
         >>> 4 in s
-        False
-        >>> (1, 2) in s
-        True
-        >>> (1, 4) in s
         False
         """
         return item in self.elements
@@ -145,7 +133,7 @@ class Simplex(Generic[ElementType]):
         assert isinstance(
             other, Simplex
         ), f"Comparison object {other} is not a `Simplex`"
-        return tuple(self.elements) <= tuple(other.elements)
+        return self.elements <= other.elements
 
     def __repr__(self) -> str:
         """Return string representation of the simplex.

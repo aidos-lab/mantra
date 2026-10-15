@@ -10,6 +10,7 @@ from mantra.utils.balancing import (
     _augment_with_surgery,
     _find_topology_sources,
     balance_dataset,
+    do_pachner,
 )
 
 SPHERE = [[1, 2, 3], [1, 2, 4], [1, 3, 4], [2, 3, 4]]
@@ -28,6 +29,15 @@ def sphere_entry(id="s0", name="S^2", nv=4, **extra):
     }
     e.update(extra)
     return e
+
+
+def tet_pair_entry():
+    return {
+        "id": "t0",
+        "name": "S^3",
+        "n_vertices": 5,
+        "triangulation": [list(s) for s in TET_PAIR],
+    }
 
 
 class TestAugmentTriangulation:
@@ -60,6 +70,21 @@ class TestAugmentTriangulation:
             entry, id_cnt=0, n_moves=3, rng=random.Random(0)
         )
         assert isinstance(out["triangulation"], list)
+
+    @pytest.mark.parametrize("entry", [sphere_entry(), tet_pair_entry()])
+    def test_moves_come_from_the_given_rng(self, entry):
+        random.seed(0)
+        global_state = random.getstate()
+
+        first = _augment_triangulation(
+            entry, id_cnt=0, n_moves=5, rng=random.Random(3)
+        )
+        second = _augment_triangulation(
+            entry, id_cnt=0, n_moves=5, rng=random.Random(3)
+        )
+
+        assert first["triangulation"] == second["triangulation"]
+        assert random.getstate() == global_state
 
 
 class TestAugmentWithTopologyChange:
@@ -138,6 +163,48 @@ class TestFindTopologySources:
         class_entries = {"S^2": [sphere_entry(name="S^2")]}
         # S^2 + crosscap -> RP^2.
         assert _find_topology_sources("RP^2", class_entries)[0][0] == "S^2"
+
+
+class TestDoPachner:
+    def test_fills_class_to_twice_the_target(self):
+        class_entries = {"S^2": [sphere_entry(f"s{i}") for i in range(10)]}
+        do_pachner(
+            class_entries,
+            target_count=50,
+            max_vertices=None,
+            n_moves=1,
+            rng=random.Random(0),
+        )
+        entries = class_entries["S^2"]
+        assert len(entries) == 100
+        assert sum("_aug_" in e["id"] for e in entries) == 90
+
+    def test_copies_respect_the_vertex_cap(self):
+        class_entries = {"S^2": [sphere_entry(f"s{i}") for i in range(3)]}
+        do_pachner(
+            class_entries,
+            target_count=10,
+            max_vertices=5,
+            n_moves=3,
+            rng=random.Random(0),
+        )
+        entries = class_entries["S^2"]
+        assert len(entries) == 20
+        assert all(e["n_vertices"] <= 5 for e in entries)
+        assert all(e["id"].count("_aug_") <= 1 for e in entries)
+
+    def test_infeasible_vertex_cap_adds_nothing(self):
+        # No triangulated 2-sphere has fewer than four vertices.
+        class_entries = {"S^2": [sphere_entry(f"s{i}") for i in range(3)]}
+        augmented = do_pachner(
+            class_entries,
+            target_count=10,
+            max_vertices=3,
+            n_moves=1,
+            rng=random.Random(0),
+        )
+        assert augmented == set()
+        assert [e["id"] for e in class_entries["S^2"]] == ["s0", "s1", "s2"]
 
 
 class TestBalanceDatasetCore:
@@ -231,18 +298,16 @@ class TestBalanceDatasetDedup:
         # Single (last) round only removes -> below target, no regen.
         assert len(out) == 3
 
-    def test_over_limit_class_raises_value_error(self, monkeypatch):
-        # Every source would exceed the vertex limit after n_moves, so
-        # the class cannot be balanced and a clear error is raised.
-        monkeypatch.setattr(
-            balancing, "find_duplicates", lambda result, verbose=False: []
-        )
+    def test_over_limit_class_raises_value_error(self):
+        # At the vertex limit only flips remain, and the tetrahedron
+        # boundary has none, so every copy is isomorphic to its source
+        # and deduplication leaves the class below the target.
         data = [sphere_entry("s0", nv=4)]
-        with pytest.raises(ValueError, match="Deduplication left class"):
+        with pytest.raises(ValueError, match="Balancing left class"):
             balance_dataset(
                 data,
                 target_count=2,
-                n_moves=12,
+                n_moves=2,
                 seed=0,
                 use_surgery=False,
                 max_vertices=4,
@@ -258,7 +323,7 @@ class TestBalanceDatasetDedup:
 
         monkeypatch.setattr(balancing, "find_duplicates", all_duplicates)
         data = [sphere_entry("s0")]
-        with pytest.raises(ValueError, match="Deduplication left class"):
+        with pytest.raises(ValueError, match="Balancing left class"):
             balance_dataset(
                 data,
                 target_count=2,
@@ -354,9 +419,9 @@ class TestBalanceDatasetMaxVertices:
         assert sorted(e["n_vertices"] for e in out) != [4, 5, 6, 7, 8]
 
     def test_glueing_stops_at_vertex_limit(self, monkeypatch):
-        # Torus gluing adds 3 vertices, pushing 4-vertex spheres past
+        # Torus gluing adds 4 vertices, pushing 4-vertex spheres past
         # the limit, so no T^2 entries can be generated; crosscap
-        # gluing adds only 1 vertex and still fits.
+        # gluing adds 3 vertices and still fits.
         monkeypatch.setattr(
             balancing, "find_duplicates", lambda result, verbose=False: []
         )
@@ -367,11 +432,12 @@ class TestBalanceDatasetMaxVertices:
             n_moves=1,
             seed=0,
             use_surgery=True,
-            max_vertices=6,
+            max_vertices=7,
         )
         names = {e["name"] for e in out}
         assert "T^2" not in names
         assert "RP^2" in names
+        assert all(e["n_vertices"] <= 7 for e in out)
 
 
 # class TestPrintStatistics:

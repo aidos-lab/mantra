@@ -7,6 +7,10 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `PermuteVertices`: relabels a triangulation by a random vertex
+  permutation, so that downstream encodings and the orientations of
+  signed incidence matrices no longer depend on the stored labels.
+
 - `AttributeToClassTransform`, `AttributeToRegressionTransform` and
   `NameToClass3MTransform` (with `NAME_TO_CLASS_3M`): stateless task
   transforms whose targets are fixed functions of the stored
@@ -24,15 +28,54 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
+- `MantraDataset(force_reload=True)` now removes all existing files from the cache and only needs to be set during first  
+dataset creation
+
+- Simplex-ordering stored lexicographically. 
+
+- `MantraDataset` pre-transformed the test entries twice when no
+  subdivision was requested, and every subdivision rewrote the
+  train/val/test files and pre-transformed all entries again, so random
+  pre-transforms left different draws on disk than in the first dataset
+  instance.
+
 - `MantraDataset(balanced=True)` balanced nothing since the split
   refactor; the augmented and deduplicated entries are now used.
 
+- `balance_dataset` stopped oversampling far short of twice the target
+  count because augmented copies and copies rejected by `max_vertices`
+  used up the budget; larger targets now fill or raise the existing
+  `ValueError`. Surgery also counted the glued vertices wrong and could
+  exceed `max_vertices`.
+
+- Unbalanced datasets with different `max_vertices` shared one
+  processed directory, so a cached split built under one cap was
+  silently reused under another; the cap is now part of the path.
+
+- OOD splits drew their per-class sources with replacement, so
+  deterministic subdivisions (barycentric, full stellar) produced exact
+  duplicates and fewer distinct sources than `max_ood_size_per_class`;
+  sources are now sampled without replacement.
+
 ## Changed
+
+- `Simplex` stores its vertices as a sorted tuple, so iteration,
+  `repr` and ordering are lexicographic.
+
+- `MantraDataset` builds the train/val/test files and the raw test
+  entries (`sources*.pt`) once per processed directory; a further
+  subdivision only subdivides the cached test entries and pre-transforms
+  its own OOD split. Processed directories from earlier versions lack
+  the sources file and are rebuilt once.
 
 - `balanced=True` now computes the balanced dataset during `process()`
   via Pachner-move augmentation and deduplication instead of
   downloading a pre-generated release asset. This also fixes the 404
   for recent releases, which no longer shipped balanced assets.
+
+- With `max_vertices` set, augmentation stops subdividing once a copy
+  reaches the cap (`random_pachner_move(max_vertices=...)`), so capped
+  balancing fills its classes instead of rejecting most copies.
 
 - `balance_dataset` draws augmentations only from original entries
   (never from augmented copies), keeps a random subsample per class

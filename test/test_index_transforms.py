@@ -5,6 +5,7 @@ from mantra.representations import (
     AdjacencySimplicialComplex,
     IncidenceSimplicialComplex,
 )
+from mantra.transforms import PropagateConvexComb
 
 
 class TestTensors:
@@ -110,3 +111,19 @@ class TestTensors:
         assert (
             self.adjacency_2 == data.adjacency_2.to_dense()
         ).all(), "Error at `adjacency_2` "
+
+
+def test_rows_follow_lexicographic_order_for_large_labels(large_label_tri):
+    data = Data(triangulation=large_label_tri, dimension=2)
+    data.x = torch.arange(1, 11, dtype=torch.float32).unsqueeze(1)
+
+    data = IncidenceSimplicialComplex(signed=False)(data)
+    data = PropagateConvexComb(source="x")(data)
+
+    incidence_1 = data.incidence_1.to_dense()
+    incidence_2 = data.incidence_2.to_dense()
+    edges = incidence_1.T @ data.x_0 / 2
+    triangles = (incidence_1 @ incidence_2 > 0).float().T @ data.x_0 / 3
+
+    torch.testing.assert_close(data.x_1, edges)
+    torch.testing.assert_close(data.x_2, triangles)
