@@ -5,7 +5,11 @@ import numpy as np
 from tqdm import tqdm
 
 from mantra.datasets.calabi_yau import CalabiYau
-from mantra.datasets.utils import filter_by_class_count, make_split_index
+from mantra.datasets.utils import (
+    filter_by_class_count,
+    make_split_index,
+    map_pre_transform,
+)
 
 SPLIT_TYPES = ["train", "val", "test"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -40,6 +44,7 @@ class CalabiYauDataset(CalabiYau):
         label_source: str = "h11",
         min_sample_per_class: int | None = None,
         parquet_batch_size: int = 1000,
+        pre_transform_workers: int | None = None,
     ):
         """
         Create a split of the CY-Manifolds dataset.
@@ -103,6 +108,7 @@ class CalabiYauDataset(CalabiYau):
             pre_filter=pre_filter,
             force_reload=force_reload,
             parquet_batch_size=parquet_batch_size,
+            pre_transform_workers=pre_transform_workers,
         )
 
     def _load_index(self):
@@ -163,10 +169,9 @@ class CalabiYauDataset(CalabiYau):
         )
 
         if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
+            data_list = map_pre_transform(
+                self.pre_transform, data_list, self.pre_transform_workers
+            )
 
         train_index, val_index, test_index = make_split_index(
             data_list_size=len(data_list),

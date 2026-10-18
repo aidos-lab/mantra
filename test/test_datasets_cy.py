@@ -4,8 +4,16 @@ from collections import Counter
 
 import pytest
 import torch
+from torch_geometric.transforms import BaseTransform
 
 from mantra.datasets import CalabiYau, CalabiYauDataset
+
+
+class _CountSimplices(BaseTransform):
+    def forward(self, data):
+        data.n_simplices = len(data.triangulation)
+        data.coords = data.coords * 2
+        return data
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
@@ -52,6 +60,29 @@ class TestCY:
         assert int(data.h11) == 6
         assert int(data.h12) == 46
         assert int(dataset[1].h11) == 7
+
+    def test_parallel_pre_transform_matches_serial(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        rows = cy_rows * 8
+        serial = CalabiYau(
+            root=str(tmp_path / "serial"),
+            local_path=make_cy_parquet(rows, "serial.parquet"),
+            pre_transform=_CountSimplices(),
+            pre_transform_workers=1,
+        )
+        parallel = CalabiYau(
+            root=str(tmp_path / "parallel"),
+            local_path=make_cy_parquet(rows, "parallel.parquet"),
+            pre_transform=_CountSimplices(),
+            pre_transform_workers=2,
+        )
+
+        assert len(parallel) == len(serial) == len(rows)
+        for a, b in zip(serial, parallel):
+            assert a.n_simplices == b.n_simplices == 4
+            assert torch.equal(a.coords, b.coords)
+            assert int(a.h11) == int(b.h11)
 
     def test_limit(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows, limit=1)

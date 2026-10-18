@@ -27,6 +27,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
+- `LeviGraph(feature_propagation=...)`: like `HasseDiagram`, the
+  vertex and maximal-simplex nodes receive the rows of the per-rank
+  feature tensors (e.g. the barycentres written by
+  `PropagateConvexComb`) as `x`.
+
 - `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
   in `task_transforms`: stateless node-level task transforms that turn
   an attribute holding one value per vertex into `data.y` with one
@@ -79,6 +84,11 @@ dataset creation
   sources are now sampled without replacement.
 
 ## Changed
+
+- `CalabiYau` and `CalabiYauDataset` apply the `pre_transform` in a
+  process pool when the cache is built; `pre_transform_workers`
+  (default: every available CPU) sets the number of processes, `1`
+  restores the serial build.
 
 - `Simplex` stores its vertices as a sorted tuple, so iteration,
   `repr` and ordering are lexicographic.

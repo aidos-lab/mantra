@@ -1,11 +1,13 @@
 import os
 import shutil
-from typing import List
+from typing import List, Optional
 
 import pyarrow.parquet as pq
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
+
+from mantra.datasets.utils import map_pre_transform
 
 
 class CalabiYau(InMemoryDataset):
@@ -45,6 +47,7 @@ class CalabiYau(InMemoryDataset):
         pre_filter=None,
         force_reload=False,
         parquet_batch_size: int = 1000,
+        pre_transform_workers: Optional[int] = None,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -90,12 +93,18 @@ class CalabiYau(InMemoryDataset):
         parquet_batch_size : int
             Size of the batch to load from the parquet file of the
             manifold triangulations.
+
+        pre_transform_workers : int, optional
+            Processes applying `pre_transform` when the cache is built.
+            Defaults to every CPU the process may run on; `1` runs in
+            this process.
         """
         self.version = version
         self.name = name
         self.local_path = os.path.abspath(local_path) if local_path else None
         self.limit = limit
         self.parquet_batch_size = parquet_batch_size
+        self.pre_transform_workers = pre_transform_workers
 
         root += self._add_version_to_root()
 
@@ -262,9 +271,8 @@ class CalabiYau(InMemoryDataset):
             ]
 
         if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
+            data_list = map_pre_transform(
+                self.pre_transform, data_list, self.pre_transform_workers
+            )
 
         self.save(data_list, self.processed_paths[0])
