@@ -47,6 +47,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
+- The parallel pre-transform of `CalabiYau` and `CalabiYauDataset`
+  passed tensors through torch's shared-memory reductions, which kept
+  one file descriptor per tensor in the parent and failed with "Too
+  many open files" on large datasets; results now cross the pool as
+  plain pickles.
+
 - `CalabiYauDataset` raises a clear error when `min_sample_per_class`
   drops every sample instead of failing inside the split.
 

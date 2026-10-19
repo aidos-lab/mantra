@@ -1,5 +1,6 @@
 import multiprocessing as mp
 import os
+import pickle
 from collections import Counter
 from typing import Callable, List, Optional
 
@@ -18,8 +19,11 @@ def _init_worker(transform: Callable) -> None:
     torch.set_num_threads(1)
 
 
-def _apply_worker_transform(data):
-    return _worker_transform(data)
+def _apply_worker_transform(pickled_data: bytes) -> bytes:
+    # Plain pickle bypasses torch's shared-memory reductions, which keep
+    # one file descriptor per storage in the parent and exhaust `ulimit -n`.
+    data = _worker_transform(pickle.loads(pickled_data))
+    return pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def available_cpus() -> int:
@@ -54,16 +58,21 @@ def map_pre_transform(
     methods = mp.get_all_start_methods()
     ctx = mp.get_context("fork" if "fork" in methods else methods[0])
     chunksize = max(1, min(64, len(data_list) // (4 * num_workers)))
+    pickled = (
+        pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+        for data in data_list
+    )
     with ctx.Pool(
         num_workers, initializer=_init_worker, initargs=(pre_transform,)
     ) as pool:
-        return list(
-            tqdm(
-                pool.imap(_apply_worker_transform, data_list, chunksize),
+        return [
+            pickle.loads(result)
+            for result in tqdm(
+                pool.imap(_apply_worker_transform, pickled, chunksize),
                 total=len(data_list),
                 desc=desc,
             )
-        )
+        ]
 
 
 def _get_mantra_dataset_url(version: str, dimension: int) -> str:
