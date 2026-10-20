@@ -27,6 +27,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
+- `LeviGraph(feature_propagation=...)`: like `HasseDiagram`, the
+  vertex and maximal-simplex nodes receive the rows of the per-rank
+  feature tensors (e.g. the barycentres written by
+  `PropagateConvexComb`) as `x`. A boolean `vertex_mask` marks the
+  vertex nodes, which come first in vertex order, so per-vertex
+  node-level targets align with `x[vertex_mask]`.
+
 - `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
   in `task_transforms`: stateless node-level task transforms that turn
   an attribute holding one value per vertex into `data.y` with one
@@ -41,6 +48,19 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   `AttributeToClassTransform` or a name transform instead.
 
 ## Fixed
+
+- The parallel pre-transform of `CalabiYau` and `CalabiYauDataset`
+  passed tensors through torch's shared-memory reductions, which kept
+  one file descriptor per tensor in the parent and failed with "Too
+  many open files" on large datasets; results now cross the pool as
+  plain pickles.
+
+- `CalabiYauDataset` raises a clear error when `min_sample_per_class`
+  drops every sample instead of failing inside the split.
+
+- `CalabiYauDataset` split files filtered with `min_sample_per_class`
+  now also carry the `label_source`, so filters on different labels no
+  longer share a cached split.
 
 - `MantraDataset(force_reload=True)` now removes all existing files from the cache and only needs to be set during first  
 dataset creation
@@ -73,6 +93,11 @@ dataset creation
 
 ## Changed
 
+- `CalabiYau` and `CalabiYauDataset` apply the `pre_transform` in a
+  process pool when the cache is built; `pre_transform_workers`
+  (default: every available CPU) sets the number of processes, `1`
+  restores the serial build.
+
 - `Simplex` stores its vertices as a sorted tuple, so iteration,
   `repr` and ordering are lexicographic.
 
@@ -81,6 +106,7 @@ dataset creation
   subdivision only subdivides the cached test entries and pre-transforms
   its own OOD split. Processed directories from earlier versions lack
   the sources file and are rebuilt once.
+
 - `CalabiYau` converts parquet list columns (e.g. the per-vertex `c2`
   or the sparse `intersection_numbers` block) to tensors instead of
   attaching numpy arrays, so they collate and cache like any other

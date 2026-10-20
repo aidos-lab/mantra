@@ -1,8 +1,78 @@
+import multiprocessing as mp
+import os
+import pickle
 from collections import Counter
+from typing import Callable, List, Optional
 
 import numpy as np
 import requests
+import torch
 from sklearn.model_selection import train_test_split
+from tqdm import tqdm
+
+_worker_transform = None
+
+
+def _init_worker(transform: Callable) -> None:
+    global _worker_transform
+    _worker_transform = transform
+    torch.set_num_threads(1)
+
+
+def _apply_worker_transform(pickled_data: bytes) -> bytes:
+    # Plain pickle bypasses torch's shared-memory reductions, which keep
+    # one file descriptor per storage in the parent and exhaust `ulimit -n`.
+    data = _worker_transform(pickle.loads(pickled_data))
+    return pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def available_cpus() -> int:
+    """Number of CPUs this process may run on (its affinity mask, so a
+    SLURM or cgroup allocation is respected where the OS exposes it)."""
+    if hasattr(os, "sched_getaffinity"):
+        return len(os.sched_getaffinity(0))
+    return os.cpu_count() or 1
+
+
+def map_pre_transform(
+    pre_transform: Callable,
+    data_list: List,
+    num_workers: Optional[int] = None,
+    desc: str = "Pre-transforming",
+) -> List:
+    """Apply `pre_transform` to every element of `data_list`, in order.
+
+    Parameters
+    ----------
+    num_workers : int, optional
+        Worker processes; `None` uses every available CPU and `1` runs
+        in this process. The transform must be picklable when the
+        start method is not fork.
+    """
+    if num_workers is None:
+        num_workers = available_cpus()
+    num_workers = min(num_workers, len(data_list) // 2)
+    if num_workers <= 1:
+        return [pre_transform(data) for data in tqdm(data_list, desc=desc)]
+
+    methods = mp.get_all_start_methods()
+    ctx = mp.get_context("fork" if "fork" in methods else methods[0])
+    chunksize = max(1, min(64, len(data_list) // (4 * num_workers)))
+    pickled = (
+        pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
+        for data in data_list
+    )
+    with ctx.Pool(
+        num_workers, initializer=_init_worker, initargs=(pre_transform,)
+    ) as pool:
+        return [
+            pickle.loads(result)
+            for result in tqdm(
+                pool.imap(_apply_worker_transform, pickled, chunksize),
+                total=len(data_list),
+                desc=desc,
+            )
+        ]
 
 
 def _get_mantra_dataset_url(version: str, dimension: int) -> str:

@@ -1,12 +1,26 @@
+from typing import Optional
+
 import networkx as nx
 from torch_geometric.data import Data
 from torch_geometric.transforms import BaseTransform
 from torch_geometric.utils import from_networkx
 
+from .hasse_diagram import simplex_feature_index
+
 
 class LeviGraph(BaseTransform):
-    def __init__(self):
+    def __init__(self, feature_propagation: Optional[str] = None):
+        """
+        Parameters
+        ----------
+        feature_propagation : str, optional
+            Name of per-rank feature tensors `<name>_0` (vertices) and
+            `<name>_d` (maximal simplices), e.g. written by
+            `PropagateConvexComb`; each node receives the row of its
+            simplex, grouped into `x` as in `HasseDiagram`.
+        """
         super().__init__()
+        self.feature_propagation = feature_propagation
 
     def forward(self, data: Data):
         """Retrieves the Levi Graph[1] of a triangulation
@@ -25,12 +39,20 @@ class LeviGraph(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with all keys maintained and an
-            `edge_index` tensor for representing the Levi graph being
-            present.
+            Adjusted data object with all keys maintained, an
+            `edge_index` tensor representing the Levi graph, and a
+            boolean `vertex_mask` that is `True` for the vertex nodes,
+            which come first and in vertex order, so node-level targets
+            defined per vertex align with `x[vertex_mask]`.
         """
-        G = self._build_levi(data["triangulation"])
-        data_ = from_networkx(G)
+        G = self._build_levi(data["triangulation"], data)
+
+        if self.feature_propagation:
+            data_ = from_networkx(
+                G, group_node_attrs=[self.feature_propagation]
+            )
+        else:
+            data_ = from_networkx(G)
 
         for k, v in data_.items():
             assert k not in data
@@ -39,7 +61,7 @@ class LeviGraph(BaseTransform):
         data["n_vertices"] = G.number_of_nodes()
         return data
 
-    def _build_levi(self, top_simplices):
+    def _build_levi(self, top_simplices, data=None):
         """Constructs the Levi graph.
 
         The Levi graph of a triangulation $T$ of dimension $d$ is a
@@ -52,6 +74,12 @@ class LeviGraph(BaseTransform):
         top_simplices = list(set([tuple(s) for s in top_simplices]))
         top_simplices.sort()
         top_simplices.sort(key=len)
+
+        feat_index = (
+            simplex_feature_index(top_simplices)
+            if self.feature_propagation
+            else None
+        )
 
         G = nx.Graph()
 
@@ -66,13 +94,25 @@ class LeviGraph(BaseTransform):
         # integers aligned with the original (zero-indexed) vertex
         # order.
         for v in vertices:
-            G.add_node(v - 1, simplex=[v - 1])
+            G.add_node(v - 1, **self._node_attrs((v,), data, feat_index))
 
         # For each maximal simplex
         for i, simp in enumerate(top_simplices):
-            G.add_node(n + i, simplex=[v - 1 for v in simp])
+            G.add_node(n + i, **self._node_attrs(simp, data, feat_index))
             # Connect the maximal simplex to the 0-simplices it contains
             for v in simp:
                 G.add_edge(v - 1, n + i)
 
         return G
+
+    def _node_attrs(self, simplex, data, feat_index):
+        attrs = {
+            "simplex": [v - 1 for v in simplex],
+            "vertex_mask": len(simplex) == 1,
+        }
+        if self.feature_propagation:
+            features = getattr(
+                data, f"{self.feature_propagation}_{len(simplex) - 1}"
+            )
+            attrs[self.feature_propagation] = features[feat_index[simplex]]
+        return attrs
