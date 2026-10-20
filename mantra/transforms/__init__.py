@@ -1,6 +1,7 @@
 from .encodings import (
     EffectiveResistanceEmbedding,
     EffectiveResistanceStatisticsEmbedding,
+    EulerCharacteristicTransform,
     MomentCurveEmbedding,
     NodeDegreeTransform,
     NodeRandomTransform,
@@ -36,6 +37,7 @@ __all__ = [
     "OrientableToClassTransform",
     "NameToClass2MTransform",
     "NameToClass3MTransform",
+    "EulerCharacteristicTransform",
     "MomentCurveEmbedding",
     "SelectAttributes",
     "SelectFeatures",
