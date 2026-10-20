@@ -45,6 +45,9 @@ class TestLeviGraph:
         cnt_nodes = self._cnt_nodes(data)
 
         assert data.n_vertices == cnt_nodes + len(data.triangulation)
+        assert data.vertex_mask.tolist() == [True] * cnt_nodes + [False] * len(
+            data.triangulation
+        )
 
 
 # Vertex coordinates whose x-coordinates are powers of two: barycenters
@@ -66,6 +69,7 @@ def test_forward_propagates_coordinate_barycenters_per_node():
     # 4 vertex nodes first, then the 4 facets; x_1 (edges) is unused.
     assert out.x.shape == (8, 2)
     assert torch.equal(out.x[:4], VERTICES)
+    assert torch.equal(out.x[out.vertex_mask], VERTICES)
     assert sorted(len(s) for s in out.simplex) == [1] * 4 + [3] * 4
     for i, simplex in enumerate(out.simplex):
         assert torch.allclose(out.x[i], VERTICES[simplex].mean(dim=0))

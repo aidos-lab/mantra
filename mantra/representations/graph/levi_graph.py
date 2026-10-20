@@ -39,9 +39,11 @@ class LeviGraph(BaseTransform):
         Returns
         -------
         torch_geometric.data.Data
-            Adjusted data object with all keys maintained and an
-            `edge_index` tensor for representing the Levi graph being
-            present.
+            Adjusted data object with all keys maintained, an
+            `edge_index` tensor representing the Levi graph, and a
+            boolean `vertex_mask` that is `True` for the vertex nodes,
+            which come first and in vertex order, so node-level targets
+            defined per vertex align with `x[vertex_mask]`.
         """
         G = self._build_levi(data["triangulation"], data)
 
@@ -104,7 +106,10 @@ class LeviGraph(BaseTransform):
         return G
 
     def _node_attrs(self, simplex, data, feat_index):
-        attrs = {"simplex": [v - 1 for v in simplex]}
+        attrs = {
+            "simplex": [v - 1 for v in simplex],
+            "vertex_mask": len(simplex) == 1,
+        }
         if self.feature_propagation:
             features = getattr(
                 data, f"{self.feature_propagation}_{len(simplex) - 1}"

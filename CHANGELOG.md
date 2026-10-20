@@ -30,7 +30,9 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 - `LeviGraph(feature_propagation=...)`: like `HasseDiagram`, the
   vertex and maximal-simplex nodes receive the rows of the per-rank
   feature tensors (e.g. the barycentres written by
-  `PropagateConvexComb`) as `x`.
+  `PropagateConvexComb`) as `x`. A boolean `vertex_mask` marks the
+  vertex nodes, which come first in vertex order, so per-vertex
+  node-level targets align with `x[vertex_mask]`.
 
 - `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
   in `task_transforms`: stateless node-level task transforms that turn
