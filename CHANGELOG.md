@@ -7,6 +7,12 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `EulerCharacteristicTransform`: sublevel-set Euler characteristic
+  transform of a triangulation with vertex coordinates, over seeded
+  random directions and a threshold grid, optionally of the
+  `max_rank`-skeleton; `per_rank` keeps the face counts of every rank
+  apart instead of their alternating sum.
+
 - `PermuteVertices`: relabels a triangulation by a random vertex
   permutation, so that downstream encodings and the orientations of
   signed incidence matrices no longer depend on the stored labels.

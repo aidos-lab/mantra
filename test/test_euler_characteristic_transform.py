@@ -73,3 +73,21 @@ def test_respects_source_and_target_names():
     data = transform(Data(pos=COORDS, triangulation=TRIANGLE))
     assert "ect" not in data
     assert data.curves.shape == (1, 2, 3)
+
+
+def test_per_rank_keeps_the_face_counts_apart():
+    transform = EulerCharacteristicTransform(
+        num_directions=1, resolution=5, radius=2.0, max_rank=1, per_rank=True
+    )
+    transform._directions = torch.tensor([[1.0], [0.0]])
+    data = transform(Data(coords=COORDS, triangulation=TRIANGLE))
+    assert data.ect.shape == (1, 2, 1, 5)
+    assert data.ect[0, 0, 0].tolist() == [0, 0, 2, 3, 3]
+    assert data.ect[0, 1, 0].tolist() == [0, 0, 1, 3, 3]
+    ect = EulerCharacteristicTransform(
+        num_directions=1, resolution=5, radius=2.0, max_rank=1
+    )
+    assert torch.equal(
+        (data.ect[0, 0] - data.ect[0, 1]).long(),
+        ect_along(ect, COORDS, TRIANGLE, [1.0, 0.0]).unsqueeze(0),
+    )
