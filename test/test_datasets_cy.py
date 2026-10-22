@@ -53,6 +53,21 @@ class TestCY:
         assert int(data.h12) == 46
         assert int(dataset[1].h11) == 7
 
+    def test_regenerated_file_is_processed_anew(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        first = _load(tmp_path, make_cy_parquet, cy_rows)
+        again = _load(tmp_path, make_cy_parquet, cy_rows)
+        assert again.processed_dir == first.processed_dir
+
+        # Same file name, new content: served from a new cache without
+        # force_reload, and no raw copy is kept.
+        changed = [{**row, "h11": 99} for row in cy_rows]
+        regenerated = _load(tmp_path, make_cy_parquet, changed)
+        assert regenerated.processed_dir != first.processed_dir
+        assert all(int(data.h11) == 99 for data in regenerated)
+        assert not (tmp_path / "data" / "calabi_yau" / "raw").exists()
+
     def test_limit(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows, limit=1)
 
@@ -196,10 +211,23 @@ class TestCYClassFilter:
 
         assert sum(len(split) for split in splits) == 30
         assert all(int(data.h12) != 7 for split in splits for data in split)
-        assert "ccf2" in splits[0].processed_paths[0]
+        assert "ccf2-h12" in splits[0].processed_paths[0]
 
         unfiltered = _load_split(tmp_path, make_cy_parquet, rows, "train")
         assert "ccf" not in unfiltered.processed_paths[0]
+
+    def test_filter_dropping_everything_is_an_error(
+        self, tmp_path, make_cy_parquet
+    ):
+        with pytest.raises(ValueError, match="drops all 30 samples"):
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                _numbered_rows(30),
+                "train",
+                label_source="h12",
+                min_sample_per_class=10,
+            )
 
 
 class TestCYStratified:

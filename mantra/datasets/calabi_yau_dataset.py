@@ -118,7 +118,7 @@ class CalabiYauDataset(CalabiYau):
         """
         parts = [f"seed{self.seed}"]
         if self.min_sample_per_class:
-            parts.append(f"ccf{self.min_sample_per_class}")
+            parts.append(f"ccf{self.min_sample_per_class}-{self.label_source}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
             parts.append(
                 "sp" + "-".join(str(p) for p in self.split_proportions)
@@ -145,9 +145,16 @@ class CalabiYauDataset(CalabiYau):
                 if self.pre_filter(data)
             ]
 
+        n_before = len(data_list)
         data_list, _ = filter_by_class_count(
             data_list, self.label_source, self.min_sample_per_class
         )
+        if not data_list:
+            raise ValueError(
+                f"min_sample_per_class={self.min_sample_per_class} on "
+                f"'{self.label_source}' drops all {n_before} samples; "
+                "lower it or use a larger subset"
+            )
 
         labels = (
             np.array([data[self.label_source] for data in data_list])

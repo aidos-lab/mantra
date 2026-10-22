@@ -42,6 +42,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Fixed
 
+- `CalabiYauDataset` raises a clear error when `min_sample_per_class`
+  drops every sample instead of failing inside the split.
+
+- `CalabiYauDataset` split files filtered with `min_sample_per_class`
+  now also carry the `label_source`, so filters on different labels no
+  longer share a cached split.
+
 - `MantraDataset(force_reload=True)` now removes all existing files from the cache and only needs to be set during first  
 dataset creation
 
@@ -73,6 +80,13 @@ dataset creation
 
 ## Changed
 
+- `CalabiYau` reads the parquet file given by `local_path` in place
+  instead of copying it into `raw/`, and its processed directory
+  carries a fingerprint of the parquet footer. A regenerated file
+  under the same name is processed anew instead of being served from
+  the old cache; existing caches are rebuilt once. `local_path` is
+  now required.
+
 - `Simplex` stores its vertices as a sorted tuple, so iteration,
   `repr` and ordering are lexicographic.
 
@@ -81,6 +95,7 @@ dataset creation
   subdivision only subdivides the cached test entries and pre-transforms
   its own OOD split. Processed directories from earlier versions lack
   the sources file and are rebuilt once.
+
 - `CalabiYau` converts parquet list columns (e.g. the per-vertex `c2`
   or the sparse `intersection_numbers` block) to tensors instead of
   attaching numpy arrays, so they collate and cache like any other
