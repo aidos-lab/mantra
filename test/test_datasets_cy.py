@@ -4,8 +4,22 @@ from collections import Counter
 
 import pytest
 import torch
+from torch_geometric.transforms import BaseTransform
 
 from mantra.datasets import CalabiYau, CalabiYauDataset
+
+
+class _RandomFeature(BaseTransform):
+    def forward(self, data):
+        data.r = torch.rand(1)
+        return data
+
+
+class _CountSimplices(BaseTransform):
+    def forward(self, data):
+        data.n_simplices = len(data.triangulation)
+        data.coords = data.coords * 2
+        return data
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
@@ -67,6 +81,42 @@ class TestCY:
         assert regenerated.processed_dir != first.processed_dir
         assert all(int(data.h11) == 99 for data in regenerated)
         assert not (tmp_path / "data" / "calabi_yau" / "raw").exists()
+
+    def test_parallel_pre_transform_matches_serial(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        rows = cy_rows * 8
+        serial, parallel = (
+            CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(rows, f"{name}.parquet"),
+                pre_transform=_CountSimplices(),
+                pre_transform_workers=workers,
+            )
+            for name, workers in (("serial", 1), ("parallel", 2))
+        )
+
+        assert len(parallel) == len(rows)
+        for a, b in zip(serial, parallel):
+            assert a.n_simplices == b.n_simplices == 4
+            assert torch.equal(a.coords, b.coords)
+
+    def test_parallel_pre_transform_seeds_each_sample(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        def draws(name):
+            torch.manual_seed(0)
+            dataset = CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(cy_rows * 8, f"{name}.parquet"),
+                pre_transform=_RandomFeature(),
+                pre_transform_workers=2,
+            )
+            return dataset._data.r
+
+        first = draws("first")
+        assert first.unique().numel() == first.numel()
+        assert torch.equal(first, draws("again"))
 
     def test_limit(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows, limit=1)

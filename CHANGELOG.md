@@ -7,6 +7,19 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `EulerCharacteristicTransform`: sublevel-set Euler characteristic
+  transform of a triangulation with vertex coordinates, over seeded
+  random directions and a threshold grid, optionally of the
+  `max_rank`-skeleton; `per_rank` keeps the face counts of every rank
+  apart instead of their alternating sum.
+
+- `CalabiYau` and `CalabiYauDataset` take `pre_transform_workers`:
+  the `pre_transform` runs in a process pool when the cache is built
+  (`None` uses every available CPU; the default `1` is serial). Results
+  cross the pool as plain pickles, since torch's shared-memory
+  reductions keep one descriptor per tensor and exhaust `ulimit -n` on
+  large datasets.
+
 - `PermuteVertices`: relabels a triangulation by a random vertex
   permutation, so that downstream encodings and the orientations of
   signed incidence matrices no longer depend on the stored labels.
