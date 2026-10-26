@@ -61,4 +61,3 @@ def test_directions_depend_only_on_seed():
     assert torch.equal(a.directions(4), b.directions(4))
     assert not torch.equal(a.directions(4), c.directions(4))
     assert torch.allclose(a.directions(4).norm(dim=0), torch.ones(8))
-
