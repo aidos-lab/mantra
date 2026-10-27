@@ -7,12 +7,7 @@ import torch
 from torch_geometric.transforms import BaseTransform
 
 from mantra.datasets import CalabiYau, CalabiYauDataset
-
-
-class _RandomFeature(BaseTransform):
-    def forward(self, data):
-        data.r = torch.rand(1)
-        return data
+from mantra.transforms import SimplexRandomTransform
 
 
 class _CountSimplices(BaseTransform):
@@ -109,10 +104,10 @@ class TestCY:
             dataset = CalabiYau(
                 root=str(tmp_path / name),
                 local_path=make_cy_parquet(cy_rows * 8, f"{name}.parquet"),
-                pre_transform=_RandomFeature(),
+                pre_transform=SimplexRandomTransform(0, feature_dim=1),
                 pre_transform_workers=2,
             )
-            return dataset._data.r
+            return dataset._data.random_features_0
 
         first = draws("first")
         assert first.unique().numel() == first.numel()
