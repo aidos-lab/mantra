@@ -52,16 +52,16 @@ def map_pre_transform(
     In the pool, every sample is transformed under its own seed derived
     from `torch.initial_seed()` without touching the global generator,
     so transforms using the global torch, numpy or `random` generators
-    give the same result for any worker count and schedule. Forked
-    workers share the state of a generator a transform holds itself, so
-    such transforms must run with `num_workers=1`.
+    give the same result for any worker count and schedule. Every worker
+    receives a copy of the transform, so a transform holding its own
+    generator would repeat its draws across workers and must run with
+    `num_workers=1`.
 
     Parameters
     ----------
     num_workers : int, optional
         Worker processes; `None` uses every available CPU and `1` runs
-        in this process. The transform must be picklable when the
-        start method is not fork.
+        in this process. The transform must be picklable.
     """
     if num_workers is None:
         num_workers = available_cpus()
@@ -73,7 +73,7 @@ def map_pre_transform(
         ]
 
     methods = mp.get_all_start_methods()
-    ctx = mp.get_context("fork" if "fork" in methods else methods[0])
+    ctx = mp.get_context("forkserver" if "forkserver" in methods else "spawn")
     chunksize = max(1, min(64, len(data_list) // (4 * num_workers)))
     generator = torch.Generator().manual_seed(torch.initial_seed())
     seeds = torch.randint(
