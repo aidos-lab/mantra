@@ -50,3 +50,5 @@ def test_entries_outside_the_triangulation_or_malformed_raise():
         TriangleIntersectionNumbers()(
             Data(triangulation=TRIANGULATION, intersection_numbers=[[0, 1, 2]])
         )
+    with pytest.raises(ValueError, match="missing"):
+        TriangleIntersectionNumbers()(Data(triangulation=TRIANGULATION))

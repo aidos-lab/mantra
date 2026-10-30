@@ -51,6 +51,11 @@ class TriangleIntersectionNumbers(BaseTransform):
                 for face in combinations(sorted(simplex), 3)
             }
         )
+        if self.source not in data:
+            raise ValueError(
+                f"`{self.source}` is missing; the parquet must carry the "
+                "sparse intersection numbers"
+            )
         source = torch.as_tensor(data[self.source]).reshape(-1, 4)
         values = {}
         for *idx, value in source.tolist():
