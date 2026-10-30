@@ -7,6 +7,11 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `TriangleIntersectionNumbers`: per-triangle targets from the sparse
+  intersection numbers of a Calabi-Yau triangulation, in the rank-2
+  order of the simplicial representations, with the triangles' vertex
+  indices for gathering vertex embeddings.
+
 - `EulerCharacteristicTransform`: sublevel-set Euler characteristic
   transform of a triangulation with vertex coordinates, over seeded
   random directions and a threshold grid, optionally of the
