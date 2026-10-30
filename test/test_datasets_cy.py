@@ -4,8 +4,17 @@ from collections import Counter
 
 import pytest
 import torch
+from torch_geometric.transforms import BaseTransform
 
 from mantra.datasets import CalabiYau, CalabiYauDataset
+from mantra.transforms import SimplexRandomTransform
+
+
+class _CountSimplices(BaseTransform):
+    def forward(self, data):
+        data.n_simplices = len(data.triangulation)
+        data.coords = data.coords * 2
+        return data
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
@@ -52,6 +61,57 @@ class TestCY:
         assert int(data.h11) == 6
         assert int(data.h12) == 46
         assert int(dataset[1].h11) == 7
+
+    def test_regenerated_file_is_processed_anew(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        first = _load(tmp_path, make_cy_parquet, cy_rows)
+        again = _load(tmp_path, make_cy_parquet, cy_rows)
+        assert again.processed_dir == first.processed_dir
+
+        # Same file name, new content: served from a new cache without
+        # force_reload, and no raw copy is kept.
+        changed = [{**row, "h11": 99} for row in cy_rows]
+        regenerated = _load(tmp_path, make_cy_parquet, changed)
+        assert regenerated.processed_dir != first.processed_dir
+        assert all(int(data.h11) == 99 for data in regenerated)
+        assert not (tmp_path / "data" / "calabi_yau" / "raw").exists()
+
+    def test_parallel_pre_transform_matches_serial(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        rows = cy_rows * 8
+        serial, parallel = (
+            CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(rows, f"{name}.parquet"),
+                pre_transform=_CountSimplices(),
+                pre_transform_workers=workers,
+            )
+            for name, workers in (("serial", 1), ("parallel", 2))
+        )
+
+        assert len(parallel) == len(rows)
+        for a, b in zip(serial, parallel):
+            assert a.n_simplices == b.n_simplices == 4
+            assert torch.equal(a.coords, b.coords)
+
+    def test_parallel_pre_transform_seeds_each_sample(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        def draws(name):
+            torch.manual_seed(0)
+            dataset = CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(cy_rows * 8, f"{name}.parquet"),
+                pre_transform=SimplexRandomTransform(0, feature_dim=1),
+                pre_transform_workers=2,
+            )
+            return dataset._data.random_features_0
+
+        first = draws("first")
+        assert first.unique().numel() == first.numel()
+        assert torch.equal(first, draws("again"))
 
     def test_limit(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows, limit=1)
@@ -196,10 +256,23 @@ class TestCYClassFilter:
 
         assert sum(len(split) for split in splits) == 30
         assert all(int(data.h12) != 7 for split in splits for data in split)
-        assert "ccf2" in splits[0].processed_paths[0]
+        assert "ccf2-h12" in splits[0].processed_paths[0]
 
         unfiltered = _load_split(tmp_path, make_cy_parquet, rows, "train")
         assert "ccf" not in unfiltered.processed_paths[0]
+
+    def test_filter_dropping_everything_is_an_error(
+        self, tmp_path, make_cy_parquet
+    ):
+        with pytest.raises(ValueError, match="drops all 30 samples"):
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                _numbered_rows(30),
+                "train",
+                label_source="h12",
+                min_sample_per_class=10,
+            )
 
 
 class TestCYStratified:
