@@ -145,17 +145,55 @@ def make_split_index(
     val_size: float,
     test_size: float,
     labels=None,
+    groups=None,
 ):
-    # Train / test split
+    """Seeded train/val/test index split, optionally stratified by
+    ``labels`` and grouped by ``groups``.
+
+    With ``groups`` (one hashable per sample) the split is drawn over
+    the distinct groups and every sample of a group lands in the same
+    part. ``labels`` then stratify over the groups, so they must be
+    constant within each group.
+    """
+    if groups is None:
+        return _split_index(
+            np.arange(data_list_size),
+            seed,
+            train_size,
+            val_size,
+            test_size,
+            labels,
+        )
+    unique, inverse = np.unique(np.asarray(groups), return_inverse=True)
+    group_labels = None
+    if labels is not None:
+        labels = np.asarray(labels)
+        group_labels = np.empty(len(unique), dtype=labels.dtype)
+        group_labels[inverse] = labels
+        if not np.array_equal(group_labels[inverse], labels):
+            raise ValueError(
+                "stratification labels must be constant within each group"
+            )
+    parts = _split_index(
+        np.arange(len(unique)),
+        seed,
+        train_size,
+        val_size,
+        test_size,
+        group_labels,
+    )
+    index = np.arange(data_list_size)
+    return tuple(index[np.isin(inverse, part)] for part in parts)
+
+
+def _split_index(index, seed, train_size, val_size, test_size, labels):
     train_val_index, test_index = train_test_split(
-        np.arange(data_list_size),
+        index,
         test_size=test_size,
         shuffle=True,
         stratify=labels,
         random_state=seed,
     )
-
-    # train val split
     train_index, val_index = train_test_split(
         train_val_index,
         test_size=val_size / (train_size + val_size),

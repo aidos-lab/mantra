@@ -297,3 +297,75 @@ class TestCYStratified:
         assert counts["train"] == {0: 6, 1: 6, 2: 6}
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
+
+
+def _phase_rows(n_polytopes, phases=3):
+    """Rows per polytope sharing ``polytope_id`` and ``h11``: ``phases``
+    of them, or 2 + pid % 3 when ``phases`` is None."""
+    rows = []
+    for pid in range(n_polytopes):
+        for phase in range(phases or 2 + pid % 3):
+            row = _numbered_rows(1)[0]
+            row.update(polytope_id=pid, phase=phase, h11=pid % 4)
+            rows.append(row)
+    return rows
+
+
+class TestCYGroupedSplits:
+    def test_groups_stay_together(self, tmp_path, make_cy_parquet):
+        rows = _phase_rows(20)
+        splits = {
+            split_type: _load_split(
+                tmp_path,
+                make_cy_parquet,
+                rows,
+                split_type,
+                group_by="polytope_id",
+            )
+            for split_type in ("train", "val", "test")
+        }
+        ids = {
+            split_type: {int(d.polytope_id) for d in ds}
+            for split_type, ds in splits.items()
+        }
+        assert ids["train"].isdisjoint(ids["val"])
+        assert ids["train"].isdisjoint(ids["test"])
+        assert ids["val"].isdisjoint(ids["test"])
+        assert sorted(ids["train"] | ids["val"] | ids["test"]) == list(
+            range(20)
+        )
+        # 12 / 4 / 4 polytopes with three phases each.
+        assert [len(splits[s]) for s in ("train", "val", "test")] == [
+            36,
+            12,
+            12,
+        ]
+
+    def test_grouped_split_stratifies_over_groups(
+        self, tmp_path, make_cy_parquet
+    ):
+        # 40 polytopes, 10 per h11 value, with 2 to 4 phases each: the
+        # 8 test polytopes are balanced over h11, their rows are not.
+        test = _load_split(
+            tmp_path,
+            make_cy_parquet,
+            _phase_rows(40, phases=None),
+            "test",
+            group_by="polytope_id",
+            stratified=True,
+            label_source="h11",
+        )
+        polytopes = {(int(d.polytope_id), int(d.h11)) for d in test}
+        assert Counter(h11 for _, h11 in polytopes) == {0: 2, 1: 2, 2: 2, 3: 2}
+        assert len(test) == sum(2 + pid % 3 for pid, _ in polytopes)
+        assert "group-polytope_id" in test.processed_paths[0]
+
+    def test_missing_group_attribute_rejected(self, tmp_path, make_cy_parquet):
+        with pytest.raises(ValueError, match="group_by"):
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                _numbered_rows(5),
+                "train",
+                group_by="polytope_id",
+            )

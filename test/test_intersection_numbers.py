@@ -51,9 +51,7 @@ def test_mask_selects_the_rank_2_skeleton_of_the_representations():
 
 # Cone over the boundary of an octahedron (vertex 1 the origin, 2/3,
 # 4/5, 6/7 the opposite pairs): (2,3,4) is in range but not a face.
-OCTAHEDRON = [
-    [1, a, b, c] for a in (2, 3) for b in (4, 5) for c in (6, 7)
-]
+OCTAHEDRON = [[1, a, b, c] for a in (2, 3) for b in (4, 5) for c in (6, 7)]
 
 
 def test_entries_outside_the_triangulation_or_malformed_raise():
@@ -63,7 +61,10 @@ def test_entries_outside_the_triangulation_or_malformed_raise():
         )
     with pytest.raises(ValueError, match="outside"):
         TriangleIntersectionNumbers()(
-            Data(triangulation=TRIANGULATION, intersection_numbers=[[1, 2, 5, 1]])
+            Data(
+                triangulation=TRIANGULATION,
+                intersection_numbers=[[1, 2, 5, 1]],
+            )
         )
     with pytest.raises(RuntimeError):
         TriangleIntersectionNumbers()(
