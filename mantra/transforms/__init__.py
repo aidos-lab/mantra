@@ -7,7 +7,10 @@ from .encodings import (
     NodeRandomTransform,
     SimplexRandomTransform,
 )
-from .intersection_numbers import TriangleIntersectionNumbers
+from .intersection_numbers import (
+    CandidateTriangleIntersectionNumbers,
+    TriangleIntersectionNumbers,
+)
 from .task_transforms import (
     NAME_TO_CLASS_2M,
     NAME_TO_CLASS_3M,
@@ -43,6 +46,7 @@ __all__ = [
     "SelectAttributes",
     "SelectFeatures",
     "SimplexRandomTransform",
+    "CandidateTriangleIntersectionNumbers",
     "TriangleIntersectionNumbers",
     "NodeRandomTransform",
     "NodeDegreeTransform",

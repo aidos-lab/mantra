@@ -3,7 +3,10 @@ import torch
 from torch_geometric.data import Data
 
 from mantra.representations import IncidenceSimplicialComplex
-from mantra.transforms import TriangleIntersectionNumbers
+from mantra.transforms import (
+    CandidateTriangleIntersectionNumbers,
+    TriangleIntersectionNumbers,
+)
 
 # Cone over the boundary of a tetrahedron (vertex 1 is the origin). Its
 # ten triangles in lexicographic order are the six through the origin,
@@ -78,5 +81,96 @@ def test_entries_outside_the_triangulation_or_malformed_raise():
                 triangulation=TRIANGULATION,
                 intersection_numbers=NUMBERS,
                 coords=torch.ones(5, 3),
+            )
+        )
+
+
+# The four boundary points of TRIANGULATION as one 2-face, in rows
+# (face, point): its four
+# triples are all triangles of the full cone, and two of the half cone.
+FACE = [[0, 1], [0, 2], [0, 3], [0, 4]]
+# Two triangular 2-faces, (1,2,3) and (2,3,4).
+TWO_TRIANGLES = [[0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [1, 4]]
+HALF_CONE = [[1, 2, 3, 4], [1, 2, 3, 5]]
+
+
+def test_candidates_of_a_face_with_present_and_absent_triangles():
+    full = CandidateTriangleIntersectionNumbers()(
+        Data(
+            triangulation=TRIANGULATION,
+            intersection_numbers=NUMBERS,
+            face2_points=FACE,
+        )
+    )
+    assert torch.equal(
+        full.kappa_candidate, torch.tensor([5.0, -2.0, 0.0, 0.0])
+    )
+    assert torch.equal(
+        full.candidate_index_2,
+        torch.tensor([[1, 1, 1, 2], [2, 2, 3, 3], [3, 4, 4, 4]]),
+    )
+    assert full.candidate_present.tolist() == [True] * 4
+
+    half = CandidateTriangleIntersectionNumbers()(
+        Data(
+            triangulation=HALF_CONE,
+            intersection_numbers=NUMBERS[:2],
+            face2_points=FACE,
+        )
+    )
+    assert torch.equal(
+        half.kappa_candidate, torch.tensor([5.0, -2.0, 0.0, 0.0])
+    )
+    assert half.candidate_present.tolist() == [True, True, False, False]
+    assert torch.equal(half.candidate_index_2, full.candidate_index_2)
+
+
+def test_small_faces_and_collinear_triples_give_no_candidates():
+    small = CandidateTriangleIntersectionNumbers()(
+        Data(
+            triangulation=TRIANGULATION,
+            intersection_numbers=NUMBERS,
+            face2_points=TWO_TRIANGLES,
+        )
+    )
+    assert small.kappa_candidate.shape == (0,)
+    assert small.candidate_index_2.shape == (3, 0)
+    kept = CandidateTriangleIntersectionNumbers(min_points=3)(
+        Data(
+            triangulation=TRIANGULATION,
+            intersection_numbers=NUMBERS,
+            face2_points=TWO_TRIANGLES,
+        )
+    )
+    assert torch.equal(kept.kappa_candidate, torch.tensor([5.0, 0.0]))
+
+    # Points 1, 2, 3 on a line: of the four triples only those with 4 remain.
+    coords = [[0, 0, 0], [1, 0, 0], [2, 0, 0], [3, 0, 0], [0, 1, 0]]
+    data = CandidateTriangleIntersectionNumbers()(
+        Data(
+            triangulation=TRIANGULATION,
+            intersection_numbers=NUMBERS,
+            face2_points=FACE,
+            coords=coords,
+        )
+    )
+    assert data.candidate_index_2.t().tolist() == [
+        [1, 2, 4],
+        [1, 3, 4],
+        [2, 3, 4],
+    ]
+
+
+def test_candidates_need_the_faces_and_the_origin_first():
+    with pytest.raises(ValueError, match="face2_points"):
+        CandidateTriangleIntersectionNumbers()(
+            Data(triangulation=TRIANGULATION, intersection_numbers=NUMBERS)
+        )
+    with pytest.raises(ValueError, match="origin"):
+        CandidateTriangleIntersectionNumbers()(
+            Data(
+                triangulation=TRIANGULATION,
+                intersection_numbers=NUMBERS,
+                face2_points=[[0, 0], [0, 1], [0, 2], [0, 3]],
             )
         )
