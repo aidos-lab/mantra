@@ -5,7 +5,11 @@ import numpy as np
 from tqdm import tqdm
 
 from mantra.datasets.calabi_yau import CalabiYau
-from mantra.datasets.utils import filter_by_class_count, make_split_index
+from mantra.datasets.utils import (
+    filter_by_class_count,
+    make_split_index,
+    map_pre_transform,
+)
 
 SPLIT_TYPES = ["train", "val", "test"]
 DEFAULT_SPLIT_PROPORTIONS = [0.6, 0.2, 0.2]
@@ -39,7 +43,9 @@ class CalabiYauDataset(CalabiYau):
         stratified: bool = False,
         label_source: str = "h11",
         min_sample_per_class: int | None = None,
+        group_by: str | None = None,
         parquet_batch_size: int = 1000,
+        pre_transform_workers: int | None = 1,
     ):
         """
         Create a split of the CY-Manifolds dataset.
@@ -71,6 +77,12 @@ class CalabiYauDataset(CalabiYau):
             this many times before splitting. ``None`` keeps every
             sample.
 
+        group_by : str or None
+            Attribute whose value identifies the group of a sample, e.g.
+            ``polytope_id`` for the phases of one polytope. All samples
+            of a group land in the same split; with ``stratified`` the
+            ``label_source`` must be constant within each group.
+
         The remaining parameters are those of :class:`CalabiYau`.
         """
         if split_type not in SPLIT_TYPES:
@@ -91,6 +103,7 @@ class CalabiYauDataset(CalabiYau):
         self.stratified = stratified
         self.label_source = label_source
         self.min_sample_per_class = min_sample_per_class
+        self.group_by = group_by
 
         super().__init__(
             root,
@@ -103,6 +116,7 @@ class CalabiYauDataset(CalabiYau):
             pre_filter=pre_filter,
             force_reload=force_reload,
             parquet_batch_size=parquet_batch_size,
+            pre_transform_workers=pre_transform_workers,
         )
 
     def _load_index(self):
@@ -118,7 +132,7 @@ class CalabiYauDataset(CalabiYau):
         """
         parts = [f"seed{self.seed}"]
         if self.min_sample_per_class:
-            parts.append(f"ccf{self.min_sample_per_class}")
+            parts.append(f"ccf{self.min_sample_per_class}-{self.label_source}")
         if self.split_proportions != DEFAULT_SPLIT_PROPORTIONS:
             parts.append(
                 "sp" + "-".join(str(p) for p in self.split_proportions)
@@ -126,6 +140,8 @@ class CalabiYauDataset(CalabiYau):
         if self.stratified:
             parts.append("strat")
             parts.append(self.label_source)
+        if self.group_by:
+            parts.append(f"group-{self.group_by}")
         return "_" + "_".join(parts)
 
     @property
@@ -145,21 +161,35 @@ class CalabiYauDataset(CalabiYau):
                 if self.pre_filter(data)
             ]
 
+        n_before = len(data_list)
         data_list, _ = filter_by_class_count(
             data_list, self.label_source, self.min_sample_per_class
         )
+        if not data_list:
+            raise ValueError(
+                f"min_sample_per_class={self.min_sample_per_class} on "
+                f"'{self.label_source}' drops all {n_before} samples; "
+                "lower it or use a larger subset"
+            )
 
         labels = (
             np.array([data[self.label_source] for data in data_list])
             if self.stratified
             else None
         )
+        groups = None
+        if self.group_by:
+            if any(self.group_by not in data for data in data_list):
+                raise ValueError(
+                    f"group_by='{self.group_by}' is not an attribute of "
+                    "every sample"
+                )
+            groups = np.array([data[self.group_by] for data in data_list])
 
         if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
+            data_list = map_pre_transform(
+                self.pre_transform, data_list, self.pre_transform_workers
+            )
 
         train_index, val_index, test_index = make_split_index(
             data_list_size=len(data_list),
@@ -168,6 +198,7 @@ class CalabiYauDataset(CalabiYau):
             val_size=self.split_proportions[1],
             test_size=self.split_proportions[2],
             labels=labels,
+            groups=groups,
         )
 
         # WARN: This is order specific (must match SPLIT_TYPES).

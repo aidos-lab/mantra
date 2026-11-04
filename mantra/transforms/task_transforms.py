@@ -227,7 +227,9 @@ class AttributeToNodeRegressionTransform(T.BaseTransform):
     """Encode a per-vertex attribute as a node-level regression target.
 
     The values are stored in `data.y` as a float tensor of shape
-    `(n_vertices, 1)`, one row per vertex in vertex order.
+    `(n_vertices, 1)`, one row per vertex in vertex order. Any other
+    one-value-per-row attribute, such as one per triangle, works the
+    same way.
     """
 
     def __init__(self, source: str):
