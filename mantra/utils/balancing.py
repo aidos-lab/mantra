@@ -108,10 +108,8 @@ def _augment_with_surgery(
     new_entry["n_vertices"] = t.n_vertices
     new_entry["name"] = target_manifold_class
     new_entry["betti_numbers"] = list(BETTI_NUMBERS[target_manifold_class])
-    new_entry["name"] = target_manifold_class
-    new_entry["orientable"] = (
-        glue_type == "torus"
-    )  # Only torus gluing preserves orientability
+    # The top Betti number is 1 exactly for orientable closed surfaces.
+    new_entry["orientable"] = BETTI_NUMBERS[target_manifold_class][-1] == 1
     if "genus" in new_entry:
         new_entry["genus"] = _genus_from_name(target_manifold_class)
 
