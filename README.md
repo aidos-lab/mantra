@@ -15,10 +15,14 @@ additional code to reproduce all experiments.
 Please use the following citation for our work:
 
 ```bibtex
-@unpublished{Schmidt26a,
+@inproceedings{Schmidt26b,
   title         = {No Triangulation Without Representation: Generalization in Topological Deep Learning},
   author        = {Johannes S. Schmidt and Martin Carrasco and Ernst Röell and Guy Wolf and Nello Blaser and Bastian Rieck},
   year          = 2026,
+  booktitle     = {Advances in Neural Information Processing Systems},
+  volume        = {39},
+  publisher     = {Curran Associates, Inc.},
+  pubstate      = {inpress},
   eprint        = {2605.06467},
   archiveprefix = {arXiv},
   primaryclass  = {cs.LG},
