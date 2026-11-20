@@ -11,6 +11,7 @@ import torch
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
+# TODO: look over the multiprocessing pre-transform path below (PR #116).
 _worker_transform = None
 
 
