@@ -113,6 +113,8 @@ class TestAugmentWithTopologyChange:
             entry, "torus", id_cnt=0, rng=random.Random(0)
         )
         assert out["genus"] == 4
+        assert out["orientable"] is False
+        assert out["betti_numbers"] == [1, 3, 0]
 
     def test_crosscap_glue(self):
         entry = sphere_entry(name="S^2")
