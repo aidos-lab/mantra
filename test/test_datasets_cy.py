@@ -4,8 +4,17 @@ from collections import Counter
 
 import pytest
 import torch
+from torch_geometric.transforms import BaseTransform
 
 from mantra.datasets import CalabiYau, CalabiYauDataset
+from mantra.transforms import SimplexRandomTransform
+
+
+class _CountSimplices(BaseTransform):
+    def forward(self, data):
+        data.n_simplices = len(data.triangulation)
+        data.coords = data.coords * 2
+        return data
 
 
 def _load(tmp_path, make_cy_parquet, cy_rows, **kwargs):
@@ -52,6 +61,57 @@ class TestCY:
         assert int(data.h11) == 6
         assert int(data.h12) == 46
         assert int(dataset[1].h11) == 7
+
+    def test_regenerated_file_is_processed_anew(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        first = _load(tmp_path, make_cy_parquet, cy_rows)
+        again = _load(tmp_path, make_cy_parquet, cy_rows)
+        assert again.processed_dir == first.processed_dir
+
+        # Same file name, new content: served from a new cache without
+        # force_reload, and no raw copy is kept.
+        changed = [{**row, "h11": 99} for row in cy_rows]
+        regenerated = _load(tmp_path, make_cy_parquet, changed)
+        assert regenerated.processed_dir != first.processed_dir
+        assert all(int(data.h11) == 99 for data in regenerated)
+        assert not (tmp_path / "data" / "calabi_yau" / "raw").exists()
+
+    def test_parallel_pre_transform_matches_serial(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        rows = cy_rows * 8
+        serial, parallel = (
+            CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(rows, f"{name}.parquet"),
+                pre_transform=_CountSimplices(),
+                pre_transform_workers=workers,
+            )
+            for name, workers in (("serial", 1), ("parallel", 2))
+        )
+
+        assert len(parallel) == len(rows)
+        for a, b in zip(serial, parallel):
+            assert a.n_simplices == b.n_simplices == 4
+            assert torch.equal(a.coords, b.coords)
+
+    def test_parallel_pre_transform_seeds_each_sample(
+        self, tmp_path, make_cy_parquet, cy_rows
+    ):
+        def draws(name):
+            torch.manual_seed(0)
+            dataset = CalabiYau(
+                root=str(tmp_path / name),
+                local_path=make_cy_parquet(cy_rows * 8, f"{name}.parquet"),
+                pre_transform=SimplexRandomTransform(0, feature_dim=1),
+                pre_transform_workers=2,
+            )
+            return dataset._data.random_features_0
+
+        first = draws("first")
+        assert first.unique().numel() == first.numel()
+        assert torch.equal(first, draws("again"))
 
     def test_limit(self, tmp_path, make_cy_parquet, cy_rows):
         dataset = _load(tmp_path, make_cy_parquet, cy_rows, limit=1)
@@ -196,10 +256,23 @@ class TestCYClassFilter:
 
         assert sum(len(split) for split in splits) == 30
         assert all(int(data.h12) != 7 for split in splits for data in split)
-        assert "ccf2" in splits[0].processed_paths[0]
+        assert "ccf2-h12" in splits[0].processed_paths[0]
 
         unfiltered = _load_split(tmp_path, make_cy_parquet, rows, "train")
         assert "ccf" not in unfiltered.processed_paths[0]
+
+    def test_filter_dropping_everything_is_an_error(
+        self, tmp_path, make_cy_parquet
+    ):
+        with pytest.raises(ValueError, match="drops all 30 samples"):
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                _numbered_rows(30),
+                "train",
+                label_source="h12",
+                min_sample_per_class=10,
+            )
 
 
 class TestCYStratified:
@@ -224,3 +297,75 @@ class TestCYStratified:
         assert counts["train"] == {0: 6, 1: 6, 2: 6}
         assert counts["val"] == {0: 2, 1: 2, 2: 2}
         assert counts["test"] == {0: 2, 1: 2, 2: 2}
+
+
+def _phase_rows(n_polytopes, phases=3):
+    """Rows per polytope sharing ``polytope_id`` and ``h11``: ``phases``
+    of them, or 2 + pid % 3 when ``phases`` is None."""
+    rows = []
+    for pid in range(n_polytopes):
+        for phase in range(phases or 2 + pid % 3):
+            row = _numbered_rows(1)[0]
+            row.update(polytope_id=pid, phase=phase, h11=pid % 4)
+            rows.append(row)
+    return rows
+
+
+class TestCYGroupedSplits:
+    def test_groups_stay_together(self, tmp_path, make_cy_parquet):
+        rows = _phase_rows(20)
+        splits = {
+            split_type: _load_split(
+                tmp_path,
+                make_cy_parquet,
+                rows,
+                split_type,
+                group_by="polytope_id",
+            )
+            for split_type in ("train", "val", "test")
+        }
+        ids = {
+            split_type: {int(d.polytope_id) for d in ds}
+            for split_type, ds in splits.items()
+        }
+        assert ids["train"].isdisjoint(ids["val"])
+        assert ids["train"].isdisjoint(ids["test"])
+        assert ids["val"].isdisjoint(ids["test"])
+        assert sorted(ids["train"] | ids["val"] | ids["test"]) == list(
+            range(20)
+        )
+        # 12 / 4 / 4 polytopes with three phases each.
+        assert [len(splits[s]) for s in ("train", "val", "test")] == [
+            36,
+            12,
+            12,
+        ]
+
+    def test_grouped_split_stratifies_over_groups(
+        self, tmp_path, make_cy_parquet
+    ):
+        # 40 polytopes, 10 per h11 value, with 2 to 4 phases each: the
+        # 8 test polytopes are balanced over h11, their rows are not.
+        test = _load_split(
+            tmp_path,
+            make_cy_parquet,
+            _phase_rows(40, phases=None),
+            "test",
+            group_by="polytope_id",
+            stratified=True,
+            label_source="h11",
+        )
+        polytopes = {(int(d.polytope_id), int(d.h11)) for d in test}
+        assert Counter(h11 for _, h11 in polytopes) == {0: 2, 1: 2, 2: 2, 3: 2}
+        assert len(test) == sum(2 + pid % 3 for pid, _ in polytopes)
+        assert "group-polytope_id" in test.processed_paths[0]
+
+    def test_missing_group_attribute_rejected(self, tmp_path, make_cy_parquet):
+        with pytest.raises(ValueError, match="group_by"):
+            _load_split(
+                tmp_path,
+                make_cy_parquet,
+                _numbered_rows(5),
+                "train",
+                group_by="polytope_id",
+            )

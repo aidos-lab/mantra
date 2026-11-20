@@ -1,11 +1,13 @@
+import hashlib
 import os
-import shutil
-from typing import List
+from typing import List, Optional
 
 import pyarrow.parquet as pq
 import torch
 from torch_geometric.data import Data, InMemoryDataset
 from tqdm import tqdm
+
+from mantra.datasets.utils import map_pre_transform
 
 
 class CalabiYau(InMemoryDataset):
@@ -45,6 +47,7 @@ class CalabiYau(InMemoryDataset):
         pre_filter=None,
         force_reload=False,
         parquet_batch_size: int = 1000,
+        pre_transform_workers: Optional[int] = 1,
     ):
         """
         Create a new CY-Manifolds dataset.
@@ -74,12 +77,12 @@ class CalabiYau(InMemoryDataset):
             As a suggestion the name should not include any spaces, thus
             making it easier to parse for the OS.
 
-        local_path : str or None
-            If set, use a local parquet file instead of downloading from
-            GitHub. The file is copied into the raw directory under its
-            own name and processed into a directory of that name, so
-            different files coexist; files sharing a name also share
-            the cache (use `force_reload` after replacing one).
+        local_path : str
+            Parquet file to read. It is read in place, not copied into
+            `root`. The processed files live in a directory named after
+            the file and a fingerprint of its parquet footer, so files
+            sharing a name coexist and a regenerated file is processed
+            anew instead of being served from the old cache.
 
         limit : int or None
             Only process the first `limit` triangulations. Limited
@@ -90,12 +93,21 @@ class CalabiYau(InMemoryDataset):
         parquet_batch_size : int
             Size of the batch to load from the parquet file of the
             manifold triangulations.
+
+        pre_transform_workers : int or None
+            Processes applying `pre_transform` when the cache is built;
+            `None` uses every CPU the process may run on.
         """
+        if local_path is None:
+            raise ValueError("`local_path` is required; there is no download")
+
         self.version = version
         self.name = name
-        self.local_path = os.path.abspath(local_path) if local_path else None
+        self.local_path = os.path.abspath(local_path)
+        self.source_fingerprint = _parquet_fingerprint(self.local_path)
         self.limit = limit
         self.parquet_batch_size = parquet_batch_size
+        self.pre_transform_workers = pre_transform_workers
 
         root += self._add_version_to_root()
 
@@ -124,30 +136,17 @@ class CalabiYau(InMemoryDataset):
             return f"/calabi_yau/{self.version}/"
 
     @property
-    def raw_file_names(self):
-        """Return raw file names.
-
-        Stores the raw file names that need to be present in the raw folder
-        for downloading to be skipped. To reference raw file names, use the
-        property `self.raw_paths`.
-        """
-        if self.local_path is None:
-            return ["manifolds.parquet"]
-        return [os.path.basename(self.local_path)]
-
-    @property
     def processed_dir(self):
         """Return path of directory with the processed files.
 
-        The path encodes the local parquet file and the optional `name`
-        and `limit` parameters so that differently prepared variants of
-        the dataset can coexist.
+        The path encodes the parquet file name, its fingerprint and the
+        optional `name` and `limit` parameters so that differently
+        prepared variants of the dataset can coexist.
         """
-        path = os.path.join(self.root, "processed")
-
-        if self.local_path is not None:
-            stem = os.path.splitext(os.path.basename(self.local_path))[0]
-            path = os.path.join(path, stem)
+        stem = os.path.splitext(os.path.basename(self.local_path))[0]
+        path = os.path.join(
+            self.root, "processed", f"{stem}-{self.source_fingerprint}"
+        )
         if self.name is not None:
             path = os.path.join(path, self.name)
         if self.limit is not None:
@@ -163,13 +162,6 @@ class CalabiYau(InMemoryDataset):
         the `processed` folder, processing will typically be skipped.
         """
         return ["data.pt"]
-
-    def download(self):
-        """Copy a local parquet file into the raw directory."""
-        if self.local_path is None:
-            raise NotADirectoryError("Downloading not implemented yet")
-        dst = os.path.join(self.raw_dir, self.raw_file_names[0])
-        shutil.copy2(self.local_path, dst)
 
     def _process_parquet(self, parquet_file) -> List[Data]:
         """Processes the parquet file iteration process.
@@ -244,7 +236,7 @@ class CalabiYau(InMemoryDataset):
 
     def _load_data_list(self) -> List[Data]:
         """Parse the raw parquet file and apply ``pre_filter``."""
-        parquet_file = pq.ParquetFile(self.raw_paths[0])
+        parquet_file = pq.ParquetFile(self.local_path)
 
         data_list = self._process_parquet(parquet_file)
 
@@ -262,9 +254,23 @@ class CalabiYau(InMemoryDataset):
             ]
 
         if self.pre_transform is not None:
-            data_list = [
-                self.pre_transform(data)
-                for data in tqdm(data_list, desc="Pre-transforming")
-            ]
+            data_list = map_pre_transform(
+                self.pre_transform, data_list, self.pre_transform_workers
+            )
 
         self.save(data_list, self.processed_paths[0])
+
+
+def _parquet_fingerprint(path: str) -> str:
+    """Hex digest of the parquet footer.
+
+    The footer holds the schema, row counts, column chunk offsets and
+    column statistics, so it changes whenever the data does, while
+    hashing it costs a few kilobytes of reading instead of the file.
+    """
+    with open(path, "rb") as f:
+        f.seek(-8, os.SEEK_END)
+        footer_length = int.from_bytes(f.read(4), "little")
+        f.seek(-8 - footer_length, os.SEEK_END)
+        footer = f.read(footer_length)
+    return hashlib.blake2b(footer, digest_size=6).hexdigest()

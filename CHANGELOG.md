@@ -7,6 +7,24 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
 
 ## Added
 
+- `TriangleIntersectionNumbers`: per-triangle targets from the sparse
+  intersection numbers of a Calabi-Yau triangulation, in the rank-2
+  order of the simplicial representations, with the triangles' vertex
+  indices for gathering vertex embeddings.
+
+- `EulerCharacteristicTransform`: sublevel-set Euler characteristic
+  transform of a triangulation with vertex coordinates, over seeded
+  random directions and a threshold grid, optionally of the
+  `max_rank`-skeleton; `per_rank` keeps the face counts of every rank
+  apart instead of their alternating sum.
+
+- `CalabiYau` and `CalabiYauDataset` take `pre_transform_workers`:
+  the `pre_transform` runs in a process pool when the cache is built
+  (`None` uses every available CPU; the default `1` is serial). Results
+  cross the pool as plain pickles, since torch's shared-memory
+  reductions keep one descriptor per tensor and exhaust `ulimit -n` on
+  large datasets.
+
 - `PermuteVertices`: relabels a triangulation by a random vertex
   permutation, so that downstream encodings and the orientations of
   signed incidence matrices no longer depend on the stored labels.
@@ -27,6 +45,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   files encode these options, so variants coexist with the full
   dataset.
 
+- `LeviGraph(feature_propagation=...)`: like `HasseDiagram`, the
+  vertex and maximal-simplex nodes receive the rows of the per-rank
+  feature tensors (e.g. the barycentres written by
+  `PropagateConvexComb`) as `x`. A boolean `vertex_mask` marks the
+  vertex nodes, which come first in vertex order, so per-vertex
+  node-level targets align with `x[vertex_mask]`.
+
 - `AttributeToNodeRegressionTransform` and `AttributeToNodeClassTransform`
   in `task_transforms`: stateless node-level task transforms that turn
   an attribute holding one value per vertex into `data.y` with one
@@ -41,6 +66,13 @@ changes to this project. We adhere to [Semantic Versioning](https://semver.org/)
   `AttributeToClassTransform` or a name transform instead.
 
 ## Fixed
+
+- `CalabiYauDataset` raises a clear error when `min_sample_per_class`
+  drops every sample instead of failing inside the split.
+
+- `CalabiYauDataset` split files filtered with `min_sample_per_class`
+  now also carry the `label_source`, so filters on different labels no
+  longer share a cached split.
 
 - `MantraDataset(force_reload=True)` now removes all existing files from the cache and only needs to be set during first  
 dataset creation
@@ -73,6 +105,13 @@ dataset creation
 
 ## Changed
 
+- `CalabiYau` reads the parquet file given by `local_path` in place
+  instead of copying it into `raw/`, and its processed directory
+  carries a fingerprint of the parquet footer. A regenerated file
+  under the same name is processed anew instead of being served from
+  the old cache; existing caches are rebuilt once. `local_path` is
+  now required.
+
 - `Simplex` stores its vertices as a sorted tuple, so iteration,
   `repr` and ordering are lexicographic.
 
@@ -81,6 +120,7 @@ dataset creation
   subdivision only subdivides the cached test entries and pre-transforms
   its own OOD split. Processed directories from earlier versions lack
   the sources file and are rebuilt once.
+
 - `CalabiYau` converts parquet list columns (e.g. the per-vertex `c2`
   or the sparse `intersection_numbers` block) to tensors instead of
   attaching numpy arrays, so they collate and cache like any other
